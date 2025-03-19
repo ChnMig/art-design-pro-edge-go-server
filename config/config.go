@@ -55,6 +55,7 @@ var (
 	PWDSalt       = "rHECMvW3el1zhpdzgx9dY" // 数据库存储密码时的盐, 务必重新生成, 且不可泄露, 不可更改
 )
 
+
 func init() {
 	pathtool.CreateDir(LogDir)
 }

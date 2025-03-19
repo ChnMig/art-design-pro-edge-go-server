@@ -19,3 +19,4 @@ bulid/
 *.sublime-project
 
 server
+/docker/postgres_data/
