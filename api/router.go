@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 
+	"api-server/api/app/system/menu"
 	"api-server/api/app/system/user"
 	"api-server/api/middleware"
 )
@@ -13,7 +14,8 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.GET("/user/login/captcha", user.GetCaptcha)
 		systemRouter.POST("/user/login", user.Login)
 		systemRouter.GET("/user/info", middleware.TokenVerify, user.GetUserInfo)
-		systemRouter.GET("/user/menu", middleware.TokenVerify, user.GetMenuList)
+		systemRouter.GET("/user/menu", middleware.TokenVerify, user.GetUserMenuList)
+		systemRouter.GET("/menu", middleware.TokenVerify, menu.GetMenuList)
 	}
 }
 
