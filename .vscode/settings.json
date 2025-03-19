@@ -1,0 +1,5 @@
+{
+    "gopls": {
+        "formatting.local": "api-server"  // Value from go.mod > model
+    }
+}

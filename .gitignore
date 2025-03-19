@@ -1,0 +1,21 @@
+# Build
+bulid/
+*.exe
+
+# dotenv
+.env
+
+# venv
+/vendor/
+
+# Log
+*.log
+
+# OSX dir files
+.DS_Store
+
+# Sublime Text settings
+*.sublime-workspace
+*.sublime-project
+
+server
