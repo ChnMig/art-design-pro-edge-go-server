@@ -22,11 +22,11 @@ func migrateData(db *gorm.DB) error {
 		// 创建菜单
 		menus := []Menu{
 			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/index/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0},
-			{Model: gorm.Model{ID: 2}, Path: "/system", Name: "system", Component: "Layout", Title: "系统管理", Icon: "&#xe721;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0},
-			{Model: gorm.Model{ID: 3}, Path: "menu", Name: "menu", Component: "system/menu", Title: "菜单管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
-			{Model: gorm.Model{ID: 4}, Path: "role", Name: "role", Component: "system/role", Title: "角色管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
-			{Model: gorm.Model{ID: 5}, Path: "department", Name: "department", Component: "system/department", Title: "部门管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
-			{Model: gorm.Model{ID: 6}, Path: "user", Name: "user", Component: "system/user", Title: "用户管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
+			{Model: gorm.Model{ID: 2}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "&#xe72b;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0},
+			{Model: gorm.Model{ID: 3}, Path: "menu", Name: "Menu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
+			{Model: gorm.Model{ID: 4}, Path: "role", Name: "Role", Component: "/system/role/index", Title: "角色管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
+			{Model: gorm.Model{ID: 5}, Path: "department", Name: "Department", Component: "/system/department/index", Title: "部门管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
+			{Model: gorm.Model{ID: 6}, Path: "user", Name: "User", Component: "/system/user/index", Title: "用户管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2},
 			{Model: gorm.Model{ID: 7}, Path: "console", Name: "Console", Component: "/dashboard/console", Title: "工作台", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1},
 		}
 		err := db.Create(&menus).Error
