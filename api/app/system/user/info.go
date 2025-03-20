@@ -28,7 +28,7 @@ func GetUserInfo(c *gin.Context) {
 	}
 	response.ReturnOk(c, gin.H{
 		"id":       u.ID,
-		"name":     u.Username,
+		"name":     u.Name,
 		"username": u.Username,
 		"avatar":   "",
 		"email":    "",

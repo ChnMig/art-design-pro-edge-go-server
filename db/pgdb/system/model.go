@@ -66,6 +66,7 @@ type User struct {
 	gorm.Model
 	DepartmentID uint   `json:"department_id"`
 	RoleID       uint   `json:"role_id"`
+	Name         string `json:"name"`  // 姓名, 不可修改
 	Username     string `json:"username"`
 	Password     string `json:"password"`
 	Phone        string `json:"phone"`
