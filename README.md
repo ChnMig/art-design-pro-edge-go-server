@@ -1,5 +1,7 @@
 # 关于
 
+> !!!项目还在开发中, 并未正式发布
+
 本项目是 [art-design-pro-edge](https://github.com/ChnMig/art-design-pro-edge) 的后端服务。
 配合前端可以做到开箱即用, 但是具体的业务功能需要自己开发.
 
