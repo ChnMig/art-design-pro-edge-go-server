@@ -73,3 +73,22 @@ func GetMenuData() ([]Menu, []MenuPermission, error) {
 	}
 	return menus, permissions, nil
 }
+
+// 新增一个菜单
+func AddMenu(menu *Menu) error {
+	if err := pgdb.GetClient().Create(&menu).Error; err != nil {
+		zap.L().Error("failed to create menu", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// 通过 ID 获取菜单
+func GetMenuByID(id uint) (Menu, error) {
+	var menu Menu
+	if err := pgdb.GetClient().Where("id = ?", id).First(&menu).Error; err != nil {
+		zap.L().Error("failed to get menu by id", zap.Error(err))
+		return menu, err
+	}
+	return menu, nil
+}
