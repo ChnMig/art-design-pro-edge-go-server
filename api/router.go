@@ -17,6 +17,7 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.GET("/user/menu", middleware.TokenVerify, user.GetUserMenuList)
 		systemRouter.GET("/menu", middleware.TokenVerify, menu.GetMenuList)
 		systemRouter.POST("/menu", middleware.TokenVerify, menu.AddMenu)
+		systemRouter.DELETE("/menu", middleware.TokenVerify, menu.DeleteMenu)
 	}
 }
 

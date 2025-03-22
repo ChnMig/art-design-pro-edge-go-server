@@ -1,8 +1,6 @@
 package system
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -46,9 +44,17 @@ func GetMenuData() ([]Menu, []MenuPermission, error) {
 
 // 新增一个菜单
 func AddMenu(menu *Menu) error {
-	fmt.Println(menu.ID)
-	if err := pgdb.GetClient().Debug().Create(&menu).Error; err != nil {
+	if err := pgdb.GetClient().Create(&menu).Error; err != nil {
 		zap.L().Error("failed to create menu", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// 删除一个菜单
+func DeleteMenu(menu *Menu) error {
+	if err := pgdb.GetClient().Delete(&menu).Error; err != nil {
+		zap.L().Error("failed to delete menu", zap.Error(err))
 		return err
 	}
 	return nil
@@ -62,4 +68,13 @@ func GetMenuByID(id uint) (Menu, error) {
 		return menu, err
 	}
 	return menu, nil
+}
+
+func GetMenuByPartentID(parentID uint) ([]Menu, error) {
+	var menus []Menu
+	if err := pgdb.GetClient().Where("parent_id = ?", parentID).Find(&menus).Error; err != nil {
+		zap.L().Error("failed to get menu by parent_id", zap.Error(err))
+		return nil, err
+	}
+	return menus, nil
 }
