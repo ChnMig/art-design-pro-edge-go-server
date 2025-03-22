@@ -1,6 +1,8 @@
 package system
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -118,12 +120,35 @@ func migrateData(db *gorm.DB) error {
 	return err
 }
 
+func resetSequences(db *gorm.DB) error {
+	tables := []string{
+		"menus", "menu_permissions", "roles", "departments", "users",
+	}
+
+	for _, table := range tables {
+		seqName := table + "_id_seq"
+		query := fmt.Sprintf("SELECT setval('%s', (SELECT COALESCE(MAX(id), 0) FROM %s));", seqName, table)
+		if err := db.Exec(query).Error; err != nil {
+			zap.L().Error("failed to reset sequence", zap.String("sequence", seqName), zap.Error(err))
+			return err
+		}
+		zap.L().Info("sequence reset successfully", zap.String("sequence", seqName))
+	}
+
+	return nil
+}
+
 func Migrate(db *gorm.DB) error {
 	err := migrateTable(db)
 	if err != nil {
 		return err
 	}
 	err = migrateData(db)
+	if err != nil {
+		return err
+	}
+	// 添加序列重置操作
+	err = resetSequences(db)
 	if err != nil {
 		return err
 	}

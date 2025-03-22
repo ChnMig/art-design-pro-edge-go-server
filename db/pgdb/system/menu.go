@@ -1,6 +1,8 @@
 package system
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -44,7 +46,8 @@ func GetMenuData() ([]Menu, []MenuPermission, error) {
 
 // 新增一个菜单
 func AddMenu(menu *Menu) error {
-	if err := pgdb.GetClient().Create(&menu).Error; err != nil {
+	fmt.Println(menu.ID)
+	if err := pgdb.GetClient().Debug().Create(&menu).Error; err != nil {
 		zap.L().Error("failed to create menu", zap.Error(err))
 		return err
 	}

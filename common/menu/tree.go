@@ -25,6 +25,7 @@ type MenuMeta struct {
 	Link              string               `json:"link,omitempty"`
 	IsIframe          bool                 `json:"isIframe,omitempty"`
 	IsInMainContainer bool                 `json:"isInMainContainer,omitempty"`
+	IsEnable          bool                 `json:"isEnable,omitempty"`
 	AuthList          []MenuPermissionResp `json:"authList,omitempty"`
 }
 
@@ -75,6 +76,7 @@ func convertMenuToResponse(menu system.Menu) MenuResponse {
 			Link:              menu.Link,
 			IsIframe:          menu.IsIframe == 1,          // 1表示是iframe
 			IsInMainContainer: menu.IsInMainContainer == 1, // 1表示在主容器中
+			IsEnable:          menu.Status == 1,            // 1表示启用
 		},
 	}
 }

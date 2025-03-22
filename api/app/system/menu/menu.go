@@ -25,22 +25,25 @@ func AddMenu(c *gin.Context) {
 	params := &struct {
 		Path              string `json:"path" form:"path" binding:"required"`
 		Name              string `json:"name" form:"name" binding:"required"`
-		Compent           string `json:"compent" form:"compent" binding:"required"`
+		Component         string `json:"compent" form:"compent"`
 		Title             string `json:"title" form:"title" binding:"required"`
-		Icon              string `json:"icon" form:"icon" binding:"required"`
-		ShowBadge         uint   `json:"show_badge" form:"show_badge" binding:"required"`
-		ShowTextBadge     string `json:"show_text_badge" form:"show_text_badge" binding:"required"`
-		IsHide            uint   `json:"is_hide" form:"is_hide" binding:"required"`
-		IsHideTab         uint   `json:"is_hide_tab" form:"is_hide_tab" binding:"required"`
-		Link              string `json:"link" form:"link" binding:"required"`
-		IsIframe          uint   `json:"is_iframe" form:"is_iframe" binding:"required"`
-		KeepAlive         uint   `json:"keep_alive" form:"keep_alive" binding:"required"`
-		IsInMainContainer uint   `json:"is_in_main_container" form:"is_in_main_container" binding:"required"`
+		Icon              string `json:"icon" form:"icon"`
+		ShowBadge         uint   `json:"showBadge" form:"showBadge"`
+		ShowTextBadge     string `json:"showTextBadge" form:"showTextBadge"`
+		IsHide            uint   `json:"isHide" form:"isHide" binding:"required"`
+		IsHideTab         uint   `json:"isHideTab" form:"isHideTab" binding:"required"`
+		Link              string `json:"link" form:"link"`
+		IsIframe          uint   `json:"isIframe" form:"isIframe" binding:"required"`
+		KeepAlive         uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
+		IsInMainContainer uint   `json:"isInMainContainer" form:"isInMainContainer" binding:"required"`
 		Status            uint   `json:"status" form:"status" binding:"required"`
-		ParentID          uint   `json:"parent_id" form:"parent_id" binding:"required"`
+		ParentID          uint   `json:"parent_id" form:"parent_id"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
+	}
+	if params.ShowBadge == 0 {
+		params.ShowBadge = 2
 	}
 	var level uint = 1
 	// 如果有父级ID, 则查询父级ID是否存在
@@ -59,7 +62,7 @@ func AddMenu(c *gin.Context) {
 	menu := system.Menu{
 		Path:              params.Path,
 		Name:              params.Name,
-		Component:         params.Compent,
+		Component:         params.Component,
 		Title:             params.Title,
 		Icon:              params.Icon,
 		ShowBadge:         params.ShowBadge,

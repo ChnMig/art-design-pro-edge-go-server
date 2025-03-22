@@ -43,7 +43,7 @@ type Menu struct {
 	Link              string           `json:"link"`                 // 链接(外链)
 	IsIframe          uint             `json:"is_iframe"`            // 是否内嵌(1:内嵌 2:不内嵌)
 	KeepAlive         uint             `json:"keep_alive"`           // 是否缓存(1:缓存 2:不缓存)
-	IsInMainContainer uint             `json:"is_in_main_container"` // 是否在主容器内(1:是 2:否)
+	IsInMainContainer uint             `json:"is_in_main_container"` // 是否在主容器内(一级菜单使用)(1:是 2:否)
 	Status            uint             `json:"status"`               // 状态(1:启用 2:禁用)
 	Level             uint             `json:"level"`                // 层级(从1开始)
 	ParentID          uint             `json:"parent_id"`            // 父级ID
