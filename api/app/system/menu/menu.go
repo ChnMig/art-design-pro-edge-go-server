@@ -20,7 +20,7 @@ func GetMenuList(c *gin.Context) {
 		return
 	}
 	// 构建菜单树
-	menuTree := menu.BuildMenuTree(menus, menup)
+	menuTree := menu.BuildMenuTree(menus, menup, true)
 	response.ReturnOk(c, menuTree)
 }
 
@@ -62,7 +62,7 @@ func AddMenu(c *gin.Context) {
 	params := &struct {
 		Path              string `json:"path" form:"path" binding:"required"`
 		Name              string `json:"name" form:"name" binding:"required"`
-		Component         string `json:"compent" form:"compent"`
+		Component         string `json:"component" form:"component"`
 		Title             string `json:"title" form:"title" binding:"required"`
 		Icon              string `json:"icon" form:"icon"`
 		ShowBadge         uint   `json:"showBadge" form:"showBadge"`
@@ -74,7 +74,7 @@ func AddMenu(c *gin.Context) {
 		KeepAlive         uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
 		IsInMainContainer uint   `json:"isInMainContainer" form:"isInMainContainer" binding:"required"`
 		Status            uint   `json:"status" form:"status" binding:"required"`
-		ParentID          uint   `json:"parent_id" form:"parent_id"`
+		ParentID          uint   `json:"parentId" form:"parentId"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -138,7 +138,7 @@ func UpdateMenu(c *gin.Context) {
 		KeepAlive         uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
 		IsInMainContainer uint   `json:"isInMainContainer" form:"isInMainContainer" binding:"required"`
 		Status            uint   `json:"status" form:"status" binding:"required"`
-		ParentID          uint   `json:"parent_id" form:"parent_id"`
+		ParentID          uint   `json:"parentId" form:"parentId"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return

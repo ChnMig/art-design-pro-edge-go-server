@@ -16,6 +16,6 @@ func GetUserMenuList(c *gin.Context) {
 		return
 	}
 	// 构建菜单树
-	menuTree := menu.BuildMenuTree(menus, permissions)
+	menuTree := menu.BuildMenuTree(menus, permissions, false)
 	response.ReturnOk(c, menuTree)
 }

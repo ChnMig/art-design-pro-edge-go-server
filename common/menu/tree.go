@@ -11,6 +11,7 @@ type MenuResponse struct {
 	Component string         `json:"component,omitempty"`
 	Meta      MenuMeta       `json:"meta"`
 	Children  []MenuResponse `json:"children,omitempty"`
+	ParentID  uint           `json:"parentId,omitempty"`
 }
 
 // MenuMeta 定义菜单元数据
@@ -37,13 +38,18 @@ type MenuPermissionResp struct {
 }
 
 // 构建菜单树
-func BuildMenuTree(menus []system.Menu, permissions []system.MenuPermission) []MenuResponse {
+func BuildMenuTree(menus []system.Menu, permissions []system.MenuPermission, all bool) []MenuResponse {
 	var menuTree []MenuResponse
 	// 找出所有顶级菜单(ParentID = 0)
 	var rootMenus []system.Menu
 	if len(menus) > 0 {
 		for _, menu := range menus {
-			if menu.ParentID == 0 && menu.Status == 1 {
+			if menu.ParentID == 0 {
+				if !all {
+					if menu.Status == 2 {
+						continue
+					}
+				}
 				rootMenus = append(rootMenus, menu)
 			}
 		}
@@ -51,7 +57,7 @@ func BuildMenuTree(menus []system.Menu, permissions []system.MenuPermission) []M
 	// 递归构建菜单树
 	for _, rootMenu := range rootMenus {
 		menuResp := convertMenuToResponse(rootMenu)
-		buildMenuChildren(&menuResp, menus, permissions)
+		buildMenuChildren(&menuResp, menus, permissions, all)
 		menuTree = append(menuTree, menuResp)
 	}
 	return menuTree
@@ -65,6 +71,7 @@ func convertMenuToResponse(menu system.Menu) MenuResponse {
 		Path:      menu.Path,
 		Name:      menu.Name,
 		Component: menu.Component,
+		ParentID:  menu.ParentID,
 		Meta: MenuMeta{
 			Title:             menu.Title,
 			Icon:              menu.Icon,
@@ -82,9 +89,14 @@ func convertMenuToResponse(menu system.Menu) MenuResponse {
 }
 
 // 递归构建菜单子项
-func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissions []system.MenuPermission) {
+func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissions []system.MenuPermission, all bool) {
 	for _, menu := range allMenus {
-		if menu.ParentID == parent.ID && menu.Status == 1 {
+		if menu.ParentID == parent.ID {
+			if !all {
+				if menu.Status == 2 {
+					continue
+				}
+			}
 			child := convertMenuToResponse(menu)
 			// 为子菜单添加权限列表
 			for _, perm := range allPermissions {
@@ -97,7 +109,7 @@ func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissi
 				}
 			}
 			// 递归处理这个子菜单的子菜单
-			buildMenuChildren(&child, allMenus, allPermissions)
+			buildMenuChildren(&child, allMenus, allPermissions, all)
 			parent.Children = append(parent.Children, child)
 		}
 	}
