@@ -60,6 +60,14 @@ func DeleteMenu(menu *Menu) error {
 	return nil
 }
 
+func UpdateMenu(menu *Menu) error {
+	if err := pgdb.GetClient().Save(&menu).Error; err != nil {
+		zap.L().Error("failed to update menu", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
 // 通过 ID 获取菜单
 func GetMenuByID(id uint) (Menu, error) {
 	var menu Menu
