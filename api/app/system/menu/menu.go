@@ -163,6 +163,24 @@ func UpdateMenu(c *gin.Context) {
 		}
 		level = parentMenu.Level + 1
 	}
+	if params.Status == 2 {
+		// 判断子菜单是否是禁用状态
+		children, err := system.GetMenuByPartentID(params.ID)
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")
+				return
+			}
+		}
+		if len(children) > 0 {
+			for _, v := range children {
+				if v.Status == 1 {
+					response.ReturnError(c, response.DATA_LOSS, "请先禁用子菜单")
+					return
+				}
+			}
+		}
+	}
 	menu := system.Menu{
 		Model:             gorm.Model{ID: params.ID},
 		Path:              params.Path,
