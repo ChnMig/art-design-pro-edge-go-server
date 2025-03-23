@@ -47,6 +47,7 @@ type Menu struct {
 	Status            uint             `json:"status"`               // 状态(1:启用 2:禁用)
 	Level             uint             `json:"level"`                // 层级(从1开始)
 	ParentID          uint             `json:"parent_id"`            // 父级ID
+	Sort              uint             `json:"sort"`                 // 排序(从大到小)
 	Roles             []Role           `json:"roles" gorm:"many2many:role_menu;"`
 	MenuPermissions   []MenuPermission `json:"menu_permissions"` // 一对多关联菜单按钮权限表
 }

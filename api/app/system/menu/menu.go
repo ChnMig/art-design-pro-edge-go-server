@@ -75,6 +75,7 @@ func AddMenu(c *gin.Context) {
 		IsInMainContainer uint   `json:"isInMainContainer" form:"isInMainContainer" binding:"required"`
 		Status            uint   `json:"status" form:"status" binding:"required"`
 		ParentID          uint   `json:"parentId" form:"parentId"`
+		Sort              uint   `json:"sort" form:"sort"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -113,6 +114,7 @@ func AddMenu(c *gin.Context) {
 		Status:            params.Status,
 		Level:             level,
 		ParentID:          params.ParentID,
+		Sort:              params.Sort,
 	}
 	if err := system.AddMenu(&menu); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加菜单失败")
@@ -139,6 +141,7 @@ func UpdateMenu(c *gin.Context) {
 		IsInMainContainer uint   `json:"isInMainContainer" form:"isInMainContainer" binding:"required"`
 		Status            uint   `json:"status" form:"status" binding:"required"`
 		ParentID          uint   `json:"parentId" form:"parentId"`
+		Sort              uint   `json:"sort" form:"sort"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -178,6 +181,7 @@ func UpdateMenu(c *gin.Context) {
 		Status:            params.Status,
 		Level:             level,
 		ParentID:          params.ParentID,
+		Sort:              params.Sort,
 	}
 	if err := system.UpdateMenu(&menu); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新菜单失败")
