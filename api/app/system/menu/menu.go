@@ -31,7 +31,8 @@ func DeleteMenu(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	menu, err := system.GetMenuByID(params.ID)
+	menu := system.Menu{Model: gorm.Model{ID: params.ID}}
+	err := system.GetMenu(&menu)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			response.ReturnError(c, response.DATA_LOSS, "菜单不存在")
@@ -40,7 +41,7 @@ func DeleteMenu(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
 		return
 	}
-	children, err := system.GetMenuByPartentID(params.ID)
+	children, err := system.FindMenuList(&system.Menu{ParentID: menu.ID})
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")
@@ -86,7 +87,8 @@ func AddMenu(c *gin.Context) {
 	var level uint = 1
 	// 如果有父级ID, 则查询父级ID是否存在
 	if params.ParentID != 0 {
-		parentMenu, err := system.GetMenuByID(params.ParentID)
+		parentMenu := &system.Menu{}
+		err := system.GetMenu(&system.Menu{Model: gorm.Model{ID: params.ParentID}})
 		if err != nil {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
 			return
@@ -152,20 +154,21 @@ func UpdateMenu(c *gin.Context) {
 	var level uint = 1
 	// 如果有父级ID, 则查询父级ID是否存在
 	if params.ParentID != 0 {
-		parentMenu, err := system.GetMenuByID(params.ParentID)
+		parent := system.Menu{Model: gorm.Model{ID: params.ParentID}}
+		err := system.GetMenu(&parent)
 		if err != nil {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
 			return
 		}
-		if parentMenu.Status != 1 {
+		if parent.Status != 1 {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单已禁用")
 			return
 		}
-		level = parentMenu.Level + 1
+		level = parent.Level + 1
 	}
 	if params.Status == 2 {
 		// 判断子菜单是否是禁用状态
-		children, err := system.GetMenuByPartentID(params.ID)
+		children, err := system.FindMenuList(&system.Menu{ParentID: params.ID})
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")

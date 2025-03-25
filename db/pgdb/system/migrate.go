@@ -10,7 +10,7 @@ import (
 )
 
 func migrateTable(db *gorm.DB) error {
-	err := db.AutoMigrate(&Info{}, &Department{}, &Role{}, &Menu{}, &MenuPermission{}, &User{})
+	err := db.AutoMigrate(&Department{}, &Role{}, &Menu{}, &MenuAuth{}, &User{})
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
 		return err
@@ -86,12 +86,12 @@ func migrateData(db *gorm.DB) error {
 			return err
 		}
 		// 创建菜单按钮权限
-		menuPermissions := []MenuPermission{
-			{Model: gorm.Model{ID: 1}, MenuID: 3, Mark: "add", Title: "新增", Sort: 1, Roles: []Role{{Model: gorm.Model{ID: 1}}}},
-			{Model: gorm.Model{ID: 2}, MenuID: 3, Mark: "edit", Title: "修改", Sort: 2, Roles: []Role{{Model: gorm.Model{ID: 1}}}},
-			{Model: gorm.Model{ID: 3}, MenuID: 3, Mark: "delete", Title: "删除", Sort: 3, Roles: []Role{{Model: gorm.Model{ID: 1}}}},
+		menuAuths := []MenuAuth{
+			{Model: gorm.Model{ID: 1}, MenuID: 3, Mark: "add", Title: "新增", Roles: []Role{{Model: gorm.Model{ID: 1}}}},
+			{Model: gorm.Model{ID: 2}, MenuID: 3, Mark: "edit", Title: "修改", Roles: []Role{{Model: gorm.Model{ID: 1}}}},
+			{Model: gorm.Model{ID: 3}, MenuID: 3, Mark: "delete", Title: "删除", Roles: []Role{{Model: gorm.Model{ID: 1}}}},
 		}
-		err = db.Create(&menuPermissions).Error
+		err = db.Create(&menuAuths).Error
 		if err != nil {
 			zap.L().Error("failed to create menu permission", zap.Error(err))
 			return err
@@ -122,7 +122,7 @@ func migrateData(db *gorm.DB) error {
 
 func resetSequences(db *gorm.DB) error {
 	tables := []string{
-		"menus", "menu_permissions", "roles", "departments", "users",
+		"menus", "menu_auths", "roles", "departments", "users",
 	}
 
 	for _, table := range tables {

@@ -20,30 +20,30 @@ type MenuResponse struct {
 
 // MenuMeta 定义菜单元数据
 type MenuMeta struct {
-	Title             string               `json:"title"`
-	Icon              string               `json:"icon,omitempty"`
-	KeepAlive         bool                 `json:"keepAlive"`
-	ShowBadge         bool                 `json:"showBadge,omitempty"`
-	ShowTextBadge     string               `json:"showTextBadge,omitempty"`
-	IsHide            bool                 `json:"isHide,omitempty"`
-	IsHideTab         bool                 `json:"isHideTab,omitempty"`
-	Link              string               `json:"link,omitempty"`
-	IsIframe          bool                 `json:"isIframe,omitempty"`
-	IsInMainContainer bool                 `json:"isInMainContainer,omitempty"`
-	IsEnable          bool                 `json:"isEnable,omitempty"`
-	Sort              uint                 `json:"sort,omitempty"`
-	AuthList          []MenuPermissionResp `json:"authList,omitempty"`
+	Title             string         `json:"title"`
+	Icon              string         `json:"icon,omitempty"`
+	KeepAlive         bool           `json:"keepAlive"`
+	ShowBadge         bool           `json:"showBadge,omitempty"`
+	ShowTextBadge     string         `json:"showTextBadge,omitempty"`
+	IsHide            bool           `json:"isHide,omitempty"`
+	IsHideTab         bool           `json:"isHideTab,omitempty"`
+	Link              string         `json:"link,omitempty"`
+	IsIframe          bool           `json:"isIframe,omitempty"`
+	IsInMainContainer bool           `json:"isInMainContainer,omitempty"`
+	IsEnable          bool           `json:"isEnable,omitempty"`
+	Sort              uint           `json:"sort,omitempty"`
+	AuthList          []MenuAuthResp `json:"authList,omitempty"`
 }
 
-// MenuPermissionResp 定义菜单权限响应结构
-type MenuPermissionResp struct {
+// 定义菜单权限响应结构
+type MenuAuthResp struct {
 	ID       uint   `json:"id"`
 	Title    string `json:"title"`
-	AuthMark string `json:"auth_mark"` // 对应 MenuPermission 中的 Mark
+	AuthMark string `json:"auth_mark"` // 权限标识
 }
 
 // 构建菜单树
-func BuildMenuTree(menus []system.Menu, permissions []system.MenuPermission, all bool) []MenuResponse {
+func BuildMenuTree(menus []system.Menu, permissions []system.MenuAuth, all bool) []MenuResponse {
 	var menuTree []MenuResponse
 	// 找出所有顶级菜单(ParentID = 0)
 	var rootMenus []system.Menu
@@ -97,7 +97,7 @@ func convertMenuToResponse(menu system.Menu) MenuResponse {
 }
 
 // 递归构建菜单子项
-func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissions []system.MenuPermission, all bool) {
+func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissions []system.MenuAuth, all bool) {
 	var childMenus []system.Menu
 	// 收集当前父菜单下的所有子菜单
 	for _, menu := range allMenus {
@@ -116,7 +116,7 @@ func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissi
 		// 为子菜单添加权限列表
 		for _, perm := range allPermissions {
 			if perm.MenuID == menu.ID {
-				child.Meta.AuthList = append(child.Meta.AuthList, MenuPermissionResp{
+				child.Meta.AuthList = append(child.Meta.AuthList, MenuAuthResp{
 					ID:       perm.ID,
 					Title:    perm.Title,
 					AuthMark: perm.Mark,

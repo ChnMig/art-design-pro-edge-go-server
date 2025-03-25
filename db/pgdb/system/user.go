@@ -29,12 +29,10 @@ func VerifyUser(userName, password string) (User, error) {
 	return user, nil
 }
 
-func GetUser(ID uint) (User, error) {
-	user := User{}
-	err := pgdb.GetClient().Where(&User{Model: gorm.Model{ID: ID}}).First(&user).Error
-	if err != nil {
+func GetUser(user *User) error {
+	if err := pgdb.GetClient().Where(user).First(user).Error; err != nil {
 		zap.L().Error("failed to get user", zap.Error(err))
-		return user, err
+		return err
 	}
-	return user, nil
+	return nil
 }
