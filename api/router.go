@@ -5,6 +5,7 @@ import (
 
 	"api-server/api/app/system/department"
 	"api-server/api/app/system/menu"
+	"api-server/api/app/system/role"
 	"api-server/api/app/system/user"
 	"api-server/api/middleware"
 )
@@ -28,6 +29,10 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.POST("/department", middleware.TokenVerify, department.AddDepartment)
 		systemRouter.PUT("/department", middleware.TokenVerify, department.UpdateDepartment)
 		systemRouter.DELETE("/department", middleware.TokenVerify, department.DeleteDepartment)
+		systemRouter.GET("/role", middleware.TokenVerify, role.GetRoleList)
+		systemRouter.POST("/role", middleware.TokenVerify, role.AddRole)
+		systemRouter.PUT("/role", middleware.TokenVerify, role.UpdateRole)
+		systemRouter.DELETE("/role", middleware.TokenVerify, role.DeleteRole)
 	}
 }
 
