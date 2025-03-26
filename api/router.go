@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 
+	"api-server/api/app/system/department"
 	"api-server/api/app/system/menu"
 	"api-server/api/app/system/user"
 	"api-server/api/middleware"
@@ -23,6 +24,10 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.POST("/menu/auth", middleware.TokenVerify, menu.AddMenuAuth)
 		systemRouter.DELETE("/menu/auth", middleware.TokenVerify, menu.DeleteMenuAuth)
 		systemRouter.PUT("/menu/auth", middleware.TokenVerify, menu.UpdateMenuAuth)
+		systemRouter.GET("/department", middleware.TokenVerify, department.GetDepartmentList)
+		systemRouter.POST("/department", middleware.TokenVerify, department.AddDepartment)
+		systemRouter.PUT("/department", middleware.TokenVerify, department.UpdateDepartment)
+		systemRouter.DELETE("/department", middleware.TokenVerify, department.DeleteDepartment)
 	}
 }
 

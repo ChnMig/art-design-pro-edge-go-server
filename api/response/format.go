@@ -123,9 +123,7 @@ func ReturnErrorWithData(c *gin.Context, data responseData, result interface{}) 
 func ReturnOk(c *gin.Context, result interface{}) {
 	data := OK
 	data.Timestamp = time.Now().Unix()
-	fmt.Printf("result: %+v\n", result)
 	data.Data = processData(result)
-	fmt.Printf("data: %+v\n", data)
 	c.JSON(http.StatusOK, data)
 	// Return directly
 	c.Abort()
