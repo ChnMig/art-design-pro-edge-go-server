@@ -1,8 +1,6 @@
 package system
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -12,26 +10,14 @@ import (
 func FindRoleList(role *Role) ([]Role, error) {
 	var roles []Role
 	db := pgdb.GetClient()
-
 	// 构建查询条件
 	query := db.Preload("User", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "name", "role_id", "created_at", "updated_at") // 只选择需要的用户字段
 	})
-
 	// 如果提供了名称，使用模糊查询
 	if role.Name != "" {
-		query = query.Where("name LIKE ?", fmt.Sprintf("%%%s%%", role.Name))
+		query = query.Where("name LIKE ?", "%s"+role.Name+"%s")
 	}
-
-	// 应用其他过滤条件
-	if role.Status > 0 {
-		query = query.Where("status = ?", role.Status)
-	}
-
-	if role.ID > 0 {
-		query = query.Where("id = ?", role.ID)
-	}
-
 	if err := query.Find(&roles).Error; err != nil {
 		zap.L().Error("failed to find role list", zap.Error(err))
 		return nil, err

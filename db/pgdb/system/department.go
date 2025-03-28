@@ -1,8 +1,6 @@
 package system
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 
 	"gorm.io/gorm"
@@ -22,7 +20,7 @@ func FindDepartmentList(department *Department) ([]Department, error) {
 
 	// 如果提供了名称，使用模糊查询
 	if department.Name != "" {
-		query = query.Where("name LIKE ?", fmt.Sprintf("%%%s%%", department.Name))
+		query = query.Where("name LIKE ?", "%s"+department.Name+"%s")
 	}
 
 	if err := query.Find(&departments).Error; err != nil {

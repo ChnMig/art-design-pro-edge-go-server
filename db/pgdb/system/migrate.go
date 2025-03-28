@@ -108,7 +108,7 @@ func migrateData(db *gorm.DB) error {
 		// 创建用户
 		pwd := encryptionPWD(config.AdminPassword)
 		users := []User{
-			{Model: gorm.Model{ID: 1}, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Password: pwd, Status: 1},
+			{Model: gorm.Model{ID: 1}, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Password: pwd, Status: 1, Gender: 1},
 		}
 		err = db.Create(&users).Error
 		if err != nil {

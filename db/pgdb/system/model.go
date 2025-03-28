@@ -62,10 +62,10 @@ type User struct {
 	gorm.Model
 	DepartmentID uint   `json:"department_id,omitempty"`
 	RoleID       uint   `json:"role_id,omitempty"`
-	Name         string `json:"name,omitempty"` // 姓名, 不可修改
-	Username     string `json:"username,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Username     string `json:"username,omitempty"` // 姓名, 不可修改
 	Password     string `json:"password,omitempty"`
 	Phone        string `json:"phone,omitempty"`
-	Gender       uint   `json:"gender,omitempty"`
+	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
 	Status       uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)
 }

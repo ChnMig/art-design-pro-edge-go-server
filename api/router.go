@@ -35,6 +35,10 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.POST("/role", middleware.TokenVerify, role.AddRole)
 		systemRouter.PUT("/role", middleware.TokenVerify, role.UpdateRole)
 		systemRouter.DELETE("/role", middleware.TokenVerify, role.DeleteRole)
+		systemRouter.GET("/user", middleware.TokenVerify, user.FindUser)
+		systemRouter.POST("/user", middleware.TokenVerify, user.AddUser)
+		systemRouter.PUT("/user", middleware.TokenVerify, user.UpdateUser)
+		systemRouter.DELETE("/user", middleware.TokenVerify, user.DeleteUser)
 	}
 }
 
