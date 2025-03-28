@@ -54,7 +54,7 @@ type MenuAuth struct {
 	MenuID uint   `json:"menu_id,omitempty"`
 	Mark   string `json:"mark,omitempty"` // 标识
 	Title  string `json:"title,omitempty"`
-	Roles  []Role `json:"roles,omitempty" gorm:"many2many:role_permissions;"` // 多对多关联角色表
+	Roles  []Role `json:"roles,omitempty" gorm:"many2many:role_auths;"` // 多对多关联角色表
 }
 
 // User 用户表

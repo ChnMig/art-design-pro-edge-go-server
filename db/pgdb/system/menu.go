@@ -42,6 +42,41 @@ func GetMenuData() ([]Menu, []MenuAuth, error) {
 	return menus, Auths, nil
 }
 
+// GetMenuDataByRoleID 获取指定角色ID的菜单和权限数据
+func GetMenuDataByRoleID(roleID uint) ([]Menu, []MenuAuth, []uint, []uint, error) {
+	// 获取所有菜单
+	var allMenus []Menu
+	if err := pgdb.GetClient().Find(&allMenus).Error; err != nil {
+		zap.L().Error("failed to get all menus", zap.Error(err))
+		return nil, nil, nil, nil, err
+	}
+	// 获取所有权限
+	var allAuths []MenuAuth
+	if err := pgdb.GetClient().Find(&allAuths).Error; err != nil {
+		zap.L().Error("failed to get all menu auths", zap.Error(err))
+		return nil, nil, nil, nil, err
+	}
+	// 获取角色拥有的菜单ID列表
+	var role Role
+	if err := pgdb.GetClient().Preload("Menus").
+		Preload("MenuAuth").
+		Where("id = ?", roleID).
+		First(&role).Error; err != nil {
+		zap.L().Error("failed to get role with menus", zap.Error(err))
+		return nil, nil, nil, nil, err
+	}
+	// 提取角色拥有的菜单ID和权限ID
+	var roleMenuIds []uint
+	var roleAuthIds []uint
+	for _, m := range role.Menus {
+		roleMenuIds = append(roleMenuIds, m.ID)
+	}
+	for _, a := range role.MenuAuth {
+		roleAuthIds = append(roleAuthIds, a.ID)
+	}
+	return allMenus, allAuths, roleMenuIds, roleAuthIds, nil
+}
+
 // 新增一个菜单
 func AddMenu(menu *Menu) error {
 	if err := pgdb.GetClient().Create(&menu).Error; err != nil {

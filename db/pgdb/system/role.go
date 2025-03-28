@@ -56,20 +56,6 @@ func AddRole(role *Role) error {
 }
 
 func DeleteRole(role *Role) error {
-	// 先检查角色下是否有用户
-	var count int64
-	if err := pgdb.GetClient().Model(&User{}).Where("role_id = ?", role.ID).Count(&count).Error; err != nil {
-		zap.L().Error("failed to check role users", zap.Error(err))
-		return err
-	}
-
-	// 如果有用户，不允许删除
-	if count > 0 {
-		errMsg := fmt.Sprintf("角色[ID:%d]下有%d个用户，请先删除或转移用户", role.ID, count)
-		zap.L().Warn(errMsg)
-		return fmt.Errorf(errMsg)
-	}
-
 	if err := pgdb.GetClient().Delete(&role).Error; err != nil {
 		zap.L().Error("failed to delete role", zap.Error(err))
 		return err

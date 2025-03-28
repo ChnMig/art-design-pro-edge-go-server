@@ -25,6 +25,8 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.POST("/menu/auth", middleware.TokenVerify, menu.AddMenuAuth)
 		systemRouter.DELETE("/menu/auth", middleware.TokenVerify, menu.DeleteMenuAuth)
 		systemRouter.PUT("/menu/auth", middleware.TokenVerify, menu.UpdateMenuAuth)
+		systemRouter.GET("/menu/role", middleware.TokenVerify, menu.GetMenuListByRoleID)
+		systemRouter.PUT("/menu/role", middleware.TokenVerify, menu.UpdateMenuListByRoleID)
 		systemRouter.GET("/department", middleware.TokenVerify, department.GetDepartmentList)
 		systemRouter.POST("/department", middleware.TokenVerify, department.AddDepartment)
 		systemRouter.PUT("/department", middleware.TokenVerify, department.UpdateDepartment)

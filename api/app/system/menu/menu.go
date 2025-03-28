@@ -1,6 +1,7 @@
 package menu
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/gin-gonic/gin"
@@ -209,4 +210,49 @@ func UpdateMenu(c *gin.Context) {
 		return
 	}
 	response.ReturnOk(c, menu)
+}
+
+// GetMenuListByRoleID 根据角色ID获取菜单列表
+func GetMenuListByRoleID(c *gin.Context) {
+	params := &struct {
+		RoleID uint `json:"role_id" form:"role_id" binding:"required"`
+	}{}
+	if !middleware.CheckParam(params, c) {
+		return
+	}
+	// 查询菜单数据
+	allMenus, allAuths, roleMenuIds, roleAuthIds, err := system.GetMenuDataByRoleID(params.RoleID)
+	if err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "查询角色菜单失败")
+		return
+	}
+	// 构建带权限标记的菜单树
+	menuTree := menu.BuildMenuTreeWithPermission(allMenus, allAuths, roleMenuIds, roleAuthIds, true)
+	response.ReturnOk(c, menuTree)
+}
+
+func UpdateMenuListByRoleID(c *gin.Context) {
+	params := &struct {
+		RoleID   uint   `json:"role_id" form:"role_id" binding:"required"`
+		MenuData string `json:"menu_data" form:"menu_data" binding:"required"`
+	}{}
+	if !middleware.CheckParam(params, c) {
+		return
+	}
+	// 尝试将 params.MenuData 转成结构体
+	var menuData []menu.MenuResponse
+	err := json.Unmarshal([]byte(params.MenuData), &menuData)
+	if err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "参数错误")
+		return
+	}
+
+	// 保存角色菜单数据
+	err = menu.SaveRoleMenu(params.RoleID, menuData)
+	if err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "保存角色菜单失败")
+		return
+	}
+
+	response.ReturnOk(c, nil)
 }
