@@ -95,14 +95,6 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to associate console and analysis menus with normal role", zap.Error(err))
 			return err
 		}
-
-		// 创建菜单按钮权限
-		menuAuths := []MenuAuth{}
-		err = db.Create(&menuAuths).Error
-		if err != nil {
-			zap.L().Error("failed to create menu permission", zap.Error(err))
-			return err
-		}
 		// 创建部门
 		departments := []Department{
 			{Model: gorm.Model{ID: 1}, Name: "管理中心", Sort: 1, Status: 1},
@@ -129,7 +121,7 @@ func migrateData(db *gorm.DB) error {
 
 func resetSequences(db *gorm.DB) error {
 	tables := []string{
-		"menus", "menu_auths", "roles", "departments", "users",
+		"menus", "roles", "departments", "users",
 	}
 
 	for _, table := range tables {
