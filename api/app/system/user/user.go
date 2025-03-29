@@ -30,6 +30,9 @@ func FindUser(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return
 	}
+	for _, v := range usersWithRelations {
+		v.Password = ""
+	}
 	response.ReturnOkWithCount(c, int(total), usersWithRelations)
 }
 
