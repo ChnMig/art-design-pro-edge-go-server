@@ -109,6 +109,10 @@ func DeleteUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	if params.ID == 1 {
+		response.ReturnError(c, response.DATA_LOSS, "不能删除超级管理员")
+		return
+	}
 	u := system.User{
 		Model: gorm.Model{ID: params.ID},
 	}
