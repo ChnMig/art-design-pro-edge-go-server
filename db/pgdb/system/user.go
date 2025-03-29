@@ -84,6 +84,9 @@ func AddUser(user *User) error {
 }
 
 func UpdateUser(user *User) error {
+	if user.Password != "" {
+		user.Password = encryptionPWD(user.Password)
+	}
 	if err := pgdb.GetClient().Save(user).Error; err != nil {
 		zap.L().Error("failed to update user", zap.Error(err))
 		return err

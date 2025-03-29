@@ -71,7 +71,7 @@ func UpdateUser(c *gin.Context) {
 	params := &struct {
 		ID           uint   `json:"id" form:"id" binding:"required"`
 		Username     string `json:"username" form:"username" binding:"required"`
-		Password     string `json:"password" form:"password" binding:"required"`
+		Password     string `json:"password" form:"password"`
 		Name         string `json:"name" form:"name" binding:"required"`
 		Phone        string `json:"phone" form:"phone" binding:"required"`
 		Gender       uint   `json:"gender" form:"gender" binding:"required"`
@@ -91,6 +91,9 @@ func UpdateUser(c *gin.Context) {
 		Status:       params.Status,
 		RoleID:       params.RoleID,
 		DepartmentID: params.DepartmentID,
+	}
+	if params.Password != "" {
+		u.Password = params.Password
 	}
 	if err := system.UpdateUser(&u); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新用户失败")
