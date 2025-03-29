@@ -11,9 +11,11 @@ import (
 
 func FindUser(c *gin.Context) {
 	params := &struct {
-		Username string `json:"username" form:"username"`
-		Name     string `json:"name" form:"name"`
-		Phone    string `json:"phone" form:"phone"`
+		Username     string `json:"username" form:"username"`
+		Name         string `json:"name" form:"name"`
+		Phone        string `json:"phone" form:"phone"`
+		DepartmentID uint   `json:"department_id" form:"department_id"`
+		RoleID       uint   `json:"role_id" form:"role_id"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -21,9 +23,11 @@ func FindUser(c *gin.Context) {
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
 	u := system.User{
-		Username: params.Username,
-		Name:     params.Name,
-		Phone:    params.Phone,
+		Username:     params.Username,
+		Name:         params.Name,
+		Phone:        params.Phone,
+		RoleID:       params.RoleID,
+		DepartmentID: params.DepartmentID,
 	}
 	usersWithRelations, total, err := system.FindUserList(&u, page, pageSize)
 	if err != nil {
