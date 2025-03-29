@@ -25,12 +25,12 @@ func FindUser(c *gin.Context) {
 		Name:     params.Name,
 		Phone:    params.Phone,
 	}
-	users, err := system.FindUserList(&u, page, pageSize)
+	usersWithRelations, total, err := system.FindUserList(&u, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return
 	}
-	response.ReturnOk(c, users)
+	response.ReturnOkWithCount(c, int(total), usersWithRelations)
 }
 
 func AddUser(c *gin.Context) {

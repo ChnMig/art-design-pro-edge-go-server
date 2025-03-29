@@ -37,27 +37,42 @@ func GetUser(user *User) error {
 	return nil
 }
 
-func FindUserList(user *User, page, pageSize int) ([]User, error) {
-	var users []User
+// UserWithRelations 包含用户及其关联的角色和部门信息
+type UserWithRelations struct {
+	User
+	RoleName       string `json:"role_name"`
+	RoleDesc       string `json:"role_desc"`
+	DepartmentName string `json:"department_name"`
+}
+
+func FindUserList(user *User, page, pageSize int) ([]UserWithRelations, int64, error) {
+	var usersWithRelations []UserWithRelations
+	var total int64
 	db := pgdb.GetClient()
-	// 构建查询条件
-	query := db
+	// 构建基础查询
+	baseQuery := db.Table("users").
+		Joins("left join roles on users.role_id = roles.id").
+		Joins("left join departments on users.department_id = departments.id").
+		Where("users.deleted_at IS NULL")
 	// 使用模糊查询
 	if user.Username != "" {
-		query = query.Where("username LIKE ?", "%"+user.Username+"%")
+		baseQuery = baseQuery.Where("users.username LIKE ?", "%"+user.Username+"%")
 	}
 	if user.Name != "" {
-		query = query.Where("name LIKE ?", "%"+user.Name+"%")
+		baseQuery = baseQuery.Where("users.name LIKE ?", "%"+user.Name+"%")
 	}
 	if user.Phone != "" {
-		query = query.Where("phone LIKE ?", "%"+user.Phone+"%")
+		baseQuery = baseQuery.Where("users.phone LIKE ?", "%"+user.Phone+"%")
 	}
-	// 应用分页
-	if err := query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error; err != nil {
+	// 获取符合条件的总记录数
+	baseQuery.Count(&total)
+	// 应用分页并获取数据
+	query := baseQuery.Select("users.*, roles.name as role_name, roles.desc as role_desc, departments.name as department_name")
+	if err := query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&usersWithRelations).Error; err != nil {
 		zap.L().Error("failed to find user list", zap.Error(err))
-		return nil, err
+		return nil, 0, err
 	}
-	return users, nil
+	return usersWithRelations, total, nil
 }
 
 func AddUser(user *User) error {
