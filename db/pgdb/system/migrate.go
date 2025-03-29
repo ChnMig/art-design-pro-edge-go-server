@@ -30,7 +30,6 @@ func migrateData(db *gorm.DB) error {
 			{Model: gorm.Model{ID: 6}, Path: "user", Name: "User", Component: "/system/user/index", Title: "用户管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 66},
 			{Model: gorm.Model{ID: 7}, Path: "console", Name: "Console", Component: "/dashboard/console", Title: "工作台", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 99},
 			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "Analysis", Component: "/dashboard/analysis", Title: "分析页", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 88},
-			{Model: gorm.Model{ID: 9}, Path: "myInfo", Name: "MyInfo", Component: "/system/myInfo/index", Title: "个人中心", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 55},
 		}
 		err := db.Create(&menus).Error
 		if err != nil {
@@ -74,23 +73,31 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to find normal role", zap.Error(err))
 			return err
 		}
-		var dashboardMenu Menu
+		// 为普通用户分配工作台和分析页菜单
+		var consoleMenu, analysisMenu, dashboardMenu Menu
 		err = db.First(&dashboardMenu, 1).Error
 		if err != nil {
 			zap.L().Error("failed to find dashboard menu", zap.Error(err))
 			return err
 		}
-		err = db.Model(&normalRole).Association("Menus").Append(&dashboardMenu)
+		err = db.First(&consoleMenu, 7).Error
 		if err != nil {
-			zap.L().Error("failed to associate dashboard menu with normal role", zap.Error(err))
+			zap.L().Error("failed to find console menu", zap.Error(err))
 			return err
 		}
-		// 创建菜单按钮权限
-		menuAuths := []MenuAuth{
-			{Model: gorm.Model{ID: 1}, MenuID: 3, Mark: "add", Title: "新增", Roles: []Role{{Model: gorm.Model{ID: 1}}}},
-			{Model: gorm.Model{ID: 2}, MenuID: 3, Mark: "edit", Title: "修改", Roles: []Role{{Model: gorm.Model{ID: 1}}}},
-			{Model: gorm.Model{ID: 3}, MenuID: 3, Mark: "delete", Title: "删除", Roles: []Role{{Model: gorm.Model{ID: 1}}}},
+		err = db.First(&analysisMenu, 8).Error
+		if err != nil {
+			zap.L().Error("failed to find analysis menu", zap.Error(err))
+			return err
 		}
+		err = db.Model(&normalRole).Association("Menus").Append([]Menu{dashboardMenu, consoleMenu, analysisMenu})
+		if err != nil {
+			zap.L().Error("failed to associate console and analysis menus with normal role", zap.Error(err))
+			return err
+		}
+
+		// 创建菜单按钮权限
+		menuAuths := []MenuAuth{}
 		err = db.Create(&menuAuths).Error
 		if err != nil {
 			zap.L().Error("failed to create menu permission", zap.Error(err))
