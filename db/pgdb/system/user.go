@@ -64,6 +64,12 @@ func FindUserList(user *User, page, pageSize int) ([]UserWithRelations, int64, e
 	if user.Phone != "" {
 		baseQuery = baseQuery.Where("users.phone LIKE ?", "%"+user.Phone+"%")
 	}
+	if user.RoleID != 0 {
+		baseQuery = baseQuery.Where("users.role_id = ?", user.RoleID)
+	}
+	if user.DepartmentID != 0 {
+		baseQuery = baseQuery.Where("users.department_id = ?", user.DepartmentID)
+	}
 	// 获取符合条件的总记录数
 	baseQuery.Count(&total)
 	// 应用分页并获取数据
