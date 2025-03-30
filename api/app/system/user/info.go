@@ -27,11 +27,6 @@ func GetUserInfo(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return
 	}
-	response.ReturnOk(c, gin.H{
-		"id":       user.ID,
-		"name":     user.Name,
-		"username": user.Username,
-		"avatar":   "",
-		"email":    "",
-	})
+	user.Password = "" // 不返回密码
+	response.ReturnOk(c, user)
 }

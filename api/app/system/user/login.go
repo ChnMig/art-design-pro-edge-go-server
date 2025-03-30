@@ -40,6 +40,10 @@ func Login(c *gin.Context) {
 		response.ReturnError(c, response.INVALID_ARGUMENT, "账号或密码错误")
 		return
 	}
+	if user.Status != 1 {
+		response.ReturnError(c, response.INVALID_ARGUMENT, "账号已被禁用")
+		return
+	}
 	// 生成token
 	token, err := authentication.JWTIssue(fmt.Sprintf("%d", user.ID))
 	if err != nil {
