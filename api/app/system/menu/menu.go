@@ -32,7 +32,7 @@ func DeleteMenu(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	menu := system.Menu{Model: gorm.Model{ID: params.ID}}
+	menu := system.SystemMenu{Model: gorm.Model{ID: params.ID}}
 	err := system.GetMenu(&menu)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -42,7 +42,7 @@ func DeleteMenu(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
 		return
 	}
-	children, err := system.FindMenuList(&system.Menu{ParentID: menu.ID})
+	children, err := system.FindMenuList(&system.SystemMenu{ParentID: menu.ID})
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")
@@ -88,8 +88,10 @@ func AddMenu(c *gin.Context) {
 	var level uint = 1
 	// 如果有父级ID, 则查询父级ID是否存在
 	if params.ParentID != 0 {
-		parentMenu := &system.Menu{}
-		err := system.GetMenu(&system.Menu{Model: gorm.Model{ID: params.ParentID}})
+		parentMenu := system.SystemMenu{
+			Model: gorm.Model{ID: params.ParentID},
+		}
+		err := system.GetMenu(&parentMenu)
 		if err != nil {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
 			return
@@ -100,7 +102,7 @@ func AddMenu(c *gin.Context) {
 		}
 		level = parentMenu.Level + 1
 	}
-	menu := system.Menu{
+	menu := system.SystemMenu{
 		Path:              params.Path,
 		Name:              params.Name,
 		Component:         params.Component,
@@ -155,7 +157,7 @@ func UpdateMenu(c *gin.Context) {
 	var level uint = 1
 	// 如果有父级ID, 则查询父级ID是否存在
 	if params.ParentID != 0 {
-		parent := system.Menu{Model: gorm.Model{ID: params.ParentID}}
+		parent := system.SystemMenu{Model: gorm.Model{ID: params.ParentID}}
 		err := system.GetMenu(&parent)
 		if err != nil {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
@@ -169,7 +171,7 @@ func UpdateMenu(c *gin.Context) {
 	}
 	if params.Status == 2 {
 		// 判断子菜单是否是禁用状态
-		children, err := system.FindMenuList(&system.Menu{ParentID: params.ID})
+		children, err := system.FindMenuList(&system.SystemMenu{ParentID: params.ID})
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")
@@ -185,7 +187,7 @@ func UpdateMenu(c *gin.Context) {
 			}
 		}
 	}
-	menu := system.Menu{
+	menu := system.SystemMenu{
 		Model:             gorm.Model{ID: params.ID},
 		Path:              params.Path,
 		Name:              params.Name,

@@ -9,12 +9,12 @@ import (
 )
 
 // FindDepartmentList 查询部门列表（包含有限的用户信息）
-func FindDepartmentList(department *Department) ([]Department, error) {
-	var departments []Department
+func FindDepartmentList(department *SystemDepartment) ([]SystemDepartment, error) {
+	var departments []SystemDepartment
 	db := pgdb.GetClient()
 
 	// 构建查询条件
-	query := db.Preload("Users", func(db *gorm.DB) *gorm.DB {
+	query := db.Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "name", "department_id", "created_at", "updated_at") // 只选择需要的字段
 	})
 
@@ -31,8 +31,8 @@ func FindDepartmentList(department *Department) ([]Department, error) {
 }
 
 // GetDepartment 查询单个部门（包含有限的用户信息）
-func GetDepartment(department *Department) error {
-	if err := pgdb.GetClient().Preload("Users", func(db *gorm.DB) *gorm.DB {
+func GetDepartment(department *SystemDepartment) error {
+	if err := pgdb.GetClient().Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "name", "department_id", "created_at", "updated_at") // 只选择需要的字段
 	}).Where(department).First(department).Error; err != nil {
 		zap.L().Error("failed to get department", zap.Error(err))
@@ -41,7 +41,7 @@ func GetDepartment(department *Department) error {
 	return nil
 }
 
-func AddDepartment(department *Department) error {
+func AddDepartment(department *SystemDepartment) error {
 	if err := pgdb.GetClient().Create(&department).Error; err != nil {
 		zap.L().Error("failed to create department", zap.Error(err))
 		return err
@@ -49,7 +49,7 @@ func AddDepartment(department *Department) error {
 	return nil
 }
 
-func UpdateDepartment(department *Department) error {
+func UpdateDepartment(department *SystemDepartment) error {
 	if err := pgdb.GetClient().Save(&department).Error; err != nil {
 		zap.L().Error("failed to update department", zap.Error(err))
 		return err
@@ -57,7 +57,7 @@ func UpdateDepartment(department *Department) error {
 	return nil
 }
 
-func DeleteDepartment(department *Department) error {
+func DeleteDepartment(department *SystemDepartment) error {
 	if err := pgdb.GetClient().Delete(&department).Error; err != nil {
 		zap.L().Error("failed to delete department", zap.Error(err))
 		return err

@@ -16,7 +16,7 @@ func GetRoleList(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	role := system.Role{
+	role := system.SystemRole{
 		Name: params.Name,
 	}
 	roles, err := system.FindRoleList(&role)
@@ -36,7 +36,7 @@ func AddRole(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	role := system.Role{
+	role := system.SystemRole{
 		Name:   params.Name,
 		Status: uint(params.Status),
 		Desc:   params.Desc,
@@ -59,7 +59,7 @@ func UpdateRole(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	role := system.Role{
+	role := system.SystemRole{
 		Model:  gorm.Model{ID: params.ID},
 		Name:   params.Name,
 		Status: uint(params.Status),
@@ -80,7 +80,7 @@ func DeleteRole(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	role := system.Role{
+	role := system.SystemRole{
 		Model: gorm.Model{ID: params.ID},
 	}
 	err := system.DeleteRole(&role)

@@ -18,7 +18,7 @@ func AddMenuAuth(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.MenuAuth{
+	auth := system.SystemMenuAuth{
 		MenuID: params.MenuID,
 		Mark:   params.Mark,
 		Title:  params.Title,
@@ -40,7 +40,7 @@ func UpdateMenuAuth(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.MenuAuth{
+	auth := system.SystemMenuAuth{
 		Model:  gorm.Model{ID: params.ID},
 		Title:  params.Title,
 		Mark:   params.Mark,
@@ -60,7 +60,7 @@ func DeleteMenuAuth(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.MenuAuth{Model: gorm.Model{ID: params.ID}}
+	auth := system.SystemMenuAuth{Model: gorm.Model{ID: params.ID}}
 	if err := system.DeleteMenuAuth(&auth); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "删除菜单权限失败")
 		return
@@ -75,7 +75,7 @@ func GetMenuAuthList(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.MenuAuth{MenuID: params.MenuID}
+	auth := system.SystemMenuAuth{MenuID: params.MenuID}
 	auths, err := system.FindMenuAuthList(&auth)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单权限失败")

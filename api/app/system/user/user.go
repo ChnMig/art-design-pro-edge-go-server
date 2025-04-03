@@ -22,7 +22,7 @@ func FindUser(c *gin.Context) {
 	}
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
-	u := system.User{
+	u := system.SystemUser{
 		Username:     params.Username,
 		Name:         params.Name,
 		Phone:        params.Phone,
@@ -54,7 +54,7 @@ func AddUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	u := system.User{
+	u := system.SystemUser{
 		Username:     params.Username,
 		Password:     params.Password,
 		Name:         params.Name,
@@ -86,7 +86,7 @@ func UpdateUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	u := system.User{
+	u := system.SystemUser{
 		Model:        gorm.Model{ID: params.ID},
 		Username:     params.Username,
 		Name:         params.Name,
@@ -117,7 +117,7 @@ func DeleteUser(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "不能删除超级管理员")
 		return
 	}
-	u := system.User{
+	u := system.SystemUser{
 		Model: gorm.Model{ID: params.ID},
 	}
 	if err := system.DeleteUser(&u); err != nil {

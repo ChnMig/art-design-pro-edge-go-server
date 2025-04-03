@@ -31,7 +31,7 @@ func UpdateUserInfo(c *gin.Context) {
 		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
 		return
 	}
-	u := system.User{
+	u := system.SystemUser{
 		Model:  gorm.Model{ID: uint(id)},
 		Name:   params.Name,
 		Phone:  params.Phone,
@@ -58,7 +58,7 @@ func GetUserInfo(c *gin.Context) {
 		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
 		return
 	}
-	user := system.User{Model: gorm.Model{ID: uint(id)}}
+	user := system.SystemUser{Model: gorm.Model{ID: uint(id)}}
 	if err := system.GetUser(&user); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return
