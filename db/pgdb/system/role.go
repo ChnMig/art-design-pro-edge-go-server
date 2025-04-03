@@ -7,8 +7,8 @@ import (
 	"api-server/db/pgdb"
 )
 
-func FindRoleList(role *Role) ([]Role, error) {
-	var roles []Role
+func FindRoleList(role *SystemRole) ([]SystemRole, error) {
+	var roles []SystemRole
 	db := pgdb.GetClient()
 	// 构建查询条件
 	query := db.Preload("User", func(db *gorm.DB) *gorm.DB {
@@ -25,7 +25,7 @@ func FindRoleList(role *Role) ([]Role, error) {
 	return roles, nil
 }
 
-func UpdateRole(role *Role) error {
+func UpdateRole(role *SystemRole) error {
 	if err := pgdb.GetClient().Save(&role).Error; err != nil {
 		zap.L().Error("failed to update role", zap.Error(err))
 		return err
@@ -33,7 +33,7 @@ func UpdateRole(role *Role) error {
 	return nil
 }
 
-func AddRole(role *Role) error {
+func AddRole(role *SystemRole) error {
 	if err := pgdb.GetClient().Create(&role).Error; err != nil {
 		zap.L().Error("failed to create role", zap.Error(err))
 		return err
@@ -41,7 +41,7 @@ func AddRole(role *Role) error {
 	return nil
 }
 
-func DeleteRole(role *Role) error {
+func DeleteRole(role *SystemRole) error {
 	if err := pgdb.GetClient().Delete(&role).Error; err != nil {
 		zap.L().Error("failed to delete role", zap.Error(err))
 		return err

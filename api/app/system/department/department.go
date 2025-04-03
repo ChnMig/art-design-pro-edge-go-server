@@ -20,7 +20,7 @@ func AddDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	depatment := system.Department{
+	depatment := system.SystemDepartment{
 		Name:   params.Name,
 		Status: uint(params.Status),
 		Sort:   uint(params.Sort),
@@ -43,7 +43,7 @@ func UpdateDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	department := system.Department{
+	department := system.SystemDepartment{
 		Model:  gorm.Model{ID: params.ID},
 		Name:   params.Name,
 		Status: uint(params.Status),
@@ -64,7 +64,7 @@ func GetDepartmentList(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	department := system.Department{
+	department := system.SystemDepartment{
 		Name: params.Name,
 	}
 	departments, err := system.FindDepartmentList(&department)
@@ -82,7 +82,7 @@ func DeleteDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	department := system.Department{Model: gorm.Model{ID: params.ID}}
+	department := system.SystemDepartment{Model: gorm.Model{ID: params.ID}}
 	err := system.GetDepartment(&department)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -92,7 +92,7 @@ func DeleteDepartment(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询部门失败")
 		return
 	}
-	if len(department.Users) > 0 {
+	if len(department.SystemUsers) > 0 {
 		response.ReturnError(c, response.DATA_LOSS, "请先删除部门下的用户")
 		return
 	}

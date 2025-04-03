@@ -49,11 +49,11 @@ type MenuAuthResp struct {
 }
 
 // 构建菜单树
-func BuildMenuTree(menus []system.Menu, permissions []system.MenuAuth, all bool) []MenuResponse {
+func BuildMenuTree(menus []system.SystemMenu, permissions []system.SystemMenuAuth, all bool) []MenuResponse {
 	var menuTree []MenuResponse
 
 	// 找出所有顶级菜单(ParentID = 0)
-	var rootMenus []system.Menu
+	var rootMenus []system.SystemMenu
 	if len(menus) > 0 {
 		for _, menu := range menus {
 			if menu.ParentID == 0 {
@@ -81,11 +81,11 @@ func BuildMenuTree(menus []system.Menu, permissions []system.MenuAuth, all bool)
 }
 
 // 构建带有权限标记的菜单树
-func BuildMenuTreeWithPermission(menus []system.Menu, permissions []system.MenuAuth, roleMenuIds []uint, roleAuthIds []uint, all bool) []MenuResponse {
+func BuildMenuTreeWithPermission(menus []system.SystemMenu, permissions []system.SystemMenuAuth, roleMenuIds []uint, roleAuthIds []uint, all bool) []MenuResponse {
 	var menuTree []MenuResponse
 
 	// 找出所有顶级菜单(ParentID = 0)
-	var rootMenus []system.Menu
+	var rootMenus []system.SystemMenu
 	if len(menus) > 0 {
 		for _, menu := range menus {
 			if menu.ParentID == 0 {
@@ -111,7 +111,7 @@ func BuildMenuTreeWithPermission(menus []system.Menu, permissions []system.MenuA
 }
 
 // 将数据库菜单转换为响应结构
-func convertMenuToResponse(menu system.Menu) MenuResponse {
+func convertMenuToResponse(menu system.SystemMenu) MenuResponse {
 	return MenuResponse{
 		ID:        menu.ID,
 		UpdatedAt: uint(menu.UpdatedAt.Unix()),
@@ -137,15 +137,15 @@ func convertMenuToResponse(menu system.Menu) MenuResponse {
 }
 
 // 将数据库菜单转换为响应结构，并标记是否有权限
-func convertMenuToResponseWithPermission(menu system.Menu, roleMenuIds []uint) MenuResponse {
+func convertMenuToResponseWithPermission(menu system.SystemMenu, roleMenuIds []uint) MenuResponse {
 	resp := convertMenuToResponse(menu)
 	resp.HasPermission = containsUint(roleMenuIds, menu.ID)
 	return resp
 }
 
 // 递归构建菜单子项
-func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissions []system.MenuAuth, all bool) {
-	var childMenus []system.Menu
+func buildMenuChildren(parent *MenuResponse, allMenus []system.SystemMenu, allPermissions []system.SystemMenuAuth, all bool) {
+	var childMenus []system.SystemMenu
 
 	// 收集当前父菜单下的所有子菜单
 	for _, menu := range allMenus {
@@ -182,8 +182,8 @@ func buildMenuChildren(parent *MenuResponse, allMenus []system.Menu, allPermissi
 }
 
 // 递归构建带权限标记的菜单子项
-func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.Menu, allPermissions []system.MenuAuth, roleMenuIds []uint, roleAuthIds []uint, all bool) {
-	var childMenus []system.Menu
+func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.SystemMenu, allPermissions []system.SystemMenuAuth, roleMenuIds []uint, roleAuthIds []uint, all bool) {
+	var childMenus []system.SystemMenu
 
 	// 收集当前父菜单下的所有子菜单
 	for _, menu := range allMenus {
@@ -222,7 +222,7 @@ func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.Men
 }
 
 // 对菜单切片按 Sort 从大到小排序，Sort 为 0 则按 ID 从大到小排序
-func sortMenus(menus []system.Menu) {
+func sortMenus(menus []system.SystemMenu) {
 	sort.Slice(menus, func(i, j int) bool {
 		// 如果两个菜单都有 Sort 值并且不为 0
 		if menus[i].Sort > 0 && menus[j].Sort > 0 {
@@ -269,7 +269,7 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 	// 使用事务更新数据库
 	return pgdb.GetClient().Transaction(func(tx *gorm.DB) error {
 		// 查询角色
-		var role system.Role
+		var role system.SystemRole
 		if err := tx.First(&role, roleID).Error; err != nil {
 			zap.L().Error("failed to find role", zap.Uint("roleID", roleID), zap.Error(err))
 			return err
@@ -282,7 +282,7 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 		}
 
 		if len(menuIDs) > 0 {
-			var menus []system.Menu
+			var menus []system.SystemMenu
 			if err := tx.Where("id IN ?", menuIDs).Find(&menus).Error; err != nil {
 				zap.L().Error("failed to find menus", zap.Uint("roleID", roleID), zap.Uints("menuIDs", menuIDs), zap.Error(err))
 				return err
@@ -300,7 +300,7 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 		}
 
 		if len(authIDs) > 0 {
-			var auths []system.MenuAuth
+			var auths []system.SystemMenuAuth
 			if err := tx.Where("id IN ?", authIDs).Find(&auths).Error; err != nil {
 				zap.L().Error("failed to find menu auths", zap.Uint("roleID", roleID), zap.Uints("authIDs", authIDs), zap.Error(err))
 				return err

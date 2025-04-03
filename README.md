@@ -1,9 +1,15 @@
 # 关于
 
-> !!!项目还在开发中, 并未正式发布
-
 本项目是 [art-design-pro-edge](https://github.com/ChnMig/art-design-pro-edge) 的后端服务。
 配合前端可以做到开箱即用, 但是具体的业务功能需要自己开发.
+
+# 部署配套服务
+
+PostgreSQL 和 Redis 的 docker-compose 文件在 `docker` 目录下, 可以直接使用。
+
+```bash
+docker-compose -f docker/docker-compose.yml up -d
+```
 
 # 技术栈
 
