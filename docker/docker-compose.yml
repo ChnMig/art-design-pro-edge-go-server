@@ -2,7 +2,7 @@ services:
   redis:
     image: redis:7.4
     container_name: server-redis # 注意：redis服务的container_name也应该修改
-    command: ["redis-server", "--requirepass", "izpXvn894uW2HFbyP5OGr"] # 请替换为你实际的 Redis 密码
+    command: ["redis-server", "--requirepass", "izpXvn894uW2HFbyP5OGr"] # TODO Redis 密码, 务必修改为自己的密码, 防止泄露
     ports:
       - "6379:6379"
     restart: always
@@ -10,12 +10,12 @@ services:
     image: postgres:17.4
     container_name: server-postgres
     environment:
-      POSTGRES_PASSWORD: kL81xnDWo221FHFRX8GnP # 设置超级用户密码（必须）
+      POSTGRES_PASSWORD: kL81xnDWo221FHFRX8GnP # TODO 设置超级用户密码, 务必修改为自己的密码, 防止泄露
       POSTGRES_USER: postgres # 默认用户（可选，默认值也是 postgres）
       POSTGRES_DB: server # 初始数据库（可选）
       TZ: Asia/Shanghai # 设置时区为上海
     ports:
       - "5432:5432" # 映射宿主机端口:容器端口（允许外网访问）
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data # 数据持久化
+      - ./postgres_data:/var/lib/postgresql/data # 数据持久化路径,根据自己需要进行修改
     restart: always # 容器自动重启
