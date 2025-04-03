@@ -11,7 +11,7 @@ func FindRoleList(role *SystemRole) ([]SystemRole, error) {
 	var roles []SystemRole
 	db := pgdb.GetClient()
 	// 构建查询条件
-	query := db.Preload("User", func(db *gorm.DB) *gorm.DB {
+	query := db.Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "name", "role_id", "created_at", "updated_at") // 只选择需要的用户字段
 	})
 	// 如果提供了名称，使用模糊查询

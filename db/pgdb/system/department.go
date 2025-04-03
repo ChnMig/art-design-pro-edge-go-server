@@ -14,7 +14,7 @@ func FindDepartmentList(department *SystemDepartment) ([]SystemDepartment, error
 	db := pgdb.GetClient()
 
 	// 构建查询条件
-	query := db.Preload("Users", func(db *gorm.DB) *gorm.DB {
+	query := db.Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "name", "department_id", "created_at", "updated_at") // 只选择需要的字段
 	})
 
@@ -32,7 +32,7 @@ func FindDepartmentList(department *SystemDepartment) ([]SystemDepartment, error
 
 // GetDepartment 查询单个部门（包含有限的用户信息）
 func GetDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Preload("Users", func(db *gorm.DB) *gorm.DB {
+	if err := pgdb.GetClient().Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "name", "department_id", "created_at", "updated_at") // 只选择需要的字段
 	}).Where(department).First(department).Error; err != nil {
 		zap.L().Error("failed to get department", zap.Error(err))

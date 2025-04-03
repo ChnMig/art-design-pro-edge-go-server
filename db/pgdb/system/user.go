@@ -39,7 +39,7 @@ func GetUser(user *SystemUser) error {
 
 // UserWithRelations 包含用户及其关联的角色和部门信息
 type UserWithRelations struct {
-	SystemUser
+	SystemUser     `json:"User"`
 	RoleName       string `json:"role_name"`
 	RoleDesc       string `json:"role_desc"`
 	DepartmentName string `json:"department_name"`
@@ -51,8 +51,8 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 	db := pgdb.GetClient()
 	// 构建基础查询
 	baseQuery := db.Table("system_users").
-		Joins("left join roles on system_users.role_id = roles.id").
-		Joins("left join departments on system_users.department_id = departments.id").
+		Joins("left join system_roles on system_users.role_id = system_roles.id").
+		Joins("left join system_departments on system_users.department_id = system_departments.id").
 		Where("system_users.deleted_at IS NULL")
 	// 使用模糊查询
 	if user.Username != "" {

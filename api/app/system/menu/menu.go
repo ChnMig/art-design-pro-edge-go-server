@@ -88,8 +88,10 @@ func AddMenu(c *gin.Context) {
 	var level uint = 1
 	// 如果有父级ID, 则查询父级ID是否存在
 	if params.ParentID != 0 {
-		parentMenu := &system.SystemMenu{}
-		err := system.GetMenu(&system.SystemMenu{Model: gorm.Model{ID: params.ParentID}})
+		parentMenu := system.SystemMenu{
+			Model: gorm.Model{ID: params.ParentID},
+		}
+		err := system.GetMenu(&parentMenu)
 		if err != nil {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
 			return

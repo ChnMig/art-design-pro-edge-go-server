@@ -17,7 +17,7 @@ func GetUserMenuData(userID uint) ([]SystemMenu, []SystemMenuAuth, error) {
 	}
 	// 获取该角色关联的所有菜单(包括权限)
 	var role SystemRole
-	if err := pgdb.GetClient().Preload("Menus").
+	if err := pgdb.GetClient().Preload("SystemMenus").
 		Preload("SystemMenuAuth").
 		Where("id = ?", user.RoleID).
 		First(&role).Error; err != nil {
@@ -58,7 +58,7 @@ func GetMenuDataByRoleID(roleID uint) ([]SystemMenu, []SystemMenuAuth, []uint, [
 	}
 	// 获取角色拥有的菜单ID列表
 	var role SystemRole
-	if err := pgdb.GetClient().Preload("Menus").
+	if err := pgdb.GetClient().Preload("SystemMenus").
 		Preload("SystemMenuAuth").
 		Where("id = ?", roleID).
 		First(&role).Error; err != nil {
