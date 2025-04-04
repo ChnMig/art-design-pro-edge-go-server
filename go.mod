@@ -23,12 +23,13 @@ require (
 	github.com/gin-contrib/sse v1.0.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.25.0 // indirect
+	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.7.3 // indirect
+	github.com/jackc/pgx/v5 v5.7.4 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -39,7 +40,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.36.2 // indirect
+	github.com/onsi/gomega v1.37.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -48,10 +49,10 @@ require (
 	golang.org/x/arch v0.15.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/image v0.25.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
