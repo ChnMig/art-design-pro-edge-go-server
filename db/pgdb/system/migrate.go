@@ -28,8 +28,8 @@ func migrateData(db *gorm.DB) error {
 			{Model: gorm.Model{ID: 4}, Path: "role", Name: "SystemRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 88},
 			{Model: gorm.Model{ID: 5}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 77},
 			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 66},
-			{Model: gorm.Model{ID: 7}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console", Title: "工作台", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 99},
-			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis", Title: "分析页", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 88},
+			{Model: gorm.Model{ID: 7}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 99},
+			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 88},
 		}
 		err := db.Create(&menus).Error
 		if err != nil {
