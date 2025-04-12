@@ -20,6 +20,14 @@ func migrateTable(db *gorm.DB) error {
 
 func migrateData(db *gorm.DB) error {
 	err := db.Transaction(func(tx *gorm.DB) error {
+		// 检查是否已有数据，如果有则跳过初始化
+		var count int64
+		tx.Model(&SystemMenu{}).Count(&count)
+		if count > 0 {
+			zap.L().Info("menu data already exists, skipping initial data creation")
+			return nil
+		}
+
 		// 创建菜单
 		menus := []SystemMenu{
 			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/layout/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 99},
@@ -30,12 +38,21 @@ func migrateData(db *gorm.DB) error {
 			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 66},
 			{Model: gorm.Model{ID: 7}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 99},
 			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 88},
+			{Model: gorm.Model{ID: 9}, Path: "todo", Name: "SystemTodo", Component: "/dashboard/todo/index", Title: "待办事项", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 77},
 		}
 		err := db.Create(&menus).Error
 		if err != nil {
 			zap.L().Error("failed to create menu", zap.Error(err))
 			return err
 		}
+
+		// 检查是否已有角色数据
+		tx.Model(&SystemRole{}).Count(&count)
+		if count > 0 {
+			zap.L().Info("role data already exists, skipping role creation")
+			return nil
+		}
+
 		// 创建角色
 		roles := []SystemRole{
 			{Model: gorm.Model{ID: 1}, Name: "超级管理员", Desc: "拥有所有权限", Status: 1},
@@ -46,6 +63,7 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to create role", zap.Error(err))
 			return err
 		}
+
 		// 为角色分配菜单权限
 		// 超级管理员拥有所有菜单权限
 		adminRole := SystemRole{}
@@ -95,6 +113,14 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to associate console and analysis menus with normal role", zap.Error(err))
 			return err
 		}
+
+		// 检查是否已有部门数据
+		tx.Model(&SystemDepartment{}).Count(&count)
+		if count > 0 {
+			zap.L().Info("department data already exists, skipping department creation")
+			return nil
+		}
+
 		// 创建部门
 		departments := []SystemDepartment{
 			{Model: gorm.Model{ID: 1}, Name: "管理中心", Sort: 1, Status: 1},
@@ -104,6 +130,14 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to create department", zap.Error(err))
 			return err
 		}
+
+		// 检查是否已有用户数据
+		tx.Model(&SystemUser{}).Count(&count)
+		if count > 0 {
+			zap.L().Info("user data already exists, skipping user creation")
+			return nil
+		}
+
 		// 创建用户
 		pwd := encryptionPWD(config.AdminPassword)
 		users := []SystemUser{
@@ -122,16 +156,45 @@ func migrateData(db *gorm.DB) error {
 func resetSequences(db *gorm.DB) error {
 	tables := []string{
 		"system_menus", "system_roles", "system_departments", "system_users",
+		"system_menu_auths", // 添加这个表以确保菜单权限序列也被重置
 	}
 
 	for _, table := range tables {
 		seqName := table + "_id_seq"
-		query := fmt.Sprintf("SELECT setval('%s', (SELECT COALESCE(MAX(id), 0) FROM %s));", seqName, table)
+		query := fmt.Sprintf("SELECT setval('%s', (SELECT COALESCE(MAX(id), 1) FROM %s));", seqName, table)
 		if err := db.Exec(query).Error; err != nil {
 			zap.L().Error("failed to reset sequence", zap.String("sequence", seqName), zap.Error(err))
 			return err
 		}
 		zap.L().Info("sequence reset successfully", zap.String("sequence", seqName))
+	}
+
+	// 单独处理可能为空的Todo相关表
+	todoTables := []string{
+		"system_user_todos", "system_user_todo_comments", "system_user_todo_steps", "system_user_todo_logs",
+	}
+
+	for _, table := range todoTables {
+		// 先检查表是否存在
+		var exists int64
+		checkQuery := fmt.Sprintf("SELECT 1 FROM information_schema.tables WHERE table_name = '%s'", table)
+		if err := db.Raw(checkQuery).Count(&exists).Error; err != nil {
+			zap.L().Error("failed to check if table exists", zap.String("table", table), zap.Error(err))
+			return err
+		}
+
+		if exists > 0 {
+			// 表存在，重置序列，设为1而不是0
+			seqName := table + "_id_seq"
+			query := fmt.Sprintf("SELECT setval('%s', GREATEST((SELECT COALESCE(MAX(id), 0) FROM %s), 1));", seqName, table)
+			if err := db.Exec(query).Error; err != nil {
+				zap.L().Error("failed to reset sequence for todo table", zap.String("sequence", seqName), zap.Error(err))
+				return err
+			}
+			zap.L().Info("sequence reset successfully", zap.String("sequence", seqName))
+		} else {
+			zap.L().Warn("table does not exist, skipping sequence reset", zap.String("table", table))
+		}
 	}
 
 	return nil
