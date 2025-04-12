@@ -13,32 +13,17 @@ import (
 // 查询 Todo 列表（带分页）
 func FindTodoList(c *gin.Context) {
 	params := &struct {
-		Title        string `json:"title" form:"title"`
-		Status       uint   `json:"status" form:"status"`
-		SystemUserID uint   `json:"system_user_id" form:"system_user_id"`
+		Title  string `json:"title" form:"title"`
+		Status uint   `json:"status" form:"status"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
-
-	// 如果没有指定用户ID，则从Token中获取
-	if params.SystemUserID == 0 {
-		uID := c.GetString(middleware.JWTDataKey)
-		if uID != "" {
-			id, err := strconv.ParseUint(uID, 10, 64)
-			if err == nil {
-				params.SystemUserID = uint(id)
-			}
-		}
-	}
-
 	todo := system.SystemUserTodo{
-		Title:        params.Title,
-		Status:       params.Status,
-		SystemUserID: params.SystemUserID,
+		Title:  params.Title,
+		Status: params.Status,
 	}
 
 	todos, total, err := system.FindTodoList(&todo, page, pageSize)
@@ -117,10 +102,10 @@ func AddTodo(c *gin.Context) {
 	}
 
 	todo := system.SystemUserTodo{
-		SystemUserID: uint(id),
-		Title:        params.Title,
-		Content:      params.Content,
-		Status:       1, // 默认未完成
+		CreatorUserID: uint(id),
+		Title:         params.Title,
+		Content:       params.Content,
+		Status:        1, // 默认未完成
 	}
 
 	if err := system.AddTodo(&todo); err != nil {

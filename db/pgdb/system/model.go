@@ -74,12 +74,13 @@ type SystemUser struct {
 // todo表
 type SystemUserTodo struct {
 	gorm.Model
-	SystemUserID uint   `json:"system_user_id,omitempty"` // 用户ID
-	Title        string `json:"title,omitempty"`          // 标题
-	Content      string `json:"content,omitempty"`        // 内容
-	Deadline     string `json:"deadline,omitempty"`       // 截止日期
-	Priority     uint   `json:"priority,omitempty"`       // 优先级(1:低 2:中 3:高)
-	Status       uint   `json:"status,omitempty"`         // 状态(1:未完成 2:已完成)
+	CreatorUserID  uint   `json:"creator_user_id,omitempty"`  // 创建人ID
+	AssigneeUserID uint   `json:"assignee_user_id,omitempty"` // 被分配人ID
+	Title          string `json:"title,omitempty"`            // 标题
+	Content        string `json:"content,omitempty"`          // 内容
+	Deadline       string `json:"deadline,omitempty"`         // 截止日期
+	Priority       uint   `json:"priority,omitempty"`         // 优先级(1:低 2:中 3:高)
+	Status         uint   `json:"status,omitempty"`           // 状态(1:未完成 2:已完成)
 }
 
 type SystemUserTodoStep struct {

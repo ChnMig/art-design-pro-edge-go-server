@@ -38,8 +38,11 @@ func FindTodoList(todo *SystemUserTodo, page, pageSize int) ([]TodoWithUser, int
 		Where("system_user_todos.deleted_at IS NULL")
 
 	// 构建条件查询
-	if todo.SystemUserID != 0 {
-		baseQuery = baseQuery.Where("system_user_todos.system_user_id = ?", todo.SystemUserID)
+	if todo.CreatorUserID != 0 {
+		baseQuery = baseQuery.Where("system_user_todos.system_user_id = ?", todo.CreatorUserID)
+	}
+	if todo.AssigneeUserID != 0 {
+		baseQuery = baseQuery.Where("system_user_todos.assignee_user_id = ?", todo.AssigneeUserID)
 	}
 	if todo.Title != "" {
 		baseQuery = baseQuery.Where("system_user_todos.title LIKE ?", "%"+todo.Title+"%")
