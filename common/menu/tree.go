@@ -49,6 +49,7 @@ type MenuAuthResp struct {
 }
 
 // 构建菜单树
+// all: 是否包含所有菜单，true表示包含所有菜单，false表示只包含启用的菜单
 func BuildMenuTree(menus []system.SystemMenu, permissions []system.SystemMenuAuth, all bool) []MenuResponse {
 	var menuTree []MenuResponse
 
@@ -276,7 +277,7 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 		}
 
 		// 更新角色的菜单关联
-		if err := tx.Model(&role).Association("Menus").Clear(); err != nil {
+		if err := tx.Model(&role).Association("SystemMenus").Clear(); err != nil {
 			zap.L().Error("failed to clear role menus", zap.Uint("roleID", roleID), zap.Error(err))
 			return err
 		}
@@ -287,14 +288,14 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 				zap.L().Error("failed to find menus", zap.Uint("roleID", roleID), zap.Uints("menuIDs", menuIDs), zap.Error(err))
 				return err
 			}
-			if err := tx.Model(&role).Association("Menus").Append(&menus); err != nil {
+			if err := tx.Model(&role).Association("SystemMenus").Append(&menus); err != nil {
 				zap.L().Error("failed to append menus to role", zap.Uint("roleID", roleID), zap.Error(err))
 				return err
 			}
 		}
 
 		// 更新角色的权限关联
-		if err := tx.Model(&role).Association("MenuAuth").Clear(); err != nil {
+		if err := tx.Model(&role).Association("SystemMenuAuths").Clear(); err != nil {
 			zap.L().Error("failed to clear role auths", zap.Uint("roleID", roleID), zap.Error(err))
 			return err
 		}
@@ -305,7 +306,7 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 				zap.L().Error("failed to find menu auths", zap.Uint("roleID", roleID), zap.Uints("authIDs", authIDs), zap.Error(err))
 				return err
 			}
-			if err := tx.Model(&role).Association("MenuAuth").Append(&auths); err != nil {
+			if err := tx.Model(&role).Association("SystemMenuAuths").Append(&auths); err != nil {
 				zap.L().Error("failed to append auths to role", zap.Uint("roleID", roleID), zap.Error(err))
 				return err
 			}

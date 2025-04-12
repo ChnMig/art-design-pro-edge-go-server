@@ -69,3 +69,32 @@ type SystemUser struct {
 	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
 	Status       uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)
 }
+
+// TODO 如果不需要任务模块, 可以删除掉这段表
+// todo表
+type SystemUserTodo struct {
+	gorm.Model
+	SystemUserID uint   `json:"system_user_id,omitempty"` // 用户ID
+	Title        string `json:"title,omitempty"`          // 标题
+	Content      string `json:"content,omitempty"`        // 内容
+	Status       uint   `json:"status,omitempty"`         // 状态(1:未完成 2:已完成)
+}
+
+type SystemUserTodoStep struct {
+	gorm.Model
+	SystemUserTodoID uint   `json:"system_user_todo_id,omitempty"` // 用户todo表ID
+	Content          string `json:"content,omitempty"`             // 内容
+}
+
+type SystemUserTodoComments struct {
+	gorm.Model
+	SystemUserTodoID uint   `json:"system_user_todo_id,omitempty"` // 用户todo表ID
+	SystemUserID     uint   `json:"system_user_id,omitempty"`      // 用户ID
+	Content          string `json:"content,omitempty"`             // 内容
+}
+
+type SystemUserTodoLog struct {
+	gorm.Model
+	SystemUserTodoID uint   `json:"system_user_todo_id,omitempty"` // 用户todo表ID
+	Content          string `json:"content,omitempty"`             // 内容
+}
