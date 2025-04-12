@@ -31,7 +31,19 @@ func GetUserMenuList(c *gin.Context) {
 		return
 	}
 
-	// 构建菜单树 - 只包含用户有权限的菜单
-	menuTree := menu.BuildMenuTree(roleMenus, rolePermissions, false)
+	// 提取用户拥有的菜单ID（因为用户已经有所有这些角色菜单的权限）
+	var roleMenuIds []uint
+	for _, m := range roleMenus {
+		roleMenuIds = append(roleMenuIds, m.ID)
+	}
+
+	// 提取用户拥有的权限ID
+	var roleAuthIds []uint
+	for _, a := range rolePermissions {
+		roleAuthIds = append(roleAuthIds, a.ID)
+	}
+
+	// 构建菜单树 - 使用带权限标记的菜单树构建函数
+	menuTree := menu.BuildMenuTreeWithPermission(roleMenus, rolePermissions, roleMenuIds, roleAuthIds, false)
 	response.ReturnOk(c, menuTree)
 }
