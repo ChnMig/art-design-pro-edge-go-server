@@ -7,24 +7,6 @@ import (
 	"api-server/db/pgdb"
 )
 
-func FindRoleList(role *SystemRole) ([]SystemRole, error) {
-	var roles []SystemRole
-	db := pgdb.GetClient()
-	// 构建查询条件
-	query := db.Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "name", "role_id", "created_at", "updated_at") // 只选择需要的用户字段
-	})
-	// 如果提供了名称，使用模糊查询
-	if role.Name != "" {
-		query = query.Where("name LIKE ?", "%s"+role.Name+"%s")
-	}
-	if err := query.Find(&roles).Error; err != nil {
-		zap.L().Error("failed to find role list", zap.Error(err))
-		return nil, err
-	}
-	return roles, nil
-}
-
 func UpdateRole(role *SystemRole) error {
 	if err := pgdb.GetClient().Save(&role).Error; err != nil {
 		zap.L().Error("failed to update role", zap.Error(err))
@@ -65,4 +47,52 @@ func FindAllRoles(roles *[]SystemRole) error {
 		return err
 	}
 	return nil
+}
+
+// FindRoleList 查询角色列表(带分页)
+func FindRoleList(role *SystemRole, page, pageSize int) ([]SystemRole, int64, error) {
+	var roles []SystemRole
+	var total int64
+	db := pgdb.GetClient()
+
+	// 构建基础查询
+	query := db.Model(&SystemRole{})
+
+	// 应用过滤条件
+	if role.Name != "" {
+		query = query.Where("name LIKE ?", "%"+role.Name+"%")
+	}
+	if role.Status != 0 {
+		query = query.Where("status = ?", role.Status)
+	}
+
+	// 获取符合条件的总记录数
+	if err := query.Count(&total).Error; err != nil {
+		zap.L().Error("failed to count role list", zap.Error(err))
+		return nil, 0, err
+	}
+
+	// 构建排序和预加载
+	queryWithPreload := query.Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "name", "role_id", "created_at", "updated_at") // 只选择需要的字段
+	}).Order("id DESC")
+
+	// 判断是否需要分页
+	if page == -1 && pageSize == -1 {
+		// 不分页，获取所有数据
+		if err := queryWithPreload.Find(&roles).Error; err != nil {
+			zap.L().Error("failed to find all role list", zap.Error(err))
+			return nil, 0, err
+		}
+	} else {
+		// 应用分页并获取数据
+		if err := queryWithPreload.Offset((page - 1) * pageSize).
+			Limit(pageSize).
+			Find(&roles).Error; err != nil {
+			zap.L().Error("failed to find role list with pagination", zap.Error(err))
+			return nil, 0, err
+		}
+	}
+
+	return roles, total, nil
 }

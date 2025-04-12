@@ -59,20 +59,31 @@ func UpdateDepartment(c *gin.Context) {
 
 func GetDepartmentList(c *gin.Context) {
 	params := &struct {
-		Name string `json:"name" form:"name"`
+		Name   string `json:"name" form:"name"`
+		Status uint   `json:"status" form:"status"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+
+	// 获取分页参数
+	page := middleware.GetPage(c)
+	pageSize := middleware.GetPageSize(c)
+
 	department := system.SystemDepartment{
-		Name: params.Name,
+		Name:   params.Name,
+		Status: params.Status,
 	}
-	departments, err := system.FindDepartmentList(&department)
+
+	// 调用带分页的查询函数
+	departments, total, err := system.FindDepartmentList(&department, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询部门失败")
 		return
 	}
-	response.ReturnOk(c, departments)
+
+	// 返回带总数的结果
+	response.ReturnOkWithCount(c, int(total), departments)
 }
 
 func DeleteDepartment(c *gin.Context) {

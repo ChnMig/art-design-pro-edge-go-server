@@ -72,12 +72,25 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 	}
 	// 获取符合条件的总记录数
 	baseQuery.Count(&total)
-	// 应用分页并获取数据
+
+	// 准备查询对象，添加选择字段和排序
 	query := baseQuery.Select("system_users.*, system_roles.name as role_name, system_roles.desc as role_desc, system_departments.name as department_name")
-	if err := query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&usersWithRelations).Error; err != nil {
-		zap.L().Error("failed to find user list", zap.Error(err))
-		return nil, 0, err
+
+	// 判断是否需要分页
+	if page == -1 && pageSize == -1 {
+		// 不分页，获取所有数据
+		if err := query.Find(&usersWithRelations).Error; err != nil {
+			zap.L().Error("failed to find all user list", zap.Error(err))
+			return nil, 0, err
+		}
+	} else {
+		// 应用分页并获取数据
+		if err := query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&usersWithRelations).Error; err != nil {
+			zap.L().Error("failed to find user list", zap.Error(err))
+			return nil, 0, err
+		}
 	}
+
 	return usersWithRelations, total, nil
 }
 

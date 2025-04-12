@@ -14,15 +14,39 @@ import (
 )
 
 func GetMenuList(c *gin.Context) {
+	// 获取查询参数
+	params := &struct {
+		Title    string `json:"title" form:"title"`
+		Name     string `json:"name" form:"name"`
+		Path     string `json:"path" form:"path"`
+		ParentID uint   `json:"parentId" form:"parentId"`
+		Status   uint   `json:"status" form:"status"`
+	}{}
+	if !middleware.CheckParam(params, c) {
+		return
+	}
+
+	// 获取分页参数
+	page := middleware.GetPage(c)
+	pageSize := middleware.GetPageSize(c)
+
+	// 构建查询条件
+	menu := system.SystemMenu{
+		Title:    params.Title,
+		Name:     params.Name,
+		Path:     params.Path,
+		ParentID: params.ParentID,
+		Status:   params.Status,
+	}
+
 	// 查询菜单数据
-	menus, menup, err := system.GetMenuData()
+	menus, total, err := system.FindMenuList(&menu, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
 		return
 	}
-	// 构建菜单树
-	menuTree := menu.BuildMenuTree(menus, menup, true)
-	response.ReturnOk(c, menuTree)
+
+	response.ReturnOkWithCount(c, int(total), menus)
 }
 
 func DeleteMenu(c *gin.Context) {
@@ -42,7 +66,7 @@ func DeleteMenu(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
 		return
 	}
-	children, err := system.FindMenuList(&system.SystemMenu{ParentID: menu.ID})
+	children, _, err := system.FindMenuList(&system.SystemMenu{ParentID: menu.ID}, -1, -1)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")
@@ -171,7 +195,7 @@ func UpdateMenu(c *gin.Context) {
 	}
 	if params.Status == 2 {
 		// 判断子菜单是否是禁用状态
-		children, err := system.FindMenuList(&system.SystemMenu{ParentID: params.ID})
+		children, _, err := system.FindMenuList(&system.SystemMenu{ParentID: params.ID}, -1, -1)
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")

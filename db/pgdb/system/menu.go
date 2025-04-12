@@ -111,11 +111,57 @@ func GetMenu(menu *SystemMenu) error {
 	return nil
 }
 
-func FindMenuList(menu *SystemMenu) ([]SystemMenu, error) {
+// FindMenuList 查询菜单列表(带分页)
+func FindMenuList(menu *SystemMenu, page, pageSize int) ([]SystemMenu, int64, error) {
 	var menus []SystemMenu
-	if err := pgdb.GetClient().Where(menu).Find(&menus).Error; err != nil {
-		zap.L().Error("failed to find menu list", zap.Error(err))
-		return nil, err
+	var total int64
+	db := pgdb.GetClient()
+
+	// 构建基础查询
+	query := db.Model(&SystemMenu{})
+
+	// 应用过滤条件
+	if menu.Title != "" {
+		query = query.Where("title LIKE ?", "%"+menu.Title+"%")
 	}
-	return menus, nil
+	if menu.Name != "" {
+		query = query.Where("name LIKE ?", "%"+menu.Name+"%")
+	}
+	if menu.Path != "" {
+		query = query.Where("path LIKE ?", "%"+menu.Path+"%")
+	}
+	if menu.ParentID != 0 {
+		query = query.Where("parent_id = ?", menu.ParentID)
+	}
+	if menu.Status != 0 {
+		query = query.Where("status = ?", menu.Status)
+	}
+
+	// 获取符合条件的总记录数
+	if err := query.Count(&total).Error; err != nil {
+		zap.L().Error("failed to count menu list", zap.Error(err))
+		return nil, 0, err
+	}
+
+	// 构建排序
+	queryOrder := query.Order("sort DESC, id DESC")
+
+	// 判断是否需要分页
+	if page == -1 && pageSize == -1 {
+		// 不分页，获取所有数据
+		if err := queryOrder.Find(&menus).Error; err != nil {
+			zap.L().Error("failed to find all menu list", zap.Error(err))
+			return nil, 0, err
+		}
+	} else {
+		// 应用分页并获取数据
+		if err := queryOrder.Offset((page - 1) * pageSize).
+			Limit(pageSize).
+			Find(&menus).Error; err != nil {
+			zap.L().Error("failed to find menu list with pagination", zap.Error(err))
+			return nil, 0, err
+		}
+	}
+
+	return menus, total, nil
 }

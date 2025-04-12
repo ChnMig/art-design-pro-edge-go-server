@@ -11,20 +11,31 @@ import (
 
 func GetRoleList(c *gin.Context) {
 	params := &struct {
-		Name string `json:"name" form:"name"`
+		Name   string `json:"name" form:"name"`
+		Status uint   `json:"status" form:"status"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+
+	// 获取分页参数
+	page := middleware.GetPage(c)
+	pageSize := middleware.GetPageSize(c)
+
 	role := system.SystemRole{
-		Name: params.Name,
+		Name:   params.Name,
+		Status: params.Status,
 	}
-	roles, err := system.FindRoleList(&role)
+
+	// 调用带分页的查询函数
+	roles, total, err := system.FindRoleList(&role, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "获取角色列表失败")
 		return
 	}
-	response.ReturnOk(c, roles)
+
+	// 返回带总数的结果
+	response.ReturnOkWithCount(c, int(total), roles)
 }
 
 func AddRole(c *gin.Context) {
