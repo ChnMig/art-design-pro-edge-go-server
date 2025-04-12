@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"api-server/api"
+	"api-server/common/cron"
 	"api-server/config"
 	"api-server/db/pgdb"
 	"api-server/db/pgdb/system"
@@ -38,18 +39,22 @@ func main() {
 		}
 	}
 	log.SetLogger()
+
+	// 初始化定时任务
+	cron.InitCronJobs()
+
 	r := api.InitApi()
-	r.Run(fmt.Sprintf(":%d", config.ListenPort))
-	// End of monitoring
-	func() {
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
-		for {
-			switch <-sigs {
-			case syscall.SIGTERM, syscall.SIGINT:
-				zap.L().Error("i picked up a stop signal.")
-				return
-			}
+	go r.Run(fmt.Sprintf(":%d", config.ListenPort))
+
+	// 监听停止信号
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
+	for {
+		sig := <-sigs
+		switch sig {
+		case syscall.SIGTERM, syscall.SIGINT:
+			zap.L().Info("接收到停止信号，程序即将退出", zap.String("signal", sig.String()))
+			return
 		}
-	}()
+	}
 }

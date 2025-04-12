@@ -1,13 +1,88 @@
 package user
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
 	"api-server/db/pgdb/system"
+	"api-server/db/rdb/systemuser"
 )
+
+func FindUserByCache(c *gin.Context) {
+	params := &struct {
+		Username string `json:"username" form:"username"`
+		Name     string `json:"name" form:"name"`
+		ID       uint   `json:"id" form:"id"`
+	}{}
+	if !middleware.CheckParam(params, c) {
+		return
+	}
+
+	// 如果提供了ID，则获取单个用户信息
+	if params.ID > 0 {
+		userInfo, err := systemuser.GetUserFromCache(params.ID)
+		if err != nil {
+			response.ReturnError(c, response.DATA_LOSS, "获取用户缓存数据失败")
+			return
+		}
+		response.ReturnOk(c, userInfo)
+		return
+	}
+
+	// 获取分页参数
+	page := middleware.GetPage(c)
+	pageSize := middleware.GetPageSize(c)
+
+	// 获取所有用户列表
+	userList, err := systemuser.GetAllUsersFromCache()
+	if err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "获取用户缓存列表失败")
+		return
+	}
+
+	// 过滤结果
+	var filteredList []systemuser.UserCacheInfo
+	if params.Username != "" || params.Name != "" {
+		for _, user := range userList {
+			// 如果提供了用户名，且不匹配，则跳过
+			if params.Username != "" && !strings.Contains(user.Username, params.Username) {
+				continue
+			}
+
+			// 如果提供了名称，且不匹配，则跳过
+			if params.Name != "" && !strings.Contains(user.Name, params.Name) {
+				continue
+			}
+
+			// 所有条件都匹配，添加到结果列表
+			filteredList = append(filteredList, user)
+		}
+	} else {
+		filteredList = userList
+	}
+
+	// 计算总数
+	total := len(filteredList)
+
+	// 应用分页
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start >= total {
+		// 如果起始位置超出了总数，返回空列表
+		response.ReturnOkWithCount(c, total, []systemuser.UserCacheInfo{})
+		return
+	}
+	if end > total {
+		end = total
+	}
+
+	pagedList := filteredList[start:end]
+	response.ReturnOkWithCount(c, total, pagedList)
+}
 
 func FindUser(c *gin.Context) {
 	params := &struct {

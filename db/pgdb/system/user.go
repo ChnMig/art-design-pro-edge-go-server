@@ -107,3 +107,12 @@ func DeleteUser(user *SystemUser) error {
 	}
 	return nil
 }
+
+// FindAllUsers 查询所有用户
+func FindAllUsers(users *[]SystemUser) error {
+	if err := pgdb.GetClient().Find(users).Error; err != nil {
+		zap.L().Error("failed to find all users", zap.Error(err))
+		return err
+	}
+	return nil
+}

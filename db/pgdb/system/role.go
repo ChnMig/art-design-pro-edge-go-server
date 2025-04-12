@@ -48,3 +48,21 @@ func DeleteRole(role *SystemRole) error {
 	}
 	return nil
 }
+
+// GetRole 获取单个角色信息
+func GetRole(role *SystemRole) error {
+	if err := pgdb.GetClient().Where(role).First(role).Error; err != nil {
+		zap.L().Error("failed to get role", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// FindAllRoles 查询所有角色
+func FindAllRoles(roles *[]SystemRole) error {
+	if err := pgdb.GetClient().Find(roles).Error; err != nil {
+		zap.L().Error("failed to find all roles", zap.Error(err))
+		return err
+	}
+	return nil
+}
