@@ -1,4 +1,3 @@
-// filepath: /Users/chenming/work/art-design-pro-edge-go-server/db/pgdb/system/todo.go
 package system
 
 import (
@@ -8,63 +7,51 @@ import (
 	"api-server/db/pgdb"
 )
 
-// TodoWithUser 带用户信息的Todo
-type TodoWithUser struct {
-	SystemUserTodo
-	UserName string `json:"user_name"`
-}
-
-// TodoStepWithTodo 带Todo信息的步骤
-type TodoStepWithTodo struct {
-	SystemUserTodoStep
-	TodoTitle string `json:"todo_title"`
-}
-
-// TodoCommentWithUser 带用户信息的评论
-type TodoCommentWithUser struct {
-	SystemUserTodoComments
-	UserName string `json:"user_name"`
-}
-
 // FindTodoList 查询Todo列表(带分页)
-func FindTodoList(todo *SystemUserTodo, page, pageSize int) ([]TodoWithUser, int64, error) {
-	var todosWithUser []TodoWithUser
+func FindTodoList(todo *SystemUserTodo, page, pageSize int) ([]SystemUserTodo, int64, error) {
+	var todos []SystemUserTodo
 	var total int64
 	db := pgdb.GetClient()
 
 	// 构建基础查询
-	baseQuery := db.Table("system_user_todos").
-		Joins("left join system_users on system_user_todos.system_user_id = system_users.id").
-		Where("system_user_todos.deleted_at IS NULL")
+	baseQuery := db.Model(&SystemUserTodo{}).Where("deleted_at IS NULL")
 
 	// 构建条件查询
 	if todo.CreatorUserID != 0 {
-		baseQuery = baseQuery.Where("system_user_todos.system_user_id = ?", todo.CreatorUserID)
+		baseQuery = baseQuery.Where("system_user_id = ?", todo.CreatorUserID)
 	}
 	if todo.AssigneeUserID != 0 {
-		baseQuery = baseQuery.Where("system_user_todos.assignee_user_id = ?", todo.AssigneeUserID)
+		baseQuery = baseQuery.Where("assignee_user_id = ?", todo.AssigneeUserID)
 	}
 	if todo.Title != "" {
-		baseQuery = baseQuery.Where("system_user_todos.title LIKE ?", "%"+todo.Title+"%")
+		baseQuery = baseQuery.Where("title LIKE ?", "%"+todo.Title+"%")
 	}
 	if todo.Status != 0 {
-		baseQuery = baseQuery.Where("system_user_todos.status = ?", todo.Status)
+		baseQuery = baseQuery.Where("status = ?", todo.Status)
 	}
 
 	// 获取符合条件的总记录数
 	baseQuery.Count(&total)
 
-	// 应用分页并获取数据
-	query := baseQuery.
-		Select("system_user_todos.*, system_users.name as user_name").
-		Order("system_user_todos.created_at DESC") // 按创建时间倒序排序
+	// 准备查询
+	queryOrder := baseQuery.Order("created_at DESC") // 按创建时间倒序排序
 
-	if err := query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&todosWithUser).Error; err != nil {
-		zap.L().Error("failed to find todo list", zap.Error(err))
-		return nil, 0, err
+	// 判断是否需要分页
+	if page == -1 && pageSize == -1 {
+		// 不分页，获取所有数据
+		if err := queryOrder.Find(&todos).Error; err != nil {
+			zap.L().Error("failed to find all todo list", zap.Error(err))
+			return nil, 0, err
+		}
+	} else {
+		// 应用分页并获取数据
+		if err := queryOrder.Offset((page - 1) * pageSize).Limit(pageSize).Find(&todos).Error; err != nil {
+			zap.L().Error("failed to find todo list", zap.Error(err))
+			return nil, 0, err
+		}
 	}
 
-	return todosWithUser, total, nil
+	return todos, total, nil
 }
 
 // AddTodo 新增Todo
@@ -136,15 +123,13 @@ func AddTodoStep(step *SystemUserTodoStep) error {
 	return tx.Commit().Error
 }
 
-// FindTodoComments 查询Todo评论(不带分页)
-func FindTodoComments(todoID uint) ([]TodoCommentWithUser, error) {
-	var comments []TodoCommentWithUser
+// FindTodoComments 查询Todo评论
+func FindTodoComments(todoID uint) ([]SystemUserTodoComments, error) {
+	var comments []SystemUserTodoComments
 
-	query := pgdb.GetClient().Table("system_user_todo_comments").
-		Joins("left join system_users on system_user_todo_comments.system_user_id = system_users.id").
-		Where("system_user_todo_comments.system_user_todo_id = ? AND system_user_todo_comments.deleted_at IS NULL", todoID).
-		Select("system_user_todo_comments.*, system_users.name as user_name").
-		Order("system_user_todo_comments.created_at ASC") // 按创建时间升序排序
+	query := pgdb.GetClient().Model(&SystemUserTodoComments{}).
+		Where("system_user_todo_id = ? AND deleted_at IS NULL", todoID).
+		Order("created_at ASC") // 按创建时间升序排序
 
 	if err := query.Find(&comments).Error; err != nil {
 		zap.L().Error("failed to find todo comments", zap.Error(err))
@@ -154,7 +139,7 @@ func FindTodoComments(todoID uint) ([]TodoCommentWithUser, error) {
 	return comments, nil
 }
 
-// FindTodoSteps 查询Todo步骤(不带分页)
+// FindTodoSteps 查询Todo步骤
 func FindTodoSteps(todoID uint) ([]SystemUserTodoStep, error) {
 	var steps []SystemUserTodoStep
 
@@ -169,7 +154,7 @@ func FindTodoSteps(todoID uint) ([]SystemUserTodoStep, error) {
 	return steps, nil
 }
 
-// FindTodoLogs 查询Todo日志(不带分页)
+// FindTodoLogs 查询Todo日志
 func FindTodoLogs(todoID uint) ([]SystemUserTodoLog, error) {
 	var logs []SystemUserTodoLog
 
@@ -258,18 +243,15 @@ func UpdateTodoStatus(todoID uint, status uint) error {
 }
 
 // GetTodo 查询单个Todo
-func GetTodo(todoID uint) (TodoWithUser, error) {
-	var todoWithUser TodoWithUser
+func GetTodo(todoID uint) (SystemUserTodo, error) {
+	var todo SystemUserTodo
 
-	query := pgdb.GetClient().Table("system_user_todos").
-		Joins("left join system_users on system_user_todos.system_user_id = system_users.id").
-		Where("system_user_todos.id = ? AND system_user_todos.deleted_at IS NULL", todoID).
-		Select("system_user_todos.*, system_users.name as user_name")
-
-	if err := query.First(&todoWithUser).Error; err != nil {
+	if err := pgdb.GetClient().
+		Where("id = ? AND deleted_at IS NULL", todoID).
+		First(&todo).Error; err != nil {
 		zap.L().Error("failed to get todo", zap.Error(err))
-		return todoWithUser, err
+		return todo, err
 	}
 
-	return todoWithUser, nil
+	return todo, nil
 }

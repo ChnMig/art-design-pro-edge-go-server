@@ -109,9 +109,12 @@ func FindUser(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return
 	}
-	for _, v := range usersWithRelations {
-		v.Password = ""
+
+	// 使用索引方式清空密码
+	for i := range usersWithRelations {
+		usersWithRelations[i].SystemUser.Password = ""
 	}
+
 	response.ReturnOkWithCount(c, int(total), usersWithRelations)
 }
 
