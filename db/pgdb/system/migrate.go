@@ -32,13 +32,13 @@ func migrateData(db *gorm.DB) error {
 		menus := []SystemMenu{
 			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/layout/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 99},
 			{Model: gorm.Model{ID: 2}, Path: "/system", Name: "System", Component: "/layout/index", Title: "系统管理", Icon: "&#xe72b;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 20},
-			{Model: gorm.Model{ID: 3}, Path: "menu", Name: "SystemMenu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 99},
-			{Model: gorm.Model{ID: 4}, Path: "role", Name: "SystemRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 88},
-			{Model: gorm.Model{ID: 5}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 77},
-			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 1, Status: 1, Level: 2, ParentID: 2, Sort: 66},
-			{Model: gorm.Model{ID: 7}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 99},
-			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 88},
-			{Model: gorm.Model{ID: 9}, Path: "todo", Name: "SystemTodo", Component: "/dashboard/todo/index", Title: "待办事项", KeepAlive: 1, Status: 1, Level: 2, ParentID: 1, Sort: 77},
+			{Model: gorm.Model{ID: 3}, Path: "menu", Name: "SystemMenu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 99},
+			{Model: gorm.Model{ID: 4}, Path: "role", Name: "SystemRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 88},
+			{Model: gorm.Model{ID: 5}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 77},
+			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 66},
+			{Model: gorm.Model{ID: 7}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 99},
+			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 88},
+			{Model: gorm.Model{ID: 9}, Path: "todo", Name: "SystemTodo", Component: "/dashboard/todo/index", Title: "待办事项", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 77},
 		}
 		err := db.Create(&menus).Error
 		if err != nil {
