@@ -77,7 +77,7 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 	query := baseQuery.Select("system_users.*, system_roles.name as role_name, system_roles.desc as role_desc, system_departments.name as department_name")
 
 	// 判断是否需要分页
-	if page == -1 && pageSize == -1 {
+	if page == config.CancelPage && pageSize == config.CancelPageSize {
 		// 不分页，获取所有数据
 		if err := query.Find(&usersWithRelations).Error; err != nil {
 			zap.L().Error("failed to find all user list", zap.Error(err))

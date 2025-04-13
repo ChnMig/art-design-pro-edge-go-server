@@ -55,6 +55,14 @@ var (
 	PWDSalt       = "rHECMvW3el1zhpdzgx9dY" // TODO 数据库存储密码时的盐, 务必重新生成, 且不可泄露, 不可更改
 )
 
+// page config
+var (
+	DefaultPageSize = 20 // default page size
+	DefaultPage     = 1  // default page
+	CancelPageSize  = -1 // cancel page size
+	CancelPage      = -1 // cancel page
+)
+
 func init() {
 	pathtool.CreateDir(LogDir)
 }

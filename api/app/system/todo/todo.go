@@ -8,6 +8,7 @@ import (
 
 	"api-server/api/middleware"
 	"api-server/api/response"
+	"api-server/config"
 	"api-server/db/pgdb/system"
 	"api-server/db/rdb/systemuser"
 )
@@ -125,8 +126,8 @@ func GetTodo(c *gin.Context) {
 		return
 	}
 
-	// 获取评论
-	comments, err := system.FindTodoComments(params.ID)
+	// 获取评论 (传入-1,-1表示获取所有评论，不分页)
+	comments, _, err := system.FindTodoComments(params.ID, config.CancelPage, config.CancelPageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询待办事项评论失败")
 		return
@@ -322,7 +323,7 @@ func AddTodoComment(c *gin.Context) {
 	response.ReturnOk(c, comment)
 }
 
-// 查询 Todo 评论列表（不带分页）
+// 查询 Todo 评论列表（带分页）
 func FindTodoComments(c *gin.Context) {
 	params := &struct {
 		TodoID uint `json:"todo_id" form:"todo_id" binding:"required"`
@@ -331,8 +332,12 @@ func FindTodoComments(c *gin.Context) {
 		return
 	}
 
+	// 获取分页参数
+	page := middleware.GetPage(c)
+	pageSize := middleware.GetPageSize(c)
+
 	// 获取原始评论列表
-	comments, err := system.FindTodoComments(params.TodoID)
+	comments, total, err := system.FindTodoComments(params.TodoID, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询评论失败")
 		return
@@ -357,7 +362,7 @@ func FindTodoComments(c *gin.Context) {
 		commentResponses = append(commentResponses, commentResp)
 	}
 
-	response.ReturnOk(c, commentResponses)
+	response.ReturnOkWithCount(c, int(total), commentResponses)
 }
 
 // 新增 Todo 步骤

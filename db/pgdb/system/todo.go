@@ -4,6 +4,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"api-server/config"
 	"api-server/db/pgdb"
 )
 
@@ -37,7 +38,7 @@ func FindTodoList(todo *SystemUserTodo, page, pageSize int) ([]SystemUserTodo, i
 	queryOrder := baseQuery.Order("created_at DESC") // 按创建时间倒序排序
 
 	// 判断是否需要分页
-	if page == -1 && pageSize == -1 {
+	if page == config.CancelPage && pageSize == config.CancelPageSize {
 		// 不分页，获取所有数据
 		if err := queryOrder.Find(&todos).Error; err != nil {
 			zap.L().Error("failed to find all todo list", zap.Error(err))
@@ -123,20 +124,41 @@ func AddTodoStep(step *SystemUserTodoStep) error {
 	return tx.Commit().Error
 }
 
-// FindTodoComments 查询Todo评论
-func FindTodoComments(todoID uint) ([]SystemUserTodoComments, error) {
+// FindTodoComments 查询Todo评论(带分页)
+func FindTodoComments(todoID uint, page, pageSize int) ([]SystemUserTodoComments, int64, error) {
 	var comments []SystemUserTodoComments
+	var total int64
+	db := pgdb.GetClient()
 
-	query := pgdb.GetClient().Model(&SystemUserTodoComments{}).
-		Where("system_user_todo_id = ? AND deleted_at IS NULL", todoID).
-		Order("created_at ASC") // 按创建时间升序排序
+	// 构建基础查询
+	baseQuery := db.Model(&SystemUserTodoComments{}).
+		Where("system_user_todo_id = ? AND deleted_at IS NULL", todoID)
 
-	if err := query.Find(&comments).Error; err != nil {
-		zap.L().Error("failed to find todo comments", zap.Error(err))
-		return nil, err
+	// 获取符合条件的总记录数
+	if err := baseQuery.Count(&total).Error; err != nil {
+		zap.L().Error("failed to count todo comments", zap.Error(err))
+		return nil, 0, err
 	}
 
-	return comments, nil
+	// 构建排序查询
+	queryOrder := baseQuery.Order("created_at ASC") // 按创建时间升序排序
+
+	// 判断是否需要分页
+	if page == config.CancelPage && pageSize == config.CancelPageSize {
+		// 不分页，获取所有数据
+		if err := queryOrder.Find(&comments).Error; err != nil {
+			zap.L().Error("failed to find all todo comments", zap.Error(err))
+			return nil, 0, err
+		}
+	} else {
+		// 应用分页并获取数据
+		if err := queryOrder.Offset((page - 1) * pageSize).Limit(pageSize).Find(&comments).Error; err != nil {
+			zap.L().Error("failed to find todo comments with pagination", zap.Error(err))
+			return nil, 0, err
+		}
+	}
+
+	return comments, total, nil
 }
 
 // FindTodoSteps 查询Todo步骤

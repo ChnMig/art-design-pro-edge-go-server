@@ -4,6 +4,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"api-server/config"
 	"api-server/db/pgdb"
 )
 
@@ -78,7 +79,7 @@ func FindRoleList(role *SystemRole, page, pageSize int) ([]SystemRole, int64, er
 	}).Order("id DESC")
 
 	// 判断是否需要分页
-	if page == -1 && pageSize == -1 {
+	if page == config.CancelPage && pageSize == config.CancelPageSize {
 		// 不分页，获取所有数据
 		if err := queryWithPreload.Find(&roles).Error; err != nil {
 			zap.L().Error("failed to find all role list", zap.Error(err))
