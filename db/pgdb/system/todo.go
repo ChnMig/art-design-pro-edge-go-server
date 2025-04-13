@@ -255,3 +255,60 @@ func GetTodo(todoID uint) (SystemUserTodo, error) {
 
 	return todo, nil
 }
+
+// UpdateTodo 更新Todo全部信息
+func UpdateTodo(todo *SystemUserTodo) error {
+	tx := pgdb.GetClient().Begin()
+
+	// 首先获取原始数据以记录变更
+	var originalTodo SystemUserTodo
+	if err := tx.Where("id = ?", todo.ID).First(&originalTodo).Error; err != nil {
+		tx.Rollback()
+		zap.L().Error("failed to get original todo", zap.Error(err))
+		return err
+	}
+
+	// 保存更新前的状态值，用于判断状态是否变更
+	originalStatus := originalTodo.Status
+
+	// 更新Todo
+	if err := tx.Model(&SystemUserTodo{}).Where("id = ?", todo.ID).Updates(map[string]interface{}{
+		"title":            todo.Title,
+		"content":          todo.Content,
+		"deadline":         todo.Deadline,
+		"priority":         todo.Priority,
+		"status":           todo.Status,
+		"assignee_user_id": todo.AssigneeUserID,
+	}).Error; err != nil {
+		tx.Rollback()
+		zap.L().Error("failed to update todo", zap.Error(err))
+		return err
+	}
+
+	// 添加更新日志
+	var logContent string
+
+	// 判断状态是否变更，如果变更了则添加状态变更日志
+	if originalStatus != todo.Status {
+		statusText := "未完成"
+		if todo.Status == 2 {
+			statusText = "已完成"
+		}
+		logContent = "将任务状态修改为：" + statusText
+	} else {
+		logContent = "更新了任务信息"
+	}
+
+	log := SystemUserTodoLog{
+		SystemUserTodoID: todo.ID,
+		Content:          logContent,
+	}
+
+	if err := tx.Create(&log).Error; err != nil {
+		tx.Rollback()
+		zap.L().Error("failed to add todo update log", zap.Error(err))
+		return err
+	}
+
+	return tx.Commit().Error
+}

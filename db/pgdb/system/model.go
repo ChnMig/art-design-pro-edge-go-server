@@ -80,7 +80,7 @@ type SystemUserTodo struct {
 	Content        string `json:"content,omitempty"`          // 内容
 	Deadline       string `json:"deadline,omitempty"`         // 截止日期
 	Priority       uint   `json:"priority,omitempty"`         // 优先级(1:低 2:中 3:高)
-	Status         uint   `json:"status,omitempty"`           // 状态(1:未完成 2:已完成)
+	Status         uint   `json:"status,omitempty"`           // 状态(1:未处理 2:处理中 3:已完成 4:已取消)
 }
 
 type SystemUserTodoStep struct {

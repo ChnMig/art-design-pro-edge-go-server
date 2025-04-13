@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
@@ -227,6 +228,45 @@ func UpdateTodoStatus(c *gin.Context) {
 	}
 
 	response.ReturnOk(c, nil)
+}
+
+// 更新 Todo
+func UpdateTodo(c *gin.Context) {
+	params := &struct {
+		ID             uint   `json:"id" form:"id" binding:"required"`
+		Title          string `json:"title" form:"title" binding:"required"`
+		Content        string `json:"content" form:"content" binding:"required"`
+		Deadline       string `json:"deadline" form:"deadline"`
+		Priority       uint   `json:"priority" form:"priority"`
+		Status         uint   `json:"status" form:"status"`
+		AssigneeUserID uint   `json:"assignee_user_id" form:"assignee_user_id"`
+	}{}
+	if !middleware.CheckParam(params, c) {
+		return
+	}
+
+	// 验证状态值
+	if params.Status != 0 && params.Status != 1 && params.Status != 2 {
+		response.ReturnError(c, response.INVALID_ARGUMENT, "无效的状态值，应为 0(默认), 1(未完成) 或 2(已完成)")
+		return
+	}
+
+	todo := system.SystemUserTodo{
+		Model:          gorm.Model{ID: params.ID},
+		Title:          params.Title,
+		Content:        params.Content,
+		Deadline:       params.Deadline,
+		Priority:       params.Priority,
+		Status:         params.Status,
+		AssigneeUserID: params.AssigneeUserID,
+	}
+
+	if err := system.UpdateTodo(&todo); err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "更新待办事项失败")
+		return
+	}
+
+	response.ReturnOk(c, todo)
 }
 
 // 删除 Todo
