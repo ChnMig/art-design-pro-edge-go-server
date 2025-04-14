@@ -177,83 +177,6 @@ func AddTodo(c *gin.Context) {
 	})
 }
 
-// 更新 Todo 状态
-func UpdateTodoStatus(c *gin.Context) {
-	params := &struct {
-		ID     uint `json:"id" form:"id" binding:"required"`
-		Status uint `json:"status" form:"status" binding:"required"`
-	}{}
-	if !middleware.CheckParam(params, c) {
-		return
-	}
-
-	// 验证状态值
-	if params.Status < 1 || params.Status > 4 {
-		response.ReturnError(c, response.INVALID_ARGUMENT, "无效的状态值，应为 1(未处理)、2(处理中)、3(已完成)或 4(已取消)")
-		return
-	}
-
-	// 从Token中获取用户ID
-	uID := c.GetString(middleware.JWTDataKey)
-	if uID == "" {
-		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
-		return
-	}
-	id, err := strconv.ParseUint(uID, 10, 64)
-	if err != nil {
-		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
-		return
-	}
-
-	// 获取原始待办事项信息以记录更详细的变更
-	originalTodo, err := system.GetTodo(params.ID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "获取原始待办事项失败")
-		return
-	}
-
-	// 判断状态是否有变动
-	if originalTodo.Status == params.Status {
-		response.ReturnOk(c, gin.H{
-			"status": params.Status,
-			"info":   "状态未发生变化",
-		})
-		return
-	}
-
-	if err := system.UpdateTodoStatus(params.ID, params.Status); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新待办事项状态失败")
-		return
-	}
-
-	// 准备步骤内容
-	// 将状态码转换为文字描述
-	statusText := getStatusText(params.Status)
-	oldStatusText := getStatusText(originalTodo.Status)
-
-	stepContent := "【状态更新】"
-	stepContent += "\n任务ID: " + strconv.FormatUint(uint64(params.ID), 10)
-	stepContent += "\n任务标题: " + originalTodo.Title
-	stepContent += "\n原状态: " + oldStatusText
-	stepContent += "\n新状态: " + statusText
-
-	step := system.SystemUserTodoStep{
-		SystemUserTodoID: params.ID,
-		Content:          stepContent,
-		SystemUserID:     uint(id), // 设置操作人ID
-	}
-
-	if err := system.AddTodoStep(&step); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "添加状态更新步骤失败")
-		return
-	}
-
-	response.ReturnOk(c, gin.H{
-		"status": params.Status,
-		"step":   step,
-	})
-}
-
 // 获取状态文字描述
 func getStatusText(status uint) string {
 	switch status {
@@ -327,7 +250,6 @@ func UpdateTodo(c *gin.Context) {
 
 	// 准备步骤内容，详细记录更新的字段和值
 	stepContent := "【更新任务】"
-	stepContent += "\n任务ID: " + strconv.FormatUint(uint64(params.ID), 10)
 
 	// 记录标题变更
 	if originalTodo.Title != params.Title {
@@ -406,12 +328,6 @@ func UpdateTodo(c *gin.Context) {
 
 		stepContent += "\n负责人: [" + oldAssigneeName + "] -> [" + newAssigneeName + "]"
 	}
-
-	// 如果没有任何变更，记录一条默认信息
-	if stepContent == "【更新任务】\n任务ID: "+strconv.FormatUint(uint64(params.ID), 10) {
-		stepContent += "\n无实质性内容变更"
-	}
-
 	// 添加更新步骤
 	step := system.SystemUserTodoStep{
 		SystemUserTodoID: params.ID,
@@ -450,8 +366,8 @@ func DeleteTodo(c *gin.Context) {
 // 新增 Todo 步骤
 func AddTodoStep(c *gin.Context) {
 	params := &struct {
-		TodoID  uint   `json:"todo_id" form:"todo_id" binding:"required"`
-		Content string `json:"content" form:"content" binding:"required"`
+		SystemUserTodoID uint   `json:"system_user_todo_id" form:"system_user_todo_id" binding:"required"`
+		Content          string `json:"content" form:"content" binding:"required"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -470,7 +386,7 @@ func AddTodoStep(c *gin.Context) {
 	}
 
 	step := system.SystemUserTodoStep{
-		SystemUserTodoID: params.TodoID,
+		SystemUserTodoID: params.SystemUserTodoID,
 		Content:          params.Content,
 		SystemUserID:     uint(id), // 设置操作人ID
 	}

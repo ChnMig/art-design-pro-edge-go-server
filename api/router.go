@@ -46,7 +46,6 @@ func systemRouter(router *gin.RouterGroup) {
 		// Todo相关路由
 		systemRouter.GET("/todo", middleware.TokenVerify, todo.FindTodoList)
 		systemRouter.POST("/todo", middleware.TokenVerify, todo.AddTodo)
-		systemRouter.PUT("/todo/status", middleware.TokenVerify, todo.UpdateTodoStatus)
 		systemRouter.PUT("/todo", middleware.TokenVerify, todo.UpdateTodo)
 		systemRouter.DELETE("/todo", middleware.TokenVerify, todo.DeleteTodo)
 
