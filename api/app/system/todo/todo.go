@@ -385,9 +385,12 @@ func AddTodoStep(c *gin.Context) {
 		return
 	}
 
+	// 在 content 最上方增加"【手动记录】"并换行
+	modifiedContent := "【手动记录】\n" + params.Content
+
 	step := system.SystemUserTodoStep{
 		SystemUserTodoID: params.SystemUserTodoID,
-		Content:          params.Content,
+		Content:          modifiedContent,
 		SystemUserID:     uint(id), // 设置操作人ID
 	}
 
