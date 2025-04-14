@@ -45,22 +45,14 @@ func systemRouter(router *gin.RouterGroup) {
 
 		// Todo相关路由
 		systemRouter.GET("/todo", middleware.TokenVerify, todo.FindTodoList)
-		systemRouter.GET("/todo/detail", middleware.TokenVerify, todo.GetTodo)
 		systemRouter.POST("/todo", middleware.TokenVerify, todo.AddTodo)
 		systemRouter.PUT("/todo/status", middleware.TokenVerify, todo.UpdateTodoStatus)
-		systemRouter.PUT("/todo", middleware.TokenVerify, todo.UpdateTodo) // 新增路由，用于更新待办事项的全部信息
+		systemRouter.PUT("/todo", middleware.TokenVerify, todo.UpdateTodo)
 		systemRouter.DELETE("/todo", middleware.TokenVerify, todo.DeleteTodo)
-
-		// Todo评论相关路由
-		systemRouter.GET("/todo/comment", middleware.TokenVerify, todo.FindTodoComments)
-		systemRouter.POST("/todo/comment", middleware.TokenVerify, todo.AddTodoComment)
 
 		// Todo步骤相关路由
 		systemRouter.GET("/todo/step", middleware.TokenVerify, todo.FindTodoSteps)
 		systemRouter.POST("/todo/step", middleware.TokenVerify, todo.AddTodoStep)
-
-		// Todo日志相关路由
-		systemRouter.GET("/todo/log", middleware.TokenVerify, todo.FindTodoLogs)
 	}
 }
 

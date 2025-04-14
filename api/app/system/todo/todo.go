@@ -8,7 +8,6 @@ import (
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/config"
 	"api-server/db/pgdb/system"
 	"api-server/db/rdb/systemuser"
 )
@@ -20,10 +19,10 @@ type TodoResponse struct {
 	AssigneeName string `json:"assignee_name"`
 }
 
-// TodoCommentResponse 包含待办事项评论及其关联用户信息的响应结构
-type TodoCommentResponse struct {
-	system.SystemUserTodoComments
-	UserName string `json:"user_name"`
+// TodoStepResponse 包含待办事项步骤及其操作人信息的响应结构
+type TodoStepResponse struct {
+	system.SystemUserTodoStep
+	OperatorName string `json:"operator_name"` // 操作人用户名
 }
 
 // 查询 Todo 列表（带分页）
@@ -80,93 +79,6 @@ func FindTodoList(c *gin.Context) {
 	response.ReturnOkWithCount(c, int(total), todoResponses)
 }
 
-// 查询单个 Todo
-func GetTodo(c *gin.Context) {
-	params := &struct {
-		ID uint `json:"id" form:"id" binding:"required"`
-	}{}
-	if !middleware.CheckParam(params, c) {
-		return
-	}
-
-	// 获取待办事项基本信息
-	todo, err := system.GetTodo(params.ID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询待办事项失败")
-		return
-	}
-
-	// 构建带用户信息的响应数据
-	todoResp := TodoResponse{
-		SystemUserTodo: todo,
-		CreatorName:    "",
-		AssigneeName:   "",
-	}
-
-	// 获取创建者信息
-	if todo.CreatorUserID > 0 {
-		creatorInfo, err := systemuser.GetUserFromCache(todo.CreatorUserID)
-		if err == nil && creatorInfo != nil {
-			todoResp.CreatorName = creatorInfo.Name
-		}
-	}
-
-	// 获取被分配者信息
-	if todo.AssigneeUserID > 0 {
-		assigneeInfo, err := systemuser.GetUserFromCache(todo.AssigneeUserID)
-		if err == nil && assigneeInfo != nil {
-			todoResp.AssigneeName = assigneeInfo.Name
-		}
-	}
-
-	// 获取步骤
-	steps, err := system.FindTodoSteps(params.ID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询待办事项步骤失败")
-		return
-	}
-
-	// 获取评论 (传入-1,-1表示获取所有评论，不分页)
-	comments, _, err := system.FindTodoComments(params.ID, config.CancelPage, config.CancelPageSize)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询待办事项评论失败")
-		return
-	}
-
-	// 构建评论响应，添加用户信息
-	commentResponses := make([]TodoCommentResponse, 0, len(comments))
-	for _, comment := range comments {
-		commentResp := TodoCommentResponse{
-			SystemUserTodoComments: comment,
-			UserName:               "",
-		}
-
-		// 从缓存获取评论用户信息
-		if comment.SystemUserID > 0 {
-			userInfo, err := systemuser.GetUserFromCache(comment.SystemUserID)
-			if err == nil && userInfo != nil {
-				commentResp.UserName = userInfo.Name
-			}
-		}
-
-		commentResponses = append(commentResponses, commentResp)
-	}
-
-	// 获取日志
-	logs, err := system.FindTodoLogs(params.ID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询待办事项日志失败")
-		return
-	}
-
-	response.ReturnOk(c, gin.H{
-		"todo":     todoResp,
-		"steps":    steps,
-		"comments": commentResponses,
-		"logs":     logs,
-	})
-}
-
 // 新增 Todo
 func AddTodo(c *gin.Context) {
 	params := &struct {
@@ -204,7 +116,23 @@ func AddTodo(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "添加待办事项失败")
 		return
 	}
-	response.ReturnOk(c, todo)
+
+	// 自动添加初始步骤
+	initialStep := system.SystemUserTodoStep{
+		SystemUserTodoID: todo.ID,
+		Content:          "任务已创建，开始处理",
+		SystemUserID:     uint(id), // 设置操作人ID
+	}
+
+	if err := system.AddTodoStep(&initialStep); err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "添加初始步骤失败")
+		return
+	}
+
+	response.ReturnOk(c, gin.H{
+		"todo": todo,
+		"step": initialStep,
+	})
 }
 
 // 更新 Todo 状态
@@ -223,12 +151,44 @@ func UpdateTodoStatus(c *gin.Context) {
 		return
 	}
 
+	// 从Token中获取用户ID
+	uID := c.GetString(middleware.JWTDataKey)
+	if uID == "" {
+		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
+		return
+	}
+	id, err := strconv.ParseUint(uID, 10, 64)
+	if err != nil {
+		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
+		return
+	}
+
 	if err := system.UpdateTodoStatus(params.ID, params.Status); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新待办事项状态失败")
 		return
 	}
 
-	response.ReturnOk(c, nil)
+	// 自动添加状态更新步骤
+	statusText := "未完成"
+	if params.Status == 2 {
+		statusText = "已完成"
+	}
+
+	step := system.SystemUserTodoStep{
+		SystemUserTodoID: params.ID,
+		Content:          "任务状态已更新为：" + statusText,
+		SystemUserID:     uint(id), // 设置操作人ID
+	}
+
+	if err := system.AddTodoStep(&step); err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "添加状态更新步骤失败")
+		return
+	}
+
+	response.ReturnOk(c, gin.H{
+		"status": params.Status,
+		"step":   step,
+	})
 }
 
 // 更新 Todo
@@ -252,6 +212,25 @@ func UpdateTodo(c *gin.Context) {
 		return
 	}
 
+	// 从Token中获取用户ID
+	uID := c.GetString(middleware.JWTDataKey)
+	if uID == "" {
+		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
+		return
+	}
+	id, err := strconv.ParseUint(uID, 10, 64)
+	if err != nil {
+		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
+		return
+	}
+
+	// 获取原始数据以确定变更内容
+	originalTodo, err := system.GetTodo(params.ID)
+	if err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "获取原始待办事项失败")
+		return
+	}
+
 	todo := system.SystemUserTodo{
 		Model:          gorm.Model{ID: params.ID},
 		Title:          params.Title,
@@ -267,7 +246,47 @@ func UpdateTodo(c *gin.Context) {
 		return
 	}
 
-	response.ReturnOk(c, todo)
+	// 生成更新步骤的内容
+	var stepContent string
+	if originalTodo.Status != params.Status {
+		statusText := "未完成"
+		if params.Status == 2 {
+			statusText = "已完成"
+		}
+		stepContent = "任务状态已更新为：" + statusText
+	} else if originalTodo.AssigneeUserID != params.AssigneeUserID {
+		var assigneeName string
+		if params.AssigneeUserID > 0 {
+			assigneeInfo, err := systemuser.GetUserFromCache(params.AssigneeUserID)
+			if err == nil && assigneeInfo != nil {
+				assigneeName = assigneeInfo.Name
+			} else {
+				assigneeName = "新负责人"
+			}
+		} else {
+			assigneeName = "无负责人"
+		}
+		stepContent = "任务负责人已更新为：" + assigneeName
+	} else {
+		stepContent = "任务信息已更新"
+	}
+
+	// 添加更新步骤
+	step := system.SystemUserTodoStep{
+		SystemUserTodoID: params.ID,
+		Content:          stepContent,
+		SystemUserID:     uint(id), // 设置操作人ID
+	}
+
+	if err := system.AddTodoStep(&step); err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "添加更新步骤失败")
+		return
+	}
+
+	response.ReturnOk(c, gin.H{
+		"todo": todo,
+		"step": step,
+	})
 }
 
 // 删除 Todo
@@ -287,8 +306,8 @@ func DeleteTodo(c *gin.Context) {
 	response.ReturnOk(c, nil)
 }
 
-// 新增 Todo 评论
-func AddTodoComment(c *gin.Context) {
+// 新增 Todo 步骤
+func AddTodoStep(c *gin.Context) {
 	params := &struct {
 		TodoID  uint   `json:"todo_id" form:"todo_id" binding:"required"`
 		Content string `json:"content" form:"content" binding:"required"`
@@ -309,75 +328,10 @@ func AddTodoComment(c *gin.Context) {
 		return
 	}
 
-	comment := system.SystemUserTodoComments{
-		SystemUserTodoID: params.TodoID,
-		SystemUserID:     uint(id),
-		Content:          params.Content,
-	}
-
-	if err := system.AddTodoComment(&comment); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "添加评论失败")
-		return
-	}
-
-	response.ReturnOk(c, comment)
-}
-
-// 查询 Todo 评论列表（带分页）
-func FindTodoComments(c *gin.Context) {
-	params := &struct {
-		TodoID uint `json:"todo_id" form:"todo_id" binding:"required"`
-	}{}
-	if !middleware.CheckParam(params, c) {
-		return
-	}
-
-	// 获取分页参数
-	page := middleware.GetPage(c)
-	pageSize := middleware.GetPageSize(c)
-
-	// 获取原始评论列表
-	comments, total, err := system.FindTodoComments(params.TodoID, page, pageSize)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询评论失败")
-		return
-	}
-
-	// 构建评论响应，添加用户信息
-	commentResponses := make([]TodoCommentResponse, 0, len(comments))
-	for _, comment := range comments {
-		commentResp := TodoCommentResponse{
-			SystemUserTodoComments: comment,
-			UserName:               "",
-		}
-
-		// 从缓存获取评论用户信息
-		if comment.SystemUserID > 0 {
-			userInfo, err := systemuser.GetUserFromCache(comment.SystemUserID)
-			if err == nil && userInfo != nil {
-				commentResp.UserName = userInfo.Name
-			}
-		}
-
-		commentResponses = append(commentResponses, commentResp)
-	}
-
-	response.ReturnOkWithCount(c, int(total), commentResponses)
-}
-
-// 新增 Todo 步骤
-func AddTodoStep(c *gin.Context) {
-	params := &struct {
-		TodoID  uint   `json:"todo_id" form:"todo_id" binding:"required"`
-		Content string `json:"content" form:"content" binding:"required"`
-	}{}
-	if !middleware.CheckParam(params, c) {
-		return
-	}
-
 	step := system.SystemUserTodoStep{
 		SystemUserTodoID: params.TodoID,
 		Content:          params.Content,
+		SystemUserID:     uint(id), // 设置操作人ID
 	}
 
 	if err := system.AddTodoStep(&step); err != nil {
@@ -403,23 +357,24 @@ func FindTodoSteps(c *gin.Context) {
 		return
 	}
 
-	response.ReturnOk(c, steps)
-}
+	// 构建响应数据，添加操作人用户名信息
+	stepResponses := make([]TodoStepResponse, 0, len(steps))
+	for _, step := range steps {
+		stepResp := TodoStepResponse{
+			SystemUserTodoStep: step,
+			OperatorName:       "",
+		}
 
-// 查询 Todo 日志列表（不带分页）
-func FindTodoLogs(c *gin.Context) {
-	params := &struct {
-		TodoID uint `json:"todo_id" form:"todo_id" binding:"required"`
-	}{}
-	if !middleware.CheckParam(params, c) {
-		return
+		// 获取操作人信息
+		if step.SystemUserID > 0 {
+			operatorInfo, err := systemuser.GetUserFromCache(step.SystemUserID)
+			if err == nil && operatorInfo != nil {
+				stepResp.OperatorName = operatorInfo.Name
+			}
+		}
+
+		stepResponses = append(stepResponses, stepResp)
 	}
 
-	logs, err := system.FindTodoLogs(params.TodoID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询日志失败")
-		return
-	}
-
-	response.ReturnOk(c, logs)
+	response.ReturnOk(c, stepResponses)
 }

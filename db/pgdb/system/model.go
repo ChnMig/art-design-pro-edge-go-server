@@ -86,18 +86,6 @@ type SystemUserTodo struct {
 type SystemUserTodoStep struct {
 	gorm.Model
 	SystemUserTodoID uint   `json:"system_user_todo_id,omitempty"` // 用户todo表ID
-	Content          string `json:"content,omitempty"`             // 内容
-}
-
-type SystemUserTodoComments struct {
-	gorm.Model
-	SystemUserTodoID uint   `json:"system_user_todo_id,omitempty"` // 用户todo表ID
 	SystemUserID     uint   `json:"system_user_id,omitempty"`      // 用户ID
-	Content          string `json:"content,omitempty"`             // 内容
-}
-
-type SystemUserTodoLog struct {
-	gorm.Model
-	SystemUserTodoID uint   `json:"system_user_todo_id,omitempty"` // 用户todo表ID
 	Content          string `json:"content,omitempty"`             // 内容
 }

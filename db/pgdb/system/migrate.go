@@ -10,7 +10,7 @@ import (
 )
 
 func migrateTable(db *gorm.DB) error {
-	err := db.AutoMigrate(&SystemDepartment{}, &SystemRole{}, &SystemMenu{}, &SystemMenuAuth{}, &SystemUser{}, &SystemUserTodo{}, &SystemUserTodoComments{}, &SystemUserTodoStep{}, &SystemUserTodoLog{})
+	err := db.AutoMigrate(&SystemDepartment{}, &SystemRole{}, &SystemMenu{}, &SystemMenuAuth{}, &SystemUser{}, &SystemUserTodo{}, &SystemUserTodoStep{})
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
 		return err
@@ -171,7 +171,7 @@ func resetSequences(db *gorm.DB) error {
 
 	// 单独处理可能为空的Todo相关表
 	todoTables := []string{
-		"system_user_todos", "system_user_todo_comments", "system_user_todo_steps", "system_user_todo_logs",
+		"system_user_todos", "system_user_todo_steps",
 	}
 
 	for _, table := range todoTables {
