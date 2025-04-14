@@ -10,7 +10,7 @@ import (
 )
 
 func migrateTable(db *gorm.DB) error {
-	err := db.AutoMigrate(&SystemDepartment{}, &SystemRole{}, &SystemMenu{}, &SystemMenuAuth{}, &SystemUser{}, &SystemUserTodo{}, &SystemUserTodoStep{})
+	err := db.AutoMigrate(&SystemDepartment{}, &SystemRole{}, &SystemMenu{}, &SystemMenuAuth{}, &SystemUser{})
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
 		return err
@@ -38,7 +38,6 @@ func migrateData(db *gorm.DB) error {
 			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 66},
 			{Model: gorm.Model{ID: 7}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 99},
 			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 88},
-			{Model: gorm.Model{ID: 9}, Path: "todo", Name: "SystemTodo", Component: "/dashboard/todo/index", Title: "待办事项", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 77},
 		}
 		err := db.Create(&menus).Error
 		if err != nil {
@@ -168,35 +167,6 @@ func resetSequences(db *gorm.DB) error {
 		}
 		zap.L().Info("sequence reset successfully", zap.String("sequence", seqName))
 	}
-
-	// 单独处理可能为空的Todo相关表
-	todoTables := []string{
-		"system_user_todos", "system_user_todo_steps",
-	}
-
-	for _, table := range todoTables {
-		// 先检查表是否存在
-		var exists int64
-		checkQuery := fmt.Sprintf("SELECT 1 FROM information_schema.tables WHERE table_name = '%s'", table)
-		if err := db.Raw(checkQuery).Count(&exists).Error; err != nil {
-			zap.L().Error("failed to check if table exists", zap.String("table", table), zap.Error(err))
-			return err
-		}
-
-		if exists > 0 {
-			// 表存在，重置序列，设为1而不是0
-			seqName := table + "_id_seq"
-			query := fmt.Sprintf("SELECT setval('%s', GREATEST((SELECT COALESCE(MAX(id), 0) FROM %s), 1));", seqName, table)
-			if err := db.Exec(query).Error; err != nil {
-				zap.L().Error("failed to reset sequence for todo table", zap.String("sequence", seqName), zap.Error(err))
-				return err
-			}
-			zap.L().Info("sequence reset successfully", zap.String("sequence", seqName))
-		} else {
-			zap.L().Warn("table does not exist, skipping sequence reset", zap.String("table", table))
-		}
-	}
-
 	return nil
 }
 

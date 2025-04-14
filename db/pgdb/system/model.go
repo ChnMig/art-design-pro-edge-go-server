@@ -69,23 +69,3 @@ type SystemUser struct {
 	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
 	Status       uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)
 }
-
-// TODO 如果不需要任务模块, 可以删除掉这段表
-// todo表
-type SystemUserTodo struct {
-	gorm.Model
-	CreatorUserID  uint   `json:"creator_user_id,omitempty"`  // 创建人ID
-	AssigneeUserID uint   `json:"assignee_user_id,omitempty"` // 被分配人ID
-	Title          string `json:"title,omitempty"`            // 标题
-	Content        string `json:"content,omitempty"`          // 内容
-	Deadline       string `json:"deadline,omitempty"`         // 截止日期
-	Priority       uint   `json:"priority,omitempty"`         // 优先级(1:低 2:中 3:高)
-	Status         uint   `json:"status,omitempty"`           // 状态(1:未处理 2:处理中 3:已完成 4:已取消)
-}
-
-type SystemUserTodoStep struct {
-	gorm.Model
-	SystemUserTodoID uint   `json:"system_user_todo_id,omitempty"` // 用户todo表ID
-	SystemUserID     uint   `json:"system_user_id,omitempty"`      // 用户ID
-	Content          string `json:"content,omitempty"`             // 内容
-}

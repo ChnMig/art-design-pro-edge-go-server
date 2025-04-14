@@ -6,7 +6,6 @@ import (
 	"api-server/api/app/system/department"
 	"api-server/api/app/system/menu"
 	"api-server/api/app/system/role"
-	"api-server/api/app/system/todo"
 	"api-server/api/app/system/user"
 	"api-server/api/middleware"
 )
@@ -42,16 +41,6 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.POST("/user", middleware.TokenVerify, user.AddUser)
 		systemRouter.PUT("/user", middleware.TokenVerify, user.UpdateUser)
 		systemRouter.DELETE("/user", middleware.TokenVerify, user.DeleteUser)
-
-		// Todo相关路由
-		systemRouter.GET("/todo", middleware.TokenVerify, todo.FindTodoList)
-		systemRouter.POST("/todo", middleware.TokenVerify, todo.AddTodo)
-		systemRouter.PUT("/todo", middleware.TokenVerify, todo.UpdateTodo)
-		systemRouter.DELETE("/todo", middleware.TokenVerify, todo.DeleteTodo)
-
-		// Todo步骤相关路由
-		systemRouter.GET("/todo/step", middleware.TokenVerify, todo.FindTodoSteps)
-		systemRouter.POST("/todo/step", middleware.TokenVerify, todo.AddTodoStep)
 	}
 }
 
