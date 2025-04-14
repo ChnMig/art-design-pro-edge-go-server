@@ -117,10 +117,52 @@ func AddTodo(c *gin.Context) {
 		return
 	}
 
+	// 准备更详细的步骤内容
+	stepContent := "【创建任务】"
+
+	// 添加标题和内容信息
+	stepContent += "\n标题: " + params.Title
+	stepContent += "\n内容: " + params.Content
+
+	// 添加截止日期信息（如果有）
+	if params.Deadline != "" {
+		stepContent += "\n截止日期: " + params.Deadline
+	}
+
+	// 添加优先级信息
+	priorityText := "中"
+	if params.Priority == 1 {
+		priorityText = "低"
+	} else if params.Priority == 3 {
+		priorityText = "高"
+	}
+	stepContent += "\n优先级: " + priorityText
+
+	// 添加状态信息
+	statusText := "未处理"
+	if params.Status == 1 {
+		statusText = "未处理"
+	} else if params.Status == 2 {
+		statusText = "处理中"
+	} else if params.Status == 3 {
+		statusText = "已完成"
+	} else if params.Status == 4 {
+		statusText = "已取消"
+	}
+	stepContent += "\n状态: " + statusText
+
+	// 添加负责人信息（如果有）
+	if params.AssigneeUserID > 0 {
+		assigneeInfo, err := systemuser.GetUserFromCache(params.AssigneeUserID)
+		if err == nil && assigneeInfo != nil {
+			stepContent += "\n负责人: " + assigneeInfo.Name
+		}
+	}
+
 	// 自动添加初始步骤
 	initialStep := system.SystemUserTodoStep{
 		SystemUserTodoID: todo.ID,
-		Content:          "任务已创建，开始处理",
+		Content:          stepContent,
 		SystemUserID:     uint(id), // 设置操作人ID
 	}
 
@@ -146,8 +188,8 @@ func UpdateTodoStatus(c *gin.Context) {
 	}
 
 	// 验证状态值
-	if params.Status != 1 && params.Status != 2 {
-		response.ReturnError(c, response.INVALID_ARGUMENT, "无效的状态值，应为 1(未完成) 或 2(已完成)")
+	if params.Status < 1 || params.Status > 4 {
+		response.ReturnError(c, response.INVALID_ARGUMENT, "无效的状态值，应为 1(未处理)、2(处理中)、3(已完成)或 4(已取消)")
 		return
 	}
 
@@ -163,20 +205,41 @@ func UpdateTodoStatus(c *gin.Context) {
 		return
 	}
 
+	// 获取原始待办事项信息以记录更详细的变更
+	originalTodo, err := system.GetTodo(params.ID)
+	if err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "获取原始待办事项失败")
+		return
+	}
+
+	// 判断状态是否有变动
+	if originalTodo.Status == params.Status {
+		response.ReturnOk(c, gin.H{
+			"status": params.Status,
+			"info":   "状态未发生变化",
+		})
+		return
+	}
+
 	if err := system.UpdateTodoStatus(params.ID, params.Status); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新待办事项状态失败")
 		return
 	}
 
-	// 自动添加状态更新步骤
-	statusText := "未完成"
-	if params.Status == 2 {
-		statusText = "已完成"
-	}
+	// 准备步骤内容
+	// 将状态码转换为文字描述
+	statusText := getStatusText(params.Status)
+	oldStatusText := getStatusText(originalTodo.Status)
+
+	stepContent := "【状态更新】"
+	stepContent += "\n任务ID: " + strconv.FormatUint(uint64(params.ID), 10)
+	stepContent += "\n任务标题: " + originalTodo.Title
+	stepContent += "\n原状态: " + oldStatusText
+	stepContent += "\n新状态: " + statusText
 
 	step := system.SystemUserTodoStep{
 		SystemUserTodoID: params.ID,
-		Content:          "任务状态已更新为：" + statusText,
+		Content:          stepContent,
 		SystemUserID:     uint(id), // 设置操作人ID
 	}
 
@@ -189,6 +252,22 @@ func UpdateTodoStatus(c *gin.Context) {
 		"status": params.Status,
 		"step":   step,
 	})
+}
+
+// 获取状态文字描述
+func getStatusText(status uint) string {
+	switch status {
+	case 1:
+		return "未处理"
+	case 2:
+		return "处理中"
+	case 3:
+		return "已完成"
+	case 4:
+		return "已取消"
+	default:
+		return "未知状态"
+	}
 }
 
 // 更新 Todo
@@ -207,8 +286,8 @@ func UpdateTodo(c *gin.Context) {
 	}
 
 	// 验证状态值
-	if params.Status != 0 && params.Status != 1 && params.Status != 2 {
-		response.ReturnError(c, response.INVALID_ARGUMENT, "无效的状态值，应为 0(默认), 1(未完成) 或 2(已完成)")
+	if params.Status != 1 && params.Status != 2 && params.Status != 3 && params.Status != 4 {
+		response.ReturnError(c, response.INVALID_ARGUMENT, "无效的状态值")
 		return
 	}
 
@@ -246,29 +325,91 @@ func UpdateTodo(c *gin.Context) {
 		return
 	}
 
-	// 生成更新步骤的内容
-	var stepContent string
-	if originalTodo.Status != params.Status {
-		statusText := "未完成"
-		if params.Status == 2 {
-			statusText = "已完成"
+	// 准备步骤内容，详细记录更新的字段和值
+	stepContent := "【更新任务】"
+	stepContent += "\n任务ID: " + strconv.FormatUint(uint64(params.ID), 10)
+
+	// 记录标题变更
+	if originalTodo.Title != params.Title {
+		stepContent += "\n标题: [" + originalTodo.Title + "] -> [" + params.Title + "]"
+	}
+
+	// 记录内容变更 (可能较长，只记录是否变更)
+	if originalTodo.Content != params.Content {
+		stepContent += "\n内容: 已更新"
+	}
+
+	// 记录截止日期变更
+	if originalTodo.Deadline != params.Deadline {
+		oldDeadline := originalTodo.Deadline
+		if oldDeadline == "" {
+			oldDeadline = "无"
 		}
-		stepContent = "任务状态已更新为：" + statusText
-	} else if originalTodo.AssigneeUserID != params.AssigneeUserID {
-		var assigneeName string
-		if params.AssigneeUserID > 0 {
-			assigneeInfo, err := systemuser.GetUserFromCache(params.AssigneeUserID)
-			if err == nil && assigneeInfo != nil {
-				assigneeName = assigneeInfo.Name
+		newDeadline := params.Deadline
+		if newDeadline == "" {
+			newDeadline = "无"
+		}
+		stepContent += "\n截止日期: [" + oldDeadline + "] -> [" + newDeadline + "]"
+	}
+
+	// 记录优先级变更
+	if originalTodo.Priority != params.Priority {
+		oldPriority := "中"
+		if originalTodo.Priority == 1 {
+			oldPriority = "低"
+		} else if originalTodo.Priority == 3 {
+			oldPriority = "高"
+		}
+
+		newPriority := "中"
+		if params.Priority == 1 {
+			newPriority = "低"
+		} else if params.Priority == 3 {
+			newPriority = "高"
+		}
+
+		stepContent += "\n优先级: [" + oldPriority + "] -> [" + newPriority + "]"
+	}
+
+	// 记录状态变更
+	if originalTodo.Status != params.Status {
+		oldStatus := getStatusText(originalTodo.Status)
+		newStatus := getStatusText(params.Status)
+		stepContent += "\n状态: [" + oldStatus + "] -> [" + newStatus + "]"
+	}
+
+	// 记录负责人变更
+	if originalTodo.AssigneeUserID != params.AssigneeUserID {
+		var oldAssigneeName, newAssigneeName string
+
+		if originalTodo.AssigneeUserID > 0 {
+			oldAssigneeInfo, err := systemuser.GetUserFromCache(originalTodo.AssigneeUserID)
+			if err == nil && oldAssigneeInfo != nil {
+				oldAssigneeName = oldAssigneeInfo.Name
 			} else {
-				assigneeName = "新负责人"
+				oldAssigneeName = "ID:" + strconv.FormatUint(uint64(originalTodo.AssigneeUserID), 10)
 			}
 		} else {
-			assigneeName = "无负责人"
+			oldAssigneeName = "无"
 		}
-		stepContent = "任务负责人已更新为：" + assigneeName
-	} else {
-		stepContent = "任务信息已更新"
+
+		if params.AssigneeUserID > 0 {
+			newAssigneeInfo, err := systemuser.GetUserFromCache(params.AssigneeUserID)
+			if err == nil && newAssigneeInfo != nil {
+				newAssigneeName = newAssigneeInfo.Name
+			} else {
+				newAssigneeName = "ID:" + strconv.FormatUint(uint64(params.AssigneeUserID), 10)
+			}
+		} else {
+			newAssigneeName = "无"
+		}
+
+		stepContent += "\n负责人: [" + oldAssigneeName + "] -> [" + newAssigneeName + "]"
+	}
+
+	// 如果没有任何变更，记录一条默认信息
+	if stepContent == "【更新任务】\n任务ID: "+strconv.FormatUint(uint64(params.ID), 10) {
+		stepContent += "\n无实质性内容变更"
 	}
 
 	// 添加更新步骤
