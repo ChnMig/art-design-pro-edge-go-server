@@ -76,7 +76,7 @@ func AddDepartment(department *SystemDepartment) error {
 }
 
 func UpdateDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Save(&department).Error; err != nil {
+	if err := pgdb.GetClient().Updates(&department).Error; err != nil {
 		zap.L().Error("failed to update department", zap.Error(err))
 		return err
 	}

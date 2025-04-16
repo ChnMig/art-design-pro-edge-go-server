@@ -9,7 +9,7 @@ import (
 )
 
 func UpdateRole(role *SystemRole) error {
-	if err := pgdb.GetClient().Save(&role).Error; err != nil {
+	if err := pgdb.GetClient().Updates(&role).Error; err != nil {
 		zap.L().Error("failed to update role", zap.Error(err))
 		return err
 	}

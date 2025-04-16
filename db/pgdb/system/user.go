@@ -106,7 +106,7 @@ func UpdateUser(user *SystemUser) error {
 	if user.Password != "" {
 		user.Password = encryptionPWD(user.Password)
 	}
-	if err := pgdb.GetClient().Save(user).Error; err != nil {
+	if err := pgdb.GetClient().Updates(user).Error; err != nil {
 		zap.L().Error("failed to update user", zap.Error(err))
 		return err
 	}

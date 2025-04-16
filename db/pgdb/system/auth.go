@@ -31,7 +31,7 @@ func AddMenuAuth(menuAuth *SystemMenuAuth) error {
 }
 
 func UpdateMenuAuth(menuAuth *SystemMenuAuth) error {
-	if err := pgdb.GetClient().Save(&menuAuth).Error; err != nil {
+	if err := pgdb.GetClient().Updates(&menuAuth).Error; err != nil {
 		zap.L().Error("failed to update menu Auth", zap.Error(err))
 		return err
 	}
