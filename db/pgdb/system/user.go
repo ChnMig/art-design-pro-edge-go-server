@@ -95,6 +95,7 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 }
 
 func AddUser(user *SystemUser) error {
+	user.Password = encryptionPWD(user.Password)
 	if err := pgdb.GetClient().Create(user).Error; err != nil {
 		zap.L().Error("failed to add user", zap.Error(err))
 		return err
