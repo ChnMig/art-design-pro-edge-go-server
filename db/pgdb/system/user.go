@@ -29,9 +29,10 @@ func VerifyUser(userName, password string) (SystemUser, error) {
 	return user, nil
 }
 
-func GetUser(user *SystemUser) error {
-	if err := pgdb.GetClient().Where(user).First(user).Error; err != nil {
-		zap.L().Error("failed to get user", zap.Error(err))
+// 记录用户登录日志
+func CreateLoginLog(log *SystemUserLoginLog) error {
+	if err := pgdb.GetClient().Create(log).Error; err != nil {
+		zap.L().Error("failed to record login log", zap.Error(err))
 		return err
 	}
 	return nil
@@ -98,6 +99,14 @@ func AddUser(user *SystemUser) error {
 	user.Password = encryptionPWD(user.Password)
 	if err := pgdb.GetClient().Create(user).Error; err != nil {
 		zap.L().Error("failed to add user", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func GetUser(user *SystemUser) error {
+	if err := pgdb.GetClient().Where(user).First(user).Error; err != nil {
+		zap.L().Error("failed to get user", zap.Error(err))
 		return err
 	}
 	return nil

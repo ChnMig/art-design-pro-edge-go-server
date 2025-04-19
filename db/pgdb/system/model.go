@@ -69,3 +69,10 @@ type SystemUser struct {
 	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
 	Status       uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)
 }
+
+type SystemUserLoginLog struct {
+	gorm.Model
+	UserName string `json:"user_name,omitempty"`
+	Password string `json:"password,omitempty"`
+	IP       string `json:"ip,omitempty"`
+}

@@ -29,21 +29,38 @@ func Login(c *gin.Context) {
 		response.ReturnError(c, response.INVALID_ARGUMENT, "验证码错误")
 		return
 	}
+
+	// 获取客户端IP
+	clientIP := c.ClientIP()
+	log := system.SystemUserLoginLog{
+		UserName: params.Username,
+		Password: params.Password,
+		IP:       clientIP,
+	}
+
 	// 查询用户
 	user, err := system.VerifyUser(params.Username, params.Password)
 	if err != nil {
 		zap.L().Error("查询用户失败", zap.Error(err))
+		// 记录登录失败日志（验证码正确但查询失败）
+		system.CreateLoginLog(&log)
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return
 	}
 	if user.ID == 0 {
+		system.CreateLoginLog(&log)
 		response.ReturnError(c, response.INVALID_ARGUMENT, "账号或密码错误")
 		return
 	}
 	if user.Status != 1 {
+		system.CreateLoginLog(&log)
 		response.ReturnError(c, response.INVALID_ARGUMENT, "账号已被禁用")
 		return
 	}
+
+	// 记录登录成功日志
+	log.Password = "" // 不记录密码
+	system.CreateLoginLog(&log)
 	// 生成token
 	token, err := authentication.JWTIssue(fmt.Sprintf("%d", user.ID))
 	if err != nil {
