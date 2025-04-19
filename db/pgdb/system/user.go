@@ -38,6 +38,44 @@ func CreateLoginLog(log *SystemUserLoginLog) error {
 	return nil
 }
 
+// FindLoginLogList 查询登录日志列表，支持分页和按用户名、IP查询
+func FindLoginLogList(loginLog *SystemUserLoginLog, page, pageSize int) ([]SystemUserLoginLog, int64, error) {
+	var loginLogs []SystemUserLoginLog
+	var total int64
+	db := pgdb.GetClient()
+
+	// 构建基础查询
+	baseQuery := db.Model(&SystemUserLoginLog{}).Where("deleted_at IS NULL")
+
+	// 使用模糊查询
+	if loginLog.UserName != "" {
+		baseQuery = baseQuery.Where("user_name LIKE ?", "%"+loginLog.UserName+"%")
+	}
+	if loginLog.IP != "" {
+		baseQuery = baseQuery.Where("ip LIKE ?", "%"+loginLog.IP+"%")
+	}
+
+	// 获取符合条件的总记录数
+	baseQuery.Count(&total)
+
+	// 判断是否需要分页
+	if page == config.CancelPage && pageSize == config.CancelPageSize {
+		// 不分页，获取所有数据
+		if err := baseQuery.Order("created_at DESC").Find(&loginLogs).Error; err != nil {
+			zap.L().Error("failed to find all login logs", zap.Error(err))
+			return nil, 0, err
+		}
+	} else {
+		// 应用分页并获取数据
+		if err := baseQuery.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&loginLogs).Error; err != nil {
+			zap.L().Error("failed to find login logs", zap.Error(err))
+			return nil, 0, err
+		}
+	}
+
+	return loginLogs, total, nil
+}
+
 // UserWithRelations 包含用户及其关联的角色和部门信息
 type UserWithRelations struct {
 	SystemUser     `json:"User"`

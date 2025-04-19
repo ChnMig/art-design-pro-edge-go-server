@@ -72,3 +72,27 @@ func Login(c *gin.Context) {
 		"access_token": token,
 	})
 }
+
+func FindLoginLogList(c *gin.Context) {
+	params := &struct {
+		IP       string `json:"ip" form:"ip"`
+		Username string `json:"username" form:"username"`
+	}{}
+	if !middleware.CheckParam(params, c) {
+		return
+	}
+	// 获取分页参数
+	page := middleware.GetPage(c)
+	pageSize := middleware.GetPageSize(c)
+	log := system.SystemUserLoginLog{
+		IP:       params.IP,
+		UserName: params.Username,
+	}
+	logs, total, err := system.FindLoginLogList(&log, page, pageSize)
+	if err != nil {
+		zap.L().Error("查询登录日志失败", zap.Error(err))
+		response.ReturnError(c, response.DATA_LOSS, "查询登录日志失败")
+		return
+	}
+	response.ReturnOkWithCount(c, int(total), logs)
+}
