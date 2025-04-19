@@ -38,6 +38,7 @@ func migrateData(db *gorm.DB) error {
 			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 66},
 			{Model: gorm.Model{ID: 7}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 99},
 			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 88},
+			{Model: gorm.Model{ID: 9}, Path: "/private", Name: "Private", Component: "/layout/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
 		}
 		err := db.Create(&menus).Error
 		if err != nil {
