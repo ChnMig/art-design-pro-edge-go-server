@@ -29,7 +29,7 @@ func FindUserByCache(c *gin.Context) {
 			response.ReturnError(c, response.DATA_LOSS, "获取用户缓存数据失败")
 			return
 		}
-		response.ReturnOk(c, userInfo)
+		response.ReturnData(c, userInfo)
 		return
 	}
 
@@ -73,7 +73,7 @@ func FindUserByCache(c *gin.Context) {
 	end := start + pageSize
 	if start >= total {
 		// 如果起始位置超出了总数，返回空列表
-		response.ReturnOkWithCount(c, total, []systemuser.UserCacheInfo{})
+		response.ReturnDataWithCount(c, total, []systemuser.UserCacheInfo{})
 		return
 	}
 	if end > total {
@@ -81,7 +81,7 @@ func FindUserByCache(c *gin.Context) {
 	}
 
 	pagedList := filteredList[start:end]
-	response.ReturnOkWithCount(c, total, pagedList)
+	response.ReturnDataWithCount(c, total, pagedList)
 }
 
 func FindUser(c *gin.Context) {
@@ -115,7 +115,7 @@ func FindUser(c *gin.Context) {
 		usersWithRelations[i].SystemUser.Password = ""
 	}
 
-	response.ReturnOkWithCount(c, int(total), usersWithRelations)
+	response.ReturnDataWithCount(c, int(total), usersWithRelations)
 }
 
 func AddUser(c *gin.Context) {
@@ -146,7 +146,7 @@ func AddUser(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "添加用户失败")
 		return
 	}
-	response.ReturnOk(c, nil)
+	response.ReturnData(c, nil)
 }
 
 func UpdateUser(c *gin.Context) {
@@ -181,7 +181,7 @@ func UpdateUser(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "更新用户失败")
 		return
 	}
-	response.ReturnOk(c, nil)
+	response.ReturnData(c, nil)
 }
 
 func DeleteUser(c *gin.Context) {
@@ -202,5 +202,5 @@ func DeleteUser(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "删除用户失败")
 		return
 	}
-	response.ReturnOk(c, nil)
+	response.ReturnData(c, nil)
 }

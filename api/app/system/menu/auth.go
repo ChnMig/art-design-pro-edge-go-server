@@ -27,7 +27,7 @@ func AddMenuAuth(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "添加菜单权限失败")
 		return
 	}
-	response.ReturnOk(c, auth)
+	response.ReturnData(c, auth)
 }
 
 func UpdateMenuAuth(c *gin.Context) {
@@ -50,7 +50,7 @@ func UpdateMenuAuth(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "更新菜单权限失败")
 		return
 	}
-	response.ReturnOk(c, auth)
+	response.ReturnData(c, auth)
 }
 
 func DeleteMenuAuth(c *gin.Context) {
@@ -65,7 +65,7 @@ func DeleteMenuAuth(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "删除菜单权限失败")
 		return
 	}
-	response.ReturnOk(c, auth)
+	response.ReturnData(c, auth)
 }
 
 func GetMenuAuthList(c *gin.Context) {
@@ -81,5 +81,5 @@ func GetMenuAuthList(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单权限失败")
 		return
 	}
-	response.ReturnOk(c, auths)
+	response.ReturnData(c, auths)
 }

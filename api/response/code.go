@@ -14,7 +14,7 @@ type responseData struct {
 // 通用的错误信息
 
 // 没有错误。
-var OK = responseData{
+var Success = responseData{
 	Code:    200,
 	Status:  "OK",
 	Message: "请求成功",

@@ -22,7 +22,7 @@ func GetMenuList(c *gin.Context) {
 	}
 	// 构建菜单树
 	menuTree := menu.BuildMenuTree(menus, menup, true)
-	response.ReturnOk(c, menuTree)
+	response.ReturnData(c, menuTree)
 }
 
 func DeleteMenu(c *gin.Context) {
@@ -57,7 +57,7 @@ func DeleteMenu(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "删除菜单失败")
 		return
 	}
-	response.ReturnOk(c, menu)
+	response.ReturnData(c, menu)
 }
 
 func AddMenu(c *gin.Context) {
@@ -125,7 +125,7 @@ func AddMenu(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "添加菜单失败")
 		return
 	}
-	response.ReturnOk(c, menu)
+	response.ReturnData(c, menu)
 }
 
 func UpdateMenu(c *gin.Context) {
@@ -211,7 +211,7 @@ func UpdateMenu(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "更新菜单失败")
 		return
 	}
-	response.ReturnOk(c, menu)
+	response.ReturnData(c, menu)
 }
 
 // GetMenuListByRoleID 根据角色ID获取菜单列表
@@ -230,7 +230,7 @@ func GetMenuListByRoleID(c *gin.Context) {
 	}
 	// 构建带权限标记的菜单树
 	menuTree := menu.BuildMenuTreeWithPermission(allMenus, allAuths, roleMenuIds, roleAuthIds, true)
-	response.ReturnOk(c, menuTree)
+	response.ReturnData(c, menuTree)
 }
 
 func UpdateMenuListByRoleID(c *gin.Context) {
@@ -256,5 +256,5 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 		return
 	}
 
-	response.ReturnOk(c, nil)
+	response.ReturnData(c, nil)
 }

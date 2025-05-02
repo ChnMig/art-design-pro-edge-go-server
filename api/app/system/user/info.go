@@ -44,7 +44,7 @@ func UpdateUserInfo(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "更新用户失败")
 		return
 	}
-	response.ReturnOk(c, "更新用户成功")
+	response.ReturnData(c, "更新用户成功")
 }
 
 func GetUserInfo(c *gin.Context) {
@@ -64,5 +64,5 @@ func GetUserInfo(c *gin.Context) {
 		return
 	}
 	user.Password = "" // 不返回密码
-	response.ReturnOk(c, user)
+	response.ReturnData(c, user)
 }

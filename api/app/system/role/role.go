@@ -35,7 +35,7 @@ func GetRoleList(c *gin.Context) {
 	}
 
 	// 返回带总数的结果
-	response.ReturnOkWithCount(c, int(total), roles)
+	response.ReturnDataWithCount(c, int(total), roles)
 }
 
 func AddRole(c *gin.Context) {
@@ -57,7 +57,7 @@ func AddRole(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "添加角色失败")
 		return
 	}
-	response.ReturnOk(c, role)
+	response.ReturnData(c, role)
 }
 
 func UpdateRole(c *gin.Context) {
@@ -81,7 +81,7 @@ func UpdateRole(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "更新角色失败")
 		return
 	}
-	response.ReturnOk(c, role)
+	response.ReturnData(c, role)
 }
 
 func DeleteRole(c *gin.Context) {
@@ -99,5 +99,5 @@ func DeleteRole(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "删除角色失败")
 		return
 	}
-	response.ReturnOk(c, role)
+	response.ReturnData(c, role)
 }

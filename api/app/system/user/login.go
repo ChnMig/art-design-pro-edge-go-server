@@ -68,7 +68,7 @@ func Login(c *gin.Context) {
 		response.ReturnError(c, response.INTERNAL, "生成token失败")
 		return
 	}
-	response.ReturnOk(c, gin.H{
+	response.ReturnData(c, gin.H{
 		"access_token": token,
 	})
 }
@@ -94,5 +94,5 @@ func FindLoginLogList(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询登录日志失败")
 		return
 	}
-	response.ReturnOkWithCount(c, int(total), logs)
+	response.ReturnDataWithCount(c, int(total), logs)
 }

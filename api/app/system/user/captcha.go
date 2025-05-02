@@ -26,7 +26,7 @@ func GetCaptcha(c *gin.Context) {
 		zap.L().Error("验证码生成失败", zap.Error(err))
 		return
 	}
-	response.ReturnOk(c, gin.H{
+	response.ReturnData(c, gin.H{
 		"id":    id,
 		"image": b64s,
 	})

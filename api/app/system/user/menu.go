@@ -45,5 +45,5 @@ func GetUserMenuList(c *gin.Context) {
 
 	// 构建菜单树 - 使用带权限标记的菜单树构建函数
 	menuTree := menu.BuildMenuTreeWithPermission(roleMenus, rolePermissions, roleMenuIds, roleAuthIds, false)
-	response.ReturnOk(c, menuTree)
+	response.ReturnData(c, menuTree)
 }

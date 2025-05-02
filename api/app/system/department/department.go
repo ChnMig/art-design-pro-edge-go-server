@@ -30,7 +30,7 @@ func AddDepartment(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "添加部门失败")
 		return
 	}
-	response.ReturnOk(c, depatment)
+	response.ReturnData(c, depatment)
 }
 
 func UpdateDepartment(c *gin.Context) {
@@ -54,7 +54,7 @@ func UpdateDepartment(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "更新部门失败")
 		return
 	}
-	response.ReturnOk(c, department)
+	response.ReturnData(c, department)
 }
 
 func GetDepartmentList(c *gin.Context) {
@@ -83,7 +83,7 @@ func GetDepartmentList(c *gin.Context) {
 	}
 
 	// 返回带总数的结果
-	response.ReturnOkWithCount(c, int(total), departments)
+	response.ReturnDataWithCount(c, int(total), departments)
 }
 
 func DeleteDepartment(c *gin.Context) {
@@ -112,5 +112,5 @@ func DeleteDepartment(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "删除部门失败")
 		return
 	}
-	response.ReturnOk(c, department)
+	response.ReturnData(c, department)
 }

@@ -119,9 +119,9 @@ func ReturnErrorWithData(c *gin.Context, data responseData, result interface{}) 
 	c.Abort()
 }
 
-// ResponseOk 正常响应
-func ReturnOk(c *gin.Context, result interface{}) {
-	data := OK
+// ResponseData 正常响应
+func ReturnData(c *gin.Context, result interface{}) {
+	data := Success
 	data.Timestamp = time.Now().Unix()
 	data.Data = processData(result)
 	c.JSON(http.StatusOK, data)
@@ -129,9 +129,9 @@ func ReturnOk(c *gin.Context, result interface{}) {
 	c.Abort()
 }
 
-// ResponseOkWithCount 带数量的正常响应
-func ReturnOkWithCount(c *gin.Context, count int, result interface{}) {
-	data := OK
+// ResponseDataWithCount 正常响应
+func ReturnDataWithCount(c *gin.Context, count int, result interface{}) {
+	data := Success
 	data.Timestamp = time.Now().Unix()
 	data.Data = processData(result)
 	data.Count = &count
@@ -156,7 +156,7 @@ func ReturnError(c *gin.Context, data responseData, description string) {
 
 // ResponseSuccess 执行成功
 func ReturnSuccess(c *gin.Context) {
-	data := OK
+	data := Success
 	data.Timestamp = time.Now().Unix()
 	c.JSON(http.StatusOK, data)
 	// Return directly
