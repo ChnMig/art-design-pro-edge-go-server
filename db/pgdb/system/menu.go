@@ -97,7 +97,7 @@ func DeleteMenu(menu *SystemMenu) error {
 }
 
 func UpdateMenu(menu *SystemMenu) error {
-	if err := pgdb.GetClient().Updates(&menu).Error; err != nil {
+	if err := pgdb.GetClient().Omit("created_at").Save(menu).Error; err != nil {
 		zap.L().Error("failed to update menu", zap.Error(err))
 		return err
 	}
