@@ -25,19 +25,19 @@ type MenuResponse struct {
 
 // MenuMeta 定义菜单元数据
 type MenuMeta struct {
-	Title             string         `json:"title"`
-	Icon              string         `json:"icon,omitempty"`
-	KeepAlive         bool           `json:"keepAlive"`
-	ShowBadge         bool           `json:"showBadge,omitempty"`
-	ShowTextBadge     string         `json:"showTextBadge,omitempty"`
-	IsHide            bool           `json:"isHide,omitempty"`
-	IsHideTab         bool           `json:"isHideTab,omitempty"`
-	Link              string         `json:"link,omitempty"`
-	IsIframe          bool           `json:"isIframe,omitempty"`
-	IsInMainContainer bool           `json:"isInMainContainer,omitempty"`
-	IsEnable          bool           `json:"isEnable,omitempty"`
-	Sort              uint           `json:"sort,omitempty"`
-	AuthList          []MenuAuthResp `json:"authList,omitempty"`
+	Title         string         `json:"title"`
+	Icon          string         `json:"icon,omitempty"`
+	KeepAlive     bool           `json:"keepAlive"`
+	ShowBadge     bool           `json:"showBadge,omitempty"`
+	ShowTextBadge string         `json:"showTextBadge,omitempty"`
+	IsHide        bool           `json:"isHide,omitempty"`
+	IsHideTab     bool           `json:"isHideTab,omitempty"`
+	Link          string         `json:"link,omitempty"`
+	IsIframe      bool           `json:"isIframe,omitempty"`
+	IsRootMenu    bool           `json:"isRootMenu,omitempty"`
+	IsEnable      bool           `json:"isEnable,omitempty"`
+	Sort          uint           `json:"sort,omitempty"`
+	AuthList      []MenuAuthResp `json:"authList,omitempty"`
 }
 
 // 定义菜单权限响应结构
@@ -121,18 +121,18 @@ func convertMenuToResponse(menu system.SystemMenu) MenuResponse {
 		Component: menu.Component,
 		ParentID:  menu.ParentID,
 		Meta: MenuMeta{
-			Title:             menu.Title,
-			Icon:              menu.Icon,
-			KeepAlive:         menu.KeepAlive == 1, // 1表示缓存
-			ShowBadge:         menu.ShowBadge == 1, // 1表示显示
-			ShowTextBadge:     menu.ShowTextBadge,
-			IsHide:            menu.IsHide == 1,    // 1表示隐藏
-			IsHideTab:         menu.IsHideTab == 1, // 1表示隐藏
-			Link:              menu.Link,
-			IsIframe:          menu.IsIframe == 1,          // 1表示是iframe
-			IsInMainContainer: menu.IsInMainContainer == 1, // 1表示在主容器中
-			IsEnable:          menu.Status == 1,            // 1表示启用
-			Sort:              menu.Sort,
+			Title:         menu.Title,
+			Icon:          menu.Icon,
+			KeepAlive:     menu.KeepAlive == 1, // 1表示缓存
+			ShowBadge:     menu.ShowBadge == 1, // 1表示显示
+			ShowTextBadge: menu.ShowTextBadge,
+			IsHide:        menu.IsHide == 1,    // 1表示隐藏
+			IsHideTab:     menu.IsHideTab == 1, // 1表示隐藏
+			Link:          menu.Link,
+			IsIframe:      menu.IsIframe == 1,   // 1表示是iframe
+			IsRootMenu:    menu.IsRootMenu == 1, // 1表示在主容器中
+			IsEnable:      menu.Status == 1,     // 1表示启用
+			Sort:          menu.Sort,
 		},
 	}
 }

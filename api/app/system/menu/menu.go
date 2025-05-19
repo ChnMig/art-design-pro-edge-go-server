@@ -62,22 +62,22 @@ func DeleteMenu(c *gin.Context) {
 
 func AddMenu(c *gin.Context) {
 	params := &struct {
-		Path              string `json:"path" form:"path" binding:"required"`
-		Name              string `json:"name" form:"name" binding:"required"`
-		Component         string `json:"component" form:"component"`
-		Title             string `json:"title" form:"title" binding:"required"`
-		Icon              string `json:"icon" form:"icon"`
-		ShowBadge         uint   `json:"showBadge" form:"showBadge"`
-		ShowTextBadge     string `json:"showTextBadge" form:"showTextBadge"`
-		IsHide            uint   `json:"isHide" form:"isHide" binding:"required"`
-		IsHideTab         uint   `json:"isHideTab" form:"isHideTab" binding:"required"`
-		Link              string `json:"link" form:"link"`
-		IsIframe          uint   `json:"isIframe" form:"isIframe" binding:"required"`
-		KeepAlive         uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
-		IsInMainContainer uint   `json:"isInMainContainer" form:"isInMainContainer" binding:"required"`
-		Status            uint   `json:"status" form:"status" binding:"required"`
-		ParentID          uint   `json:"parentId" form:"parentId"`
-		Sort              uint   `json:"sort" form:"sort"`
+		Path          string `json:"path" form:"path" binding:"required"`
+		Name          string `json:"name" form:"name" binding:"required"`
+		Component     string `json:"component" form:"component"`
+		Title         string `json:"title" form:"title" binding:"required"`
+		Icon          string `json:"icon" form:"icon"`
+		ShowBadge     uint   `json:"showBadge" form:"showBadge"`
+		ShowTextBadge string `json:"showTextBadge" form:"showTextBadge"`
+		IsHide        uint   `json:"isHide" form:"isHide" binding:"required"`
+		IsHideTab     uint   `json:"isHideTab" form:"isHideTab" binding:"required"`
+		Link          string `json:"link" form:"link"`
+		IsIframe      uint   `json:"isIframe" form:"isIframe" binding:"required"`
+		KeepAlive     uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
+		IsRootMenu    uint   `json:"isRootMenu" form:"isRootMenu" binding:"required"`
+		Status        uint   `json:"status" form:"status" binding:"required"`
+		ParentID      uint   `json:"parentId" form:"parentId"`
+		Sort          uint   `json:"sort" form:"sort"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -103,23 +103,23 @@ func AddMenu(c *gin.Context) {
 		level = parentMenu.Level + 1
 	}
 	menu := system.SystemMenu{
-		Path:              params.Path,
-		Name:              params.Name,
-		Component:         params.Component,
-		Title:             params.Title,
-		Icon:              params.Icon,
-		ShowBadge:         params.ShowBadge,
-		ShowTextBadge:     params.ShowTextBadge,
-		IsHide:            params.IsHide,
-		IsHideTab:         params.IsHideTab,
-		Link:              params.Link,
-		IsIframe:          params.IsIframe,
-		KeepAlive:         params.KeepAlive,
-		IsInMainContainer: params.IsInMainContainer,
-		Status:            params.Status,
-		Level:             level,
-		ParentID:          params.ParentID,
-		Sort:              params.Sort,
+		Path:          params.Path,
+		Name:          params.Name,
+		Component:     params.Component,
+		Title:         params.Title,
+		Icon:          params.Icon,
+		ShowBadge:     params.ShowBadge,
+		ShowTextBadge: params.ShowTextBadge,
+		IsHide:        params.IsHide,
+		IsHideTab:     params.IsHideTab,
+		Link:          params.Link,
+		IsIframe:      params.IsIframe,
+		KeepAlive:     params.KeepAlive,
+		IsRootMenu:    params.IsRootMenu,
+		Status:        params.Status,
+		Level:         level,
+		ParentID:      params.ParentID,
+		Sort:          params.Sort,
 	}
 	if err := system.AddMenu(&menu); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加菜单失败")
@@ -130,23 +130,23 @@ func AddMenu(c *gin.Context) {
 
 func UpdateMenu(c *gin.Context) {
 	params := &struct {
-		ID                uint   `json:"id" form:"id" binding:"required"`
-		Path              string `json:"path" form:"path" binding:"required"`
-		Name              string `json:"name" form:"name" binding:"required"`
-		Component         string `json:"component" form:"component"`
-		Title             string `json:"title" form:"title" binding:"required"`
-		Icon              string `json:"icon" form:"icon"`
-		ShowBadge         uint   `json:"showBadge" form:"showBadge"`
-		ShowTextBadge     string `json:"showTextBadge" form:"showTextBadge"`
-		IsHide            uint   `json:"isHide" form:"isHide" binding:"required"`
-		IsHideTab         uint   `json:"isHideTab" form:"isHideTab" binding:"required"`
-		Link              string `json:"link" form:"link"`
-		IsIframe          uint   `json:"isIframe" form:"isIframe" binding:"required"`
-		KeepAlive         uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
-		IsInMainContainer uint   `json:"isInMainContainer" form:"isInMainContainer" binding:"required"`
-		Status            uint   `json:"status" form:"status" binding:"required"`
-		ParentID          uint   `json:"parentId" form:"parentId"`
-		Sort              uint   `json:"sort" form:"sort"`
+		ID            uint   `json:"id" form:"id" binding:"required"`
+		Path          string `json:"path" form:"path" binding:"required"`
+		Name          string `json:"name" form:"name" binding:"required"`
+		Component     string `json:"component" form:"component"`
+		Title         string `json:"title" form:"title" binding:"required"`
+		Icon          string `json:"icon" form:"icon"`
+		ShowBadge     uint   `json:"showBadge" form:"showBadge"`
+		ShowTextBadge string `json:"showTextBadge" form:"showTextBadge"`
+		IsHide        uint   `json:"isHide" form:"isHide" binding:"required"`
+		IsHideTab     uint   `json:"isHideTab" form:"isHideTab" binding:"required"`
+		Link          string `json:"link" form:"link"`
+		IsIframe      uint   `json:"isIframe" form:"isIframe" binding:"required"`
+		KeepAlive     uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
+		IsRootMenu    uint   `json:"isRootMenu" form:"isRootMenu" binding:"required"`
+		Status        uint   `json:"status" form:"status" binding:"required"`
+		ParentID      uint   `json:"parentId" form:"parentId"`
+		Sort          uint   `json:"sort" form:"sort"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -188,24 +188,24 @@ func UpdateMenu(c *gin.Context) {
 		}
 	}
 	menu := system.SystemMenu{
-		Model:             gorm.Model{ID: params.ID},
-		Path:              params.Path,
-		Name:              params.Name,
-		Component:         params.Component,
-		Title:             params.Title,
-		Icon:              params.Icon,
-		ShowBadge:         params.ShowBadge,
-		ShowTextBadge:     params.ShowTextBadge,
-		IsHide:            params.IsHide,
-		IsHideTab:         params.IsHideTab,
-		Link:              params.Link,
-		IsIframe:          params.IsIframe,
-		KeepAlive:         params.KeepAlive,
-		IsInMainContainer: params.IsInMainContainer,
-		Status:            params.Status,
-		Level:             level,
-		ParentID:          params.ParentID,
-		Sort:              params.Sort,
+		Model:         gorm.Model{ID: params.ID},
+		Path:          params.Path,
+		Name:          params.Name,
+		Component:     params.Component,
+		Title:         params.Title,
+		Icon:          params.Icon,
+		ShowBadge:     params.ShowBadge,
+		ShowTextBadge: params.ShowTextBadge,
+		IsHide:        params.IsHide,
+		IsHideTab:     params.IsHideTab,
+		Link:          params.Link,
+		IsIframe:      params.IsIframe,
+		KeepAlive:     params.KeepAlive,
+		IsRootMenu:    params.IsRootMenu,
+		Status:        params.Status,
+		Level:         level,
+		ParentID:      params.ParentID,
+		Sort:          params.Sort,
 	}
 	if err := system.UpdateMenu(&menu); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新菜单失败")
