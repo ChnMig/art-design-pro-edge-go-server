@@ -34,7 +34,7 @@ type MenuMeta struct {
 	IsHideTab     bool           `json:"isHideTab,omitempty"`
 	Link          string         `json:"link,omitempty"`
 	IsIframe      bool           `json:"isIframe,omitempty"`
-	IsRootMenu    bool           `json:"isRootMenu,omitempty"`
+	IsFirstLevel  bool           `json:"isFirstLevel,omitempty"`
 	IsEnable      bool           `json:"isEnable,omitempty"`
 	Sort          uint           `json:"sort,omitempty"`
 	AuthList      []MenuAuthResp `json:"authList,omitempty"`
@@ -129,9 +129,9 @@ func convertMenuToResponse(menu system.SystemMenu) MenuResponse {
 			IsHide:        menu.IsHide == 1,    // 1表示隐藏
 			IsHideTab:     menu.IsHideTab == 1, // 1表示隐藏
 			Link:          menu.Link,
-			IsIframe:      menu.IsIframe == 1,   // 1表示是iframe
-			IsRootMenu:    menu.IsRootMenu == 1, // 1表示在主容器中
-			IsEnable:      menu.Status == 1,     // 1表示启用
+			IsIframe:      menu.IsIframe == 1,     // 1表示是iframe
+			IsFirstLevel:  menu.IsFirstLevel == 1, // 1表示在主容器中
+			IsEnable:      menu.Status == 1,       // 1表示启用
 			Sort:          menu.Sort,
 		},
 	}

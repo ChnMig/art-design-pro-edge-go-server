@@ -39,7 +39,7 @@ type SystemMenu struct {
 	Link            string           `json:"link,omitempty"`                 // 链接(外链)
 	IsIframe        uint             `json:"is_iframe,omitempty"`            // 是否内嵌(1:内嵌 2:不内嵌)
 	KeepAlive       uint             `json:"keep_alive,omitempty"`           // 是否缓存(1:缓存 2:不缓存)
-	IsRootMenu      uint             `json:"is_in_main_container,omitempty"` // 是否在主容器内(一级菜单使用)(1:是 2:否)
+	IsFirstLevel    uint             `json:"is_in_main_container,omitempty"` // 是否在主容器内(一级菜单使用)(1:是 2:否)
 	Status          uint             `json:"status,omitempty"`               // 状态(1:启用 2:禁用)
 	Level           uint             `json:"level,omitempty"`                // 层级(从1开始)
 	ParentID        uint             `json:"parent_id,omitempty"`            // 父级ID

@@ -74,7 +74,7 @@ func AddMenu(c *gin.Context) {
 		Link          string `json:"link" form:"link"`
 		IsIframe      uint   `json:"isIframe" form:"isIframe" binding:"required"`
 		KeepAlive     uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
-		IsRootMenu    uint   `json:"isRootMenu" form:"isRootMenu" binding:"required"`
+		IsFirstLevel  uint   `json:"isFirstLevel" form:"isFirstLevel" binding:"required"`
 		Status        uint   `json:"status" form:"status" binding:"required"`
 		ParentID      uint   `json:"parentId" form:"parentId"`
 		Sort          uint   `json:"sort" form:"sort"`
@@ -115,7 +115,7 @@ func AddMenu(c *gin.Context) {
 		Link:          params.Link,
 		IsIframe:      params.IsIframe,
 		KeepAlive:     params.KeepAlive,
-		IsRootMenu:    params.IsRootMenu,
+		IsFirstLevel:  params.IsFirstLevel,
 		Status:        params.Status,
 		Level:         level,
 		ParentID:      params.ParentID,
@@ -143,7 +143,7 @@ func UpdateMenu(c *gin.Context) {
 		Link          string `json:"link" form:"link"`
 		IsIframe      uint   `json:"isIframe" form:"isIframe" binding:"required"`
 		KeepAlive     uint   `json:"keepAlive" form:"keepAlive" binding:"required"`
-		IsRootMenu    uint   `json:"isRootMenu" form:"isRootMenu" binding:"required"`
+		IsFirstLevel  uint   `json:"isFirstLevel" form:"isFirstLevel" binding:"required"`
 		Status        uint   `json:"status" form:"status" binding:"required"`
 		ParentID      uint   `json:"parentId" form:"parentId"`
 		Sort          uint   `json:"sort" form:"sort"`
@@ -201,7 +201,7 @@ func UpdateMenu(c *gin.Context) {
 		Link:          params.Link,
 		IsIframe:      params.IsIframe,
 		KeepAlive:     params.KeepAlive,
-		IsRootMenu:    params.IsRootMenu,
+		IsFirstLevel:  params.IsFirstLevel,
 		Status:        params.Status,
 		Level:         level,
 		ParentID:      params.ParentID,
