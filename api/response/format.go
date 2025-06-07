@@ -88,6 +88,15 @@ func processData(data interface{}) interface{} {
 		return result
 
 	case reflect.Slice, reflect.Array:
+		// Handle []byte specifically to convert to string
+		if value.Type().Elem().Kind() == reflect.Uint8 {
+			// Check if the element type is uint8 (byte)
+			// For json.RawMessage or []byte that should be a JSON string or object,
+			// you might need to unmarshal it first if you want it as a map/slice in the output,
+			// or simply convert to string if it's intended to be a string.
+			// Assuming it's intended to be a string representation of the bytes:
+			return string(value.Bytes())
+		}
 		// 处理切片和数组
 		resultSlice := make([]interface{}, value.Len())
 		for i := 0; i < value.Len(); i++ {
