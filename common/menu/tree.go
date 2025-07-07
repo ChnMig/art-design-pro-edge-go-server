@@ -44,7 +44,7 @@ type MenuMeta struct {
 type MenuAuthResp struct {
 	ID            uint   `json:"id"`
 	Title         string `json:"title"`
-	AuthMark      string `json:"auth_mark"`     // 权限标识
+	AuthMark      string `json:"authMark"`      // 权限标识
 	HasPermission bool   `json:"hasPermission"` // 角色是否拥有此权限
 }
 
