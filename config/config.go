@@ -56,13 +56,5 @@ var (
 
 func init() {
 	pathtool.CreateDir(LogDir)
-
-	// Set default values
-	JWTKey = "CvXPiv34e2474LC5Xj7IP" // Default value
-	JWTExpiration = time.Hour * 12
-	RedisHost = "127.0.0.1:6379"
-	RedisPassword = "izpXvn894uW2HFbyP5OGr"
-	PgsqlDSN = "host=127.0.0.1 user=postgres password=kL81xnDWo221FHFRX8GnP dbname=server port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	AdminPassword = "123456"
-	PWDSalt = "rHECMvW3el1zhpdzgx9dY"
+	// 配置校验逻辑已移至 main.go，确保 zap logger 初始化后再校验
 }

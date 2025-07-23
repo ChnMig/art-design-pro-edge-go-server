@@ -40,9 +40,9 @@ docker-compose -f docker/docker-compose.yml up -d
 
 ### 修改配置文件
 
-> 务必修改配置文件, 其中写 TODO 的务必修改!!
+> 务必修改配置文件, 尤其是密码相关
 
-修改 `./config.yaml` 中的配置(尤其是 TODO 标识的配置项)
+修改 `./config.yaml` 中的配置
 
 ## 执行数据库初始化
 

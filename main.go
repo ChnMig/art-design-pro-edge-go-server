@@ -37,6 +37,8 @@ func main() {
 		if arg == "--migrate" {
 			config.RunModel = config.RunModelDevValue
 			log.SetLogger()
+			// 配置校验
+			checkConfig()
 			migrate()
 			return
 		}
@@ -45,6 +47,8 @@ func main() {
 		}
 	}
 	log.SetLogger()
+	// 配置校验
+	checkConfig()
 
 	// 初始化定时任务
 	cron.InitCronJobs()
