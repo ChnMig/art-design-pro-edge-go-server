@@ -27,6 +27,12 @@ func migrate() error {
 }
 
 func main() {
+	// Load configuration from config.yaml
+	if err := config.LoadConfig(); err != nil {
+		fmt.Printf("Failed to load configuration: %v\n", err)
+		os.Exit(1)
+	}
+
 	for _, arg := range os.Args[1:] {
 		if arg == "--migrate" {
 			config.RunModel = config.RunModelDevValue

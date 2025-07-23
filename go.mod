@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-co-op/gocron/v2 v2.16.1
 	github.com/go-redis/redis v6.15.9+incompatible
+	github.com/goccy/go-yaml v1.18.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/sony/sonyflake v1.2.0
