@@ -37,8 +37,15 @@ func main() {
 		if arg == "--migrate" {
 			config.RunModel = config.RunModelDevValue
 			log.SetLogger()
-			// 配置校验
-			checkConfig()
+			config.CheckConfig(
+				config.JWTKey,
+				int64(config.JWTExpiration),
+				config.RedisHost,
+				config.RedisPassword,
+				config.PgsqlDSN,
+				config.AdminPassword,
+				config.PWDSalt,
+			)
 			migrate()
 			return
 		}
@@ -47,8 +54,15 @@ func main() {
 		}
 	}
 	log.SetLogger()
-	// 配置校验
-	checkConfig()
+	config.CheckConfig(
+		config.JWTKey,
+		int64(config.JWTExpiration),
+		config.RedisHost,
+		config.RedisPassword,
+		config.PgsqlDSN,
+		config.AdminPassword,
+		config.PWDSalt,
+	)
 
 	// 初始化定时任务
 	cron.InitCronJobs()
