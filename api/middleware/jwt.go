@@ -14,7 +14,7 @@ const (
 // TokenVerify Get the token and verify its validity
 func TokenVerify(c *gin.Context) {
 	c.FormFile("file") // 防止文件未发送完成就返回错误, 导致前端504而不是正确响应
-	token := c.Request.Header.Get("Access-Token")
+	token := c.Request.Header.Get("Authorization")
 	if token == "" {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
 		return
