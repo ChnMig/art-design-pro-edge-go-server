@@ -2,8 +2,15 @@
 bulid/
 *.exe
 
-# dotenv
+# Environment variables and sensitive configuration
 .env
+.env.*
+!.env.example
+config.yaml.local
+*.key
+*.pem
+secrets/
+.secrets
 
 # venv
 /vendor/

@@ -27,7 +27,8 @@ func migrate() error {
 }
 
 func main() {
-	// Load configuration from config.yaml
+	// Load configuration from environment variables and config.yaml
+	// Environment variables take precedence over config.yaml for security
 	if err := config.LoadConfig(); err != nil {
 		fmt.Printf("Failed to load configuration: %v\n", err)
 		os.Exit(1)
