@@ -11,21 +11,38 @@ import (
 	"api-server/util/encryption"
 )
 
-func encryptionPWD(password string) string {
-	return encryption.MD5WithSalt(config.PWDSalt + password)
+// encryptionPWD 已移除MD5支持，新安装只支持bcrypt
+
+// HashPassword 使用bcrypt安全哈希密码
+func HashPassword(password string) (string, error) {
+	return encryption.HashPasswordWithBcrypt(password)
 }
 
-// 查询用户
+// VerifyPassword 验证密码，新安装只支持bcrypt格式
+func VerifyPassword(password, hashedPassword, passwordType string) bool {
+	return encryption.VerifyBcryptPassword(password, hashedPassword)
+}
+
+// VerifyUser 验证用户登录，新安装只支持bcrypt
 func VerifyUser(userName, password string) (SystemUser, error) {
 	user := SystemUser{}
-	err := pgdb.GetClient().Where(&SystemUser{Username: userName, Password: encryptionPWD(password)}).First(&user).Error
+	
+	// 根据用户名查找用户
+	err := pgdb.GetClient().Where("username = ?", userName).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return user, nil
+			return user, nil // 返回空用户，ID为0表示未找到
 		}
 		zap.L().Error("failed to get user", zap.Error(err))
 		return user, err
 	}
+	
+	// 验证密码
+	if !VerifyPassword(password, user.Password, user.PasswordType) {
+		// 密码错误，返回空用户
+		return SystemUser{}, nil
+	}
+	
 	return user, nil
 }
 
@@ -134,7 +151,16 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 }
 
 func AddUser(user *SystemUser) error {
-	user.Password = encryptionPWD(user.Password)
+	// 新用户使用bcrypt加密
+	hashedPassword, err := HashPassword(user.Password)
+	if err != nil {
+		zap.L().Error("failed to hash user password", zap.Error(err))
+		return err
+	}
+	
+	user.Password = hashedPassword
+	user.PasswordType = "bcrypt"
+	
 	if err := pgdb.GetClient().Create(user).Error; err != nil {
 		zap.L().Error("failed to add user", zap.Error(err))
 		return err
@@ -151,9 +177,17 @@ func GetUser(user *SystemUser) error {
 }
 
 func UpdateUser(user *SystemUser) error {
+	// 如果更新密码，使用bcrypt加密
 	if user.Password != "" {
-		user.Password = encryptionPWD(user.Password)
+		hashedPassword, err := HashPassword(user.Password)
+		if err != nil {
+			zap.L().Error("failed to hash user password for update", zap.Error(err))
+			return err
+		}
+		user.Password = hashedPassword
+		user.PasswordType = "bcrypt"
 	}
+	
 	if err := pgdb.GetClient().Updates(user).Error; err != nil {
 		zap.L().Error("failed to update user", zap.Error(err))
 		return err
