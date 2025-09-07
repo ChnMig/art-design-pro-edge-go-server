@@ -21,7 +21,9 @@ func GetClient() *gorm.DB {
 
 // Connect to the database
 func Init() error {
-	db, err := gorm.Open(postgres.Open(config.PgsqlDSN), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(config.PgsqlDSN), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true, // 禁用外键约束
+	})
 	if err != nil {
 		zap.L().Error("connect to mysql failed", zap.Error(err))
 		return err

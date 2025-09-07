@@ -2,7 +2,6 @@ package system
 
 import (
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 
 	"api-server/config"
 	"api-server/db/pgdb"
@@ -31,21 +30,19 @@ func FindDepartmentList(department *SystemDepartment, page, pageSize int) ([]Sys
 		return nil, 0, err
 	}
 
-	// 构建排序和预加载
-	queryWithPreload := query.Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "name", "department_id", "created_at", "updated_at") // 只选择需要的字段
-	}).Order("sort DESC, id DESC")
+	// 构建排序
+	queryOrder := query.Order("sort DESC, id DESC")
 
 	// 判断是否需要分页
 	if page == config.CancelPage && pageSize == config.CancelPageSize {
 		// 不分页，获取所有数据
-		if err := queryWithPreload.Find(&departments).Error; err != nil {
+		if err := queryOrder.Find(&departments).Error; err != nil {
 			zap.L().Error("failed to find all department list", zap.Error(err))
 			return nil, 0, err
 		}
 	} else {
 		// 应用分页并获取数据
-		if err := queryWithPreload.Offset((page - 1) * pageSize).
+		if err := queryOrder.Offset((page - 1) * pageSize).
 			Limit(pageSize).
 			Find(&departments).Error; err != nil {
 			zap.L().Error("failed to find department list with pagination", zap.Error(err))
@@ -56,11 +53,9 @@ func FindDepartmentList(department *SystemDepartment, page, pageSize int) ([]Sys
 	return departments, total, nil
 }
 
-// GetDepartment 查询单个部门（包含有限的用户信息）
+// GetDepartment 查询单个部门
 func GetDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Preload("SystemUsers", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "name", "department_id", "created_at", "updated_at") // 只选择需要的字段
-	}).Where(department).First(department).Error; err != nil {
+	if err := pgdb.GetClient().Where(department).First(department).Error; err != nil {
 		zap.L().Error("failed to get department", zap.Error(err))
 		return err
 	}
@@ -86,6 +81,15 @@ func UpdateDepartment(department *SystemDepartment) error {
 func DeleteDepartment(department *SystemDepartment) error {
 	if err := pgdb.GetClient().Delete(&department).Error; err != nil {
 		zap.L().Error("failed to delete department", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// CountUsersByDepartmentID 统计指定部门下的用户数量
+func CountUsersByDepartmentID(departmentID uint, count *int64) error {
+	if err := pgdb.GetClient().Model(&SystemUser{}).Where("department_id = ?", departmentID).Count(count).Error; err != nil {
+		zap.L().Error("failed to count users by department id", zap.Error(err))
 		return err
 	}
 	return nil

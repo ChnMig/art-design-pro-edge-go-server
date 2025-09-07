@@ -18,9 +18,9 @@ type SystemTenant struct {
 	Status      uint                  `json:"status,omitempty" gorm:"default:1"`          // 状态(1:启用 2:禁用)
 	ExpiredAt   *time.Time            `json:"expired_at,omitempty"`                       // 过期时间
 	MaxUsers    uint                  `json:"max_users,omitempty" gorm:"default:100"`     // 最大用户数
-	SystemUsers []SystemUser          `json:"users,omitempty" gorm:"foreignKey:TenantID"` // 一对多关联用户
-	Departments []SystemDepartment    `json:"departments,omitempty" gorm:"foreignKey:TenantID"` // 一对多关联部门
-	Roles       []SystemRole          `json:"roles,omitempty" gorm:"foreignKey:TenantID"` // 一对多关联角色
+	SystemUsers []SystemUser          `json:"users,omitempty" gorm:"foreignKey:TenantID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Departments []SystemDepartment    `json:"departments,omitempty" gorm:"foreignKey:TenantID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Roles       []SystemRole          `json:"roles,omitempty" gorm:"foreignKey:TenantID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // Department 部门表
@@ -30,7 +30,7 @@ type SystemDepartment struct {
 	Name        string       `json:"name,omitempty"`
 	Sort        uint         `json:"sort,omitempty"`
 	Status      uint         `json:"status,omitempty"`                               // 状态(1:启用 2:禁用)
-	SystemUsers []SystemUser `json:"users,omitempty" gorm:"foreignKey:DepartmentID"` // 一对多关联用户表
+	SystemUsers []SystemUser `json:"users,omitempty" gorm:"foreignKey:DepartmentID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // Role 角色表
@@ -41,7 +41,7 @@ type SystemRole struct {
 	Desc            string           `json:"desc,omitempty"`
 	Status          uint             `json:"status,omitempty"`                                                  // 状态(1:启用 2:禁用)
 	SystemMenus     []SystemMenu     `json:"menus,omitempty" gorm:"many2many:system_roles__system_menus;"`      // 多对多关联菜单表
-	SystemUsers     []SystemUser     `json:"users,omitempty" gorm:"foreignKey:RoleID"`                          // 一对多关联用户表
+	SystemUsers     []SystemUser     `json:"users,omitempty" gorm:"foreignKey:RoleID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	SystemMenuAuths []SystemMenuAuth `json:"menu_auths,omitempty" gorm:"many2many:system_roles__system_auths;"` // 多对多关联菜单按钮权限表
 }
 
@@ -66,7 +66,7 @@ type SystemMenu struct {
 	ParentID        uint             `json:"parent_id,omitempty"`            // 父级ID
 	Sort            uint             `json:"sort,omitempty"`                 // 排序(从大到小)
 	SystemRoles     []SystemRole     `json:"roles,omitempty" gorm:"many2many:system_roles__system_menus;"`
-	SystemMenuAuths []SystemMenuAuth `json:"menu_auths,omitempty" gorm:"foreignKey:MenuID"` // 一对多关联菜单按钮权限表
+	SystemMenuAuths []SystemMenuAuth `json:"menu_auths,omitempty" gorm:"foreignKey:MenuID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // MenuPermission 菜单按钮权限表

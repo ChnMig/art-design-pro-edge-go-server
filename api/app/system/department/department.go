@@ -103,7 +103,13 @@ func DeleteDepartment(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询部门失败")
 		return
 	}
-	if len(department.SystemUsers) > 0 {
+	// 检查部门下是否还有用户
+	var userCount int64
+	if err := system.CountUsersByDepartmentID(params.ID, &userCount); err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "检查部门用户失败")
+		return
+	}
+	if userCount > 0 {
 		response.ReturnError(c, response.DATA_LOSS, "请先删除部门下的用户")
 		return
 	}
