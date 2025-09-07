@@ -73,7 +73,7 @@ func FindUserByCache(c *gin.Context) {
 	end := start + pageSize
 	if start >= total {
 		// 如果起始位置超出了总数，返回空列表
-		response.ReturnDataWithCount(c, total, []systemuser.UserCacheInfo{})
+		response.ReturnDataWithTotal(c, total, []systemuser.UserCacheInfo{})
 		return
 	}
 	if end > total {
@@ -81,7 +81,7 @@ func FindUserByCache(c *gin.Context) {
 	}
 
 	pagedList := filteredList[start:end]
-	response.ReturnDataWithCount(c, total, pagedList)
+	response.ReturnDataWithTotal(c, total, pagedList)
 }
 
 func FindUser(c *gin.Context) {
@@ -115,7 +115,7 @@ func FindUser(c *gin.Context) {
 		usersWithRelations[i].SystemUser.Password = ""
 	}
 
-	response.ReturnDataWithCount(c, int(total), usersWithRelations)
+	response.ReturnDataWithTotal(c, int(total), usersWithRelations)
 }
 
 func AddUser(c *gin.Context) {

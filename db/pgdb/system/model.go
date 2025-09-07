@@ -60,21 +60,21 @@ type SystemMenuAuth struct {
 // User 用户表
 type SystemUser struct {
 	gorm.Model
-	DepartmentID   uint   `json:"department_id,omitempty"`
-	RoleID         uint   `json:"role_id,omitempty"`
-	Name           string `json:"name,omitempty"`     // 昵称
-	Username       string `json:"username,omitempty"` // 姓名, 不可修改
-	Password       string `json:"password,omitempty"`
-	PasswordType   string `json:"password_type,omitempty" gorm:"default:'bcrypt'"` // 密码加密类型：bcrypt
-	Phone          string `json:"phone,omitempty"`
-	Gender         uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
-	Status         uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)
+	DepartmentID uint   `json:"department_id,omitempty"`
+	RoleID       uint   `json:"role_id,omitempty"`
+	Name         string `json:"name,omitempty"`     // 昵称
+	Username     string `json:"username,omitempty"` // 姓名, 不可修改
+	Password     string `json:"password,omitempty"`
+	PasswordType string `json:"password_type,omitempty" gorm:"default:'bcrypt'"` // 密码加密类型：bcrypt
+	Phone        string `json:"phone,omitempty"`
+	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
+	Status       uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)
 }
 
 type SystemUserLoginLog struct {
 	gorm.Model
 	UserName    string `json:"user_name,omitempty"`
-	Password    string `json:"password,omitempty"`    // 注意：此字段应为空，不记录实际密码
+	Password    string `json:"password,omitempty"` // 注意：此字段应为空，不记录实际密码
 	IP          string `json:"ip,omitempty"`
 	LoginStatus string `json:"login_status,omitempty"` // 登录状态：success, failed
 }

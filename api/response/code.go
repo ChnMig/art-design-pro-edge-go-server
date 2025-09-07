@@ -8,7 +8,7 @@ type responseData struct {
 	Message   string      `json:"message,omitempty"`
 	Data      interface{} `json:"data,omitempty"`
 	Timestamp int64       `json:"timestamp"`
-	Count     *int        `json:"count,omitempty"`
+	Total     *int        `json:"total,omitempty"`
 }
 
 // 通用的错误信息

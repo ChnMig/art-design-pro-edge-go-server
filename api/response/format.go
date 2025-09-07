@@ -138,12 +138,12 @@ func ReturnData(c *gin.Context, result interface{}) {
 	c.Abort()
 }
 
-// ResponseDataWithCount 正常响应
-func ReturnDataWithCount(c *gin.Context, count int, result interface{}) {
+// ResponseDataWithTotal 正常响应（返回数据总数）
+func ReturnDataWithTotal(c *gin.Context, count int, result interface{}) {
 	data := Success
 	data.Timestamp = time.Now().Unix()
 	data.Data = processData(result)
-	data.Count = &count
+	data.Total = &count
 	c.JSON(http.StatusOK, data)
 	// Return directly
 	c.Abort()

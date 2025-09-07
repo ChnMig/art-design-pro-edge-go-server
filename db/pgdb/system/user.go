@@ -26,7 +26,7 @@ func VerifyPassword(password, hashedPassword, passwordType string) bool {
 // VerifyUser 验证用户登录，新安装只支持bcrypt
 func VerifyUser(userName, password string) (SystemUser, error) {
 	user := SystemUser{}
-	
+
 	// 根据用户名查找用户
 	err := pgdb.GetClient().Where("username = ?", userName).First(&user).Error
 	if err != nil {
@@ -36,13 +36,13 @@ func VerifyUser(userName, password string) (SystemUser, error) {
 		zap.L().Error("failed to get user", zap.Error(err))
 		return user, err
 	}
-	
+
 	// 验证密码
 	if !VerifyPassword(password, user.Password, user.PasswordType) {
 		// 密码错误，返回空用户
 		return SystemUser{}, nil
 	}
-	
+
 	return user, nil
 }
 
@@ -157,10 +157,10 @@ func AddUser(user *SystemUser) error {
 		zap.L().Error("failed to hash user password", zap.Error(err))
 		return err
 	}
-	
+
 	user.Password = hashedPassword
 	user.PasswordType = "bcrypt"
-	
+
 	if err := pgdb.GetClient().Create(user).Error; err != nil {
 		zap.L().Error("failed to add user", zap.Error(err))
 		return err
@@ -187,7 +187,7 @@ func UpdateUser(user *SystemUser) error {
 		user.Password = hashedPassword
 		user.PasswordType = "bcrypt"
 	}
-	
+
 	if err := pgdb.GetClient().Updates(user).Error; err != nil {
 		zap.L().Error("failed to update user", zap.Error(err))
 		return err

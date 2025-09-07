@@ -35,7 +35,7 @@ func GetRoleList(c *gin.Context) {
 	}
 
 	// 返回带总数的结果
-	response.ReturnDataWithCount(c, int(total), roles)
+	response.ReturnDataWithTotal(c, int(total), roles)
 }
 
 func AddRole(c *gin.Context) {

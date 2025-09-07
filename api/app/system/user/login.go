@@ -114,5 +114,5 @@ func FindLoginLogList(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询登录日志失败")
 		return
 	}
-	response.ReturnDataWithCount(c, int(total), logs)
+	response.ReturnDataWithTotal(c, int(total), logs)
 }

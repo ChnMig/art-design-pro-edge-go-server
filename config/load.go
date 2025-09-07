@@ -68,7 +68,7 @@ func LoadConfig() error {
 	// Load from YAML file first
 	configPath := filepath.Join(AbsPath, "config.yaml")
 	var config YamlConfig
-	
+
 	// Try to read YAML config, but don't fail if it doesn't exist (for production environments)
 	data, err := os.ReadFile(configPath)
 	if err == nil {
@@ -78,7 +78,7 @@ func LoadConfig() error {
 	}
 
 	// Apply configuration values with environment variable precedence
-	
+
 	// Server configuration
 	ListenPort = getEnvInt("SERVER_PORT", config.Server.Port)
 	if ListenPort == 0 {
@@ -107,7 +107,7 @@ func LoadConfig() error {
 	if RedisHost == "" {
 		RedisHost = "127.0.0.1:6379" // default fallback
 	}
-	
+
 	RedisPassword = getEnv("REDIS_PASSWORD", config.Redis.Password)
 
 	// PostgreSQL configuration

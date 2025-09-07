@@ -83,7 +83,7 @@ func GetDepartmentList(c *gin.Context) {
 	}
 
 	// 返回带总数的结果
-	response.ReturnDataWithCount(c, int(total), departments)
+	response.ReturnDataWithTotal(c, int(total), departments)
 }
 
 func DeleteDepartment(c *gin.Context) {
