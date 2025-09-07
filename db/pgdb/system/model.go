@@ -62,10 +62,10 @@ type SystemUser struct {
 	gorm.Model
 	DepartmentID uint   `json:"department_id,omitempty"`
 	RoleID       uint   `json:"role_id,omitempty"`
-	Name         string `json:"name,omitempty"`     // 昵称
-	Username     string `json:"username,omitempty"` // 姓名, 不可修改
+	Name         string `json:"name,omitempty"`     // 姓名
+	Username     string `json:"username,omitempty"` // 昵称
+	Account      string `json:"account,omitempty" gorm:"uniqueIndex:idx_account"`  // 登录账号，唯一
 	Password     string `json:"password,omitempty"`
-	PasswordType string `json:"password_type,omitempty" gorm:"default:'bcrypt'"` // 密码加密类型：bcrypt
 	Phone        string `json:"phone,omitempty"`
 	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
 	Status       uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)

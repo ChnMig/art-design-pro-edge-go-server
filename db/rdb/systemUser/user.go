@@ -25,8 +25,8 @@ const (
 // UserCacheInfo 用户缓存信息
 type UserCacheInfo struct {
 	ID       uint   `json:"id"`
-	Username string `json:"username"`
-	Name     string `json:"name"`
+	Username string `json:"username"` // 昵称
+	Name     string `json:"name"`     // 姓名
 	RoleID   uint   `json:"role_id"`
 	RoleName string `json:"role_name"`
 }

@@ -15,7 +15,7 @@ import (
 
 func Login(c *gin.Context) {
 	params := &struct {
-		Username  string `json:"username" form:"username" binding:"required"`
+		Account   string `json:"account" form:"account" binding:"required"`
 		Password  string `json:"password" form:"password" binding:"required"`
 		Captcha   string `json:"captcha" form:"captcha" binding:"required"`
 		CaptchaID string `json:"captcha_id" form:"captcha_id" binding:"required"`
@@ -34,12 +34,12 @@ func Login(c *gin.Context) {
 	clientIP := c.ClientIP()
 
 	// 查询用户
-	user, err := system.VerifyUser(params.Username, params.Password)
+	user, err := system.VerifyUser(params.Account, params.Password)
 	if err != nil {
 		zap.L().Error("查询用户失败", zap.Error(err))
 		// 记录登录失败日志（验证码正确但查询失败）
 		failedLog := system.SystemUserLoginLog{
-			UserName:    params.Username,
+			UserName:    params.Account,
 			Password:    "", // 安全：不记录密码
 			IP:          clientIP,
 			LoginStatus: "failed",
@@ -51,7 +51,7 @@ func Login(c *gin.Context) {
 	if user.ID == 0 {
 		// 记录登录失败日志（账号或密码错误）
 		failedLog := system.SystemUserLoginLog{
-			UserName:    params.Username,
+			UserName:    params.Account,
 			Password:    "", // 安全：不记录密码
 			IP:          clientIP,
 			LoginStatus: "failed",
@@ -63,7 +63,7 @@ func Login(c *gin.Context) {
 	if user.Status != 1 {
 		// 记录登录失败日志（账号已被禁用）
 		failedLog := system.SystemUserLoginLog{
-			UserName:    params.Username,
+			UserName:    params.Account,
 			Password:    "", // 安全：不记录密码
 			IP:          clientIP,
 			LoginStatus: "failed",
@@ -75,7 +75,7 @@ func Login(c *gin.Context) {
 
 	// 记录登录成功日志
 	successLog := system.SystemUserLoginLog{
-		UserName:    params.Username,
+		UserName:    params.Account,
 		Password:    "", // 安全：不记录密码
 		IP:          clientIP,
 		LoginStatus: "success",

@@ -14,8 +14,8 @@ import (
 
 func FindUserByCache(c *gin.Context) {
 	params := &struct {
-		Username string `json:"username" form:"username"`
-		Name     string `json:"name" form:"name"`
+		Username string `json:"username" form:"username"` // 昵称
+		Name     string `json:"name" form:"name"`         // 姓名
 		ID       uint   `json:"id" form:"id"`
 	}{}
 	if !middleware.CheckParam(params, c) {
@@ -86,8 +86,8 @@ func FindUserByCache(c *gin.Context) {
 
 func FindUser(c *gin.Context) {
 	params := &struct {
-		Username     string `json:"username" form:"username"`
-		Name         string `json:"name" form:"name"`
+		Username     string `json:"username" form:"username"`     // 昵称
+		Name         string `json:"name" form:"name"`             // 姓名
 		Phone        string `json:"phone" form:"phone"`
 		DepartmentID uint   `json:"department_id" form:"department_id"`
 		RoleID       uint   `json:"role_id" form:"role_id"`
@@ -120,9 +120,10 @@ func FindUser(c *gin.Context) {
 
 func AddUser(c *gin.Context) {
 	params := &struct {
-		Username     string `json:"username" form:"username" binding:"required"`
+		Name         string `json:"name" form:"name" binding:"required"`         // 姓名
+		Username     string `json:"username" form:"username" binding:"required"` // 昵称
+		Account      string `json:"account" form:"account" binding:"required"`   // 登录账号
 		Password     string `json:"password" form:"password" binding:"required"`
-		Name         string `json:"name" form:"name" binding:"required"`
 		Phone        string `json:"phone" form:"phone" binding:"required"`
 		Gender       uint   `json:"gender" form:"gender" binding:"required"`
 		Status       uint   `json:"status" form:"status" binding:"required"`
@@ -133,9 +134,10 @@ func AddUser(c *gin.Context) {
 		return
 	}
 	u := system.SystemUser{
-		Username:     params.Username,
-		Password:     params.Password,
 		Name:         params.Name,
+		Username:     params.Username,
+		Account:      params.Account,
+		Password:     params.Password,
 		Phone:        params.Phone,
 		Gender:       params.Gender,
 		Status:       params.Status,
@@ -152,9 +154,10 @@ func AddUser(c *gin.Context) {
 func UpdateUser(c *gin.Context) {
 	params := &struct {
 		ID           uint   `json:"id" form:"id" binding:"required"`
-		Username     string `json:"username" form:"username" binding:"required"`
+		Name         string `json:"name" form:"name" binding:"required"`         // 姓名
+		Username     string `json:"username" form:"username" binding:"required"` // 昵称
+		Account      string `json:"account" form:"account" binding:"required"`   // 登录账号
 		Password     string `json:"password" form:"password"`
-		Name         string `json:"name" form:"name" binding:"required"`
 		Phone        string `json:"phone" form:"phone" binding:"required"`
 		Gender       uint   `json:"gender" form:"gender" binding:"required"`
 		Status       uint   `json:"status" form:"status" binding:"required"`
@@ -166,8 +169,9 @@ func UpdateUser(c *gin.Context) {
 	}
 	u := system.SystemUser{
 		Model:        gorm.Model{ID: params.ID},
-		Username:     params.Username,
 		Name:         params.Name,
+		Username:     params.Username,
+		Account:      params.Account,
 		Phone:        params.Phone,
 		Gender:       params.Gender,
 		Status:       params.Status,

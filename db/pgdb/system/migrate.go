@@ -145,7 +145,7 @@ func migrateData(db *gorm.DB) error {
 			return hashErr
 		}
 		users := []SystemUser{
-			{Model: gorm.Model{ID: 1}, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Password: pwd, PasswordType: "bcrypt", Status: 1, Gender: 1},
+			{Model: gorm.Model{ID: 1}, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Account: "admin", Password: pwd, Status: 1, Gender: 1},
 		}
 		err = db.Create(&users).Error
 		if err != nil {
@@ -191,3 +191,4 @@ func Migrate(db *gorm.DB) error {
 	}
 	return nil
 }
+
