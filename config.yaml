@@ -22,3 +22,9 @@ postgres:
 admin:
   password: "123456"  # Admin password - MUST be changed in production
   salt: "rHECMvW3el1zhpdzgx9dY"  # Password salt - MUST be regenerated and kept secret
+
+rate_limit:
+  login_rate_per_minute: 30    # Maximum login attempts per minute per IP
+  login_burst_size: 60         # Burst size for login requests
+  general_rate_per_sec: 100    # Maximum general API requests per second per IP
+  general_burst_size: 200      # Burst size for general API requests

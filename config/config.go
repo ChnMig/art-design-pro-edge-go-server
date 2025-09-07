@@ -44,6 +44,11 @@ var (
 	// admin config
 	AdminPassword string
 	PWDSalt       string
+	// rate limit config
+	LoginRatePerMinute int
+	LoginBurstSize     int
+	GeneralRatePerSec  int
+	GeneralBurstSize   int
 )
 
 // page config

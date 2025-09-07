@@ -36,6 +36,12 @@ type YamlConfig struct {
 		Password string `yaml:"password"`
 		Salt     string `yaml:"salt"`
 	} `yaml:"admin"`
+	RateLimit struct {
+		LoginRatePerMinute int `yaml:"login_rate_per_minute"`
+		LoginBurstSize     int `yaml:"login_burst_size"`
+		GeneralRatePerSec  int `yaml:"general_rate_per_sec"`
+		GeneralBurstSize   int `yaml:"general_burst_size"`
+	} `yaml:"rate_limit"`
 }
 
 // getEnv gets environment variable with fallback to default value
@@ -150,6 +156,27 @@ func LoadConfig() error {
 	PWDSalt = getEnv("PASSWORD_SALT", config.Admin.Salt)
 	if PWDSalt == "" {
 		return fmt.Errorf("PASSWORD_SALT must be set either in environment variable or config file")
+	}
+
+	// Rate limiting configuration
+	LoginRatePerMinute = getEnvInt("LOGIN_RATE_PER_MINUTE", config.RateLimit.LoginRatePerMinute)
+	if LoginRatePerMinute == 0 {
+		LoginRatePerMinute = 5 // default: 5 login attempts per minute
+	}
+
+	LoginBurstSize = getEnvInt("LOGIN_BURST_SIZE", config.RateLimit.LoginBurstSize)
+	if LoginBurstSize == 0 {
+		LoginBurstSize = 5 // default: allow 5 burst requests
+	}
+
+	GeneralRatePerSec = getEnvInt("GENERAL_RATE_PER_SEC", config.RateLimit.GeneralRatePerSec)
+	if GeneralRatePerSec == 0 {
+		GeneralRatePerSec = 10 // default: 10 requests per second
+	}
+
+	GeneralBurstSize = getEnvInt("GENERAL_BURST_SIZE", config.RateLimit.GeneralBurstSize)
+	if GeneralBurstSize == 0 {
+		GeneralBurstSize = 20 // default: allow 20 burst requests
 	}
 
 	return nil
