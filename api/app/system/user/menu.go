@@ -1,8 +1,6 @@
 package user
 
 import (
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 
 	"api-server/api/middleware"
@@ -13,19 +11,14 @@ import (
 
 func GetUserMenuList(c *gin.Context) {
 	// 获取用户ID
-	uID := c.GetString(middleware.JWTDataKey)
-	if uID == "" {
+	userID := middleware.GetCurrentUserID(c)
+	if userID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
-		return
-	}
-	id, err := strconv.ParseUint(uID, 10, 64)
-	if err != nil {
-		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
 		return
 	}
 
 	// 根据用户ID获取用户角色的菜单权限
-	roleMenus, rolePermissions, err := system.GetUserMenuData(uint(id))
+	roleMenus, rolePermissions, err := system.GetUserMenuData(userID)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户菜单失败")
 		return

@@ -1,8 +1,6 @@
 package user
 
 import (
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -21,18 +19,13 @@ func UpdateUserInfo(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	uID := c.GetString(middleware.JWTDataKey)
-	if uID == "" {
+	userID := middleware.GetCurrentUserID(c)
+	if userID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
 		return
 	}
-	id, err := strconv.ParseUint(uID, 10, 64)
-	if err != nil {
-		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
-		return
-	}
 	u := system.SystemUser{
-		Model:  gorm.Model{ID: uint(id)},
+		Model:  gorm.Model{ID: userID},
 		Name:   params.Name,
 		Phone:  params.Phone,
 		Gender: params.Gender,
@@ -48,17 +41,12 @@ func UpdateUserInfo(c *gin.Context) {
 }
 
 func GetUserInfo(c *gin.Context) {
-	uID := c.GetString(middleware.JWTDataKey)
-	if uID == "" {
+	userID := middleware.GetCurrentUserID(c)
+	if userID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
 		return
 	}
-	id, err := strconv.ParseUint(uID, 10, 64)
-	if err != nil {
-		response.ReturnError(c, response.UNAUTHENTICATED, "无效的用户ID")
-		return
-	}
-	user := system.SystemUser{Model: gorm.Model{ID: uint(id)}}
+	user := system.SystemUser{Model: gorm.Model{ID: userID}}
 	if err := system.GetUser(&user); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return

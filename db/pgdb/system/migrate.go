@@ -10,7 +10,7 @@ import (
 )
 
 func migrateTable(db *gorm.DB) error {
-	err := db.AutoMigrate(&SystemDepartment{}, &SystemRole{}, &SystemMenu{}, &SystemMenuAuth{}, &SystemUser{}, &SystemUserLoginLog{})
+	err := db.AutoMigrate(&SystemTenant{}, &SystemDepartment{}, &SystemRole{}, &SystemMenu{}, &SystemMenuAuth{}, &SystemUser{}, &SystemUserLoginLog{})
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
 		return err
@@ -20,6 +20,25 @@ func migrateTable(db *gorm.DB) error {
 
 func migrateData(db *gorm.DB) error {
 	err := db.Transaction(func(tx *gorm.DB) error {
+		// 检查是否已有租户数据
+		var tenantCount int64
+		tx.Model(&SystemTenant{}).Count(&tenantCount)
+		if tenantCount == 0 {
+			// 创建默认租户
+			defaultTenant := SystemTenant{
+				Model: gorm.Model{ID: 1},
+				Code:  "default",
+				Name:  "默认企业",
+				Status: 1,
+				MaxUsers: 100,
+			}
+			err := tx.Create(&defaultTenant).Error
+			if err != nil {
+				zap.L().Error("failed to create default tenant", zap.Error(err))
+				return err
+			}
+		}
+
 		// 检查是否已有数据，如果有则跳过初始化
 		var count int64
 		tx.Model(&SystemMenu{}).Count(&count)
@@ -40,7 +59,7 @@ func migrateData(db *gorm.DB) error {
 			{Model: gorm.Model{ID: 8}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 88},
 			{Model: gorm.Model{ID: 9}, Path: "/private", Name: "Private", Component: "/index/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
 		}
-		err := db.Create(&menus).Error
+		err := tx.Create(&menus).Error
 		if err != nil {
 			zap.L().Error("failed to create menu", zap.Error(err))
 			return err
@@ -53,12 +72,12 @@ func migrateData(db *gorm.DB) error {
 			return nil
 		}
 
-		// 创建角色
+		// 创建角色（默认租户）
 		roles := []SystemRole{
-			{Model: gorm.Model{ID: 1}, Name: "超级管理员", Desc: "拥有所有权限", Status: 1},
-			{Model: gorm.Model{ID: 2}, Name: "普通用户", Desc: "普通用户", Status: 1},
+			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "超级管理员", Desc: "拥有所有权限", Status: 1},
+			{Model: gorm.Model{ID: 2}, TenantID: 1, Name: "普通用户", Desc: "普通用户", Status: 1},
 		}
-		err = db.Create(&roles).Error
+		err = tx.Create(&roles).Error
 		if err != nil {
 			zap.L().Error("failed to create role", zap.Error(err))
 			return err
@@ -67,48 +86,48 @@ func migrateData(db *gorm.DB) error {
 		// 为角色分配菜单权限
 		// 超级管理员拥有所有菜单权限
 		adminRole := SystemRole{}
-		err = db.First(&adminRole, 1).Error
+		err = tx.First(&adminRole, 1).Error
 		if err != nil {
 			zap.L().Error("failed to find admin role", zap.Error(err))
 			return err
 		}
 		// 为超级管理员分配所有菜单
 		var allMenus []SystemMenu
-		err = db.Find(&allMenus).Error
+		err = tx.Find(&allMenus).Error
 		if err != nil {
 			zap.L().Error("failed to find menus", zap.Error(err))
 			return err
 		}
-		err = db.Model(&adminRole).Association("SystemMenus").Append(&allMenus)
+		err = tx.Model(&adminRole).Association("SystemMenus").Append(&allMenus)
 		if err != nil {
 			zap.L().Error("failed to associate menus with admin role", zap.Error(err))
 			return err
 		}
 		// 为普通用户分配首页菜单
 		normalRole := SystemRole{}
-		err = db.First(&normalRole, 2).Error
+		err = tx.First(&normalRole, 2).Error
 		if err != nil {
 			zap.L().Error("failed to find normal role", zap.Error(err))
 			return err
 		}
 		// 为普通用户分配工作台和分析页菜单
 		var consoleMenu, analysisMenu, dashboardMenu SystemMenu
-		err = db.First(&dashboardMenu, 1).Error
+		err = tx.First(&dashboardMenu, 1).Error
 		if err != nil {
 			zap.L().Error("failed to find dashboard menu", zap.Error(err))
 			return err
 		}
-		err = db.First(&consoleMenu, 7).Error
+		err = tx.First(&consoleMenu, 7).Error
 		if err != nil {
 			zap.L().Error("failed to find console menu", zap.Error(err))
 			return err
 		}
-		err = db.First(&analysisMenu, 8).Error
+		err = tx.First(&analysisMenu, 8).Error
 		if err != nil {
 			zap.L().Error("failed to find analysis menu", zap.Error(err))
 			return err
 		}
-		err = db.Model(&normalRole).Association("SystemMenus").Append([]SystemMenu{dashboardMenu, consoleMenu, analysisMenu})
+		err = tx.Model(&normalRole).Association("SystemMenus").Append([]SystemMenu{dashboardMenu, consoleMenu, analysisMenu})
 		if err != nil {
 			zap.L().Error("failed to associate console and analysis menus with normal role", zap.Error(err))
 			return err
@@ -121,11 +140,11 @@ func migrateData(db *gorm.DB) error {
 			return nil
 		}
 
-		// 创建部门
+		// 创建部门（默认租户）
 		departments := []SystemDepartment{
-			{Model: gorm.Model{ID: 1}, Name: "管理中心", Sort: 1, Status: 1},
+			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "管理中心", Sort: 1, Status: 1},
 		}
-		err = db.Create(&departments).Error
+		err = tx.Create(&departments).Error
 		if err != nil {
 			zap.L().Error("failed to create department", zap.Error(err))
 			return err
@@ -145,9 +164,9 @@ func migrateData(db *gorm.DB) error {
 			return hashErr
 		}
 		users := []SystemUser{
-			{Model: gorm.Model{ID: 1}, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Account: "admin", Password: pwd, Status: 1, Gender: 1},
+			{Model: gorm.Model{ID: 1}, TenantID: 1, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Account: "admin", Password: pwd, Status: 1, Gender: 1},
 		}
-		err = db.Create(&users).Error
+		err = tx.Create(&users).Error
 		if err != nil {
 			zap.L().Error("failed to create user", zap.Error(err))
 			return err
@@ -159,7 +178,7 @@ func migrateData(db *gorm.DB) error {
 
 func resetSequences(db *gorm.DB) error {
 	tables := []string{
-		"system_menus", "system_roles", "system_departments", "system_users",
+		"system_tenants", "system_menus", "system_roles", "system_departments", "system_users",
 		"system_menu_auths", // 添加这个表以确保菜单权限序列也被重置
 	}
 

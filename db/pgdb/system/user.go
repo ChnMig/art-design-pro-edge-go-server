@@ -23,27 +23,45 @@ func VerifyPassword(password, hashedPassword, passwordType string) bool {
 	return encryption.VerifyBcryptPassword(password, hashedPassword)
 }
 
-// VerifyUser 验证用户登录，新安装只支持bcrypt
-func VerifyUser(account, password string) (SystemUser, error) {
+// VerifyUser 验证用户登录（多租户版本）
+func VerifyUser(tenantCode, account, password string) (SystemUser, SystemTenant, error) {
 	user := SystemUser{}
+	tenant := SystemTenant{}
 
-	// 根据账号查找用户
-	err := pgdb.GetClient().Where("account = ?", account).First(&user).Error
+	// 首先验证租户
+	tenant, err := GetTenantByCode(tenantCode)
+	if err != nil {
+		zap.L().Error("failed to get tenant", zap.Error(err))
+		return user, tenant, err
+	}
+	if tenant.ID == 0 {
+		// 租户不存在
+		return user, tenant, nil
+	}
+
+	// 验证租户状态
+	if err := ValidateTenant(&tenant); err != nil {
+		zap.L().Error("tenant validation failed", zap.Error(err))
+		return user, tenant, err
+	}
+
+	// 根据租户ID和账号查找用户
+	err = pgdb.GetClient().Where("tenant_id = ? AND account = ?", tenant.ID, account).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return user, nil // 返回空用户，ID为0表示未找到
+			return user, tenant, nil // 返回空用户，ID为0表示未找到
 		}
 		zap.L().Error("failed to get user", zap.Error(err))
-		return user, err
+		return user, tenant, err
 	}
 
-	// 验证密码（移除了PasswordType参数，直接使用bcrypt验证）
+	// 验证密码
 	if !VerifyPassword(password, user.Password, "bcrypt") {
 		// 密码错误，返回空用户
-		return SystemUser{}, nil
+		return SystemUser{}, tenant, nil
 	}
 
-	return user, nil
+	return user, tenant, nil
 }
 
 // 记录用户登录日志
@@ -110,6 +128,12 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 		Joins("left join system_roles on system_users.role_id = system_roles.id").
 		Joins("left join system_departments on system_users.department_id = system_departments.id").
 		Where("system_users.deleted_at IS NULL")
+	
+	// 租户过滤（必须）
+	if user.TenantID != 0 {
+		baseQuery = baseQuery.Where("system_users.tenant_id = ?", user.TenantID)
+	}
+	
 	// 使用模糊查询
 	if user.Username != "" {
 		baseQuery = baseQuery.Where("system_users.username LIKE ?", "%"+user.Username+"%")

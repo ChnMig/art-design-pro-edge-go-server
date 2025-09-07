@@ -95,9 +95,18 @@ func FindUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	
+	// 获取当前租户ID
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
+		return
+	}
+	
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
 	u := system.SystemUser{
+		TenantID:     tenantID,
 		Username:     params.Username,
 		Name:         params.Name,
 		Phone:        params.Phone,
@@ -133,7 +142,16 @@ func AddUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	
+	// 获取当前租户ID
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
+		return
+	}
+	
 	u := system.SystemUser{
+		TenantID:     tenantID,
 		Name:         params.Name,
 		Username:     params.Username,
 		Account:      params.Account,
@@ -167,8 +185,17 @@ func UpdateUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	
+	// 获取当前租户ID
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
+		return
+	}
+	
 	u := system.SystemUser{
 		Model:        gorm.Model{ID: params.ID},
+		TenantID:     tenantID,
 		Name:         params.Name,
 		Username:     params.Username,
 		Account:      params.Account,
