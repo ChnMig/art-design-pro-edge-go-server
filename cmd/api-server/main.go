@@ -6,11 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"api-server/internal/app/api/router"
+	"api-server/internal/transport/http/router"
 	"api-server/internal/pkg/config"
 	"api-server/internal/pkg/scheduler"
 	"api-server/internal/repository/postgres"
-	"api-server/internal/app/model/system"
+	"api-server/internal/domain/system"
 	"api-server/internal/pkg/logger"
 
 	"go.uber.org/zap"

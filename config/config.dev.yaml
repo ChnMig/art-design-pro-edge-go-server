@@ -1,0 +1,32 @@
+# 开发环境配置
+server:
+  port: 8080
+  mode: debug
+  read_timeout: 30s
+  write_timeout: 30s
+
+jwt:
+  secret: "dev-jwt-secret-key"
+  expiration: 24 # 1天
+
+database:
+  postgres:
+    dsn: "postgres://dev_user:dev_password@localhost:5432/art_design_pro_dev?sslmode=disable"
+
+redis:
+  host: "localhost:6379"
+  password: ""
+  db: 1 # 使用不同的数据库
+
+admin:
+  password: "dev_admin123"
+
+security:
+  password_salt: "dev_salt"
+
+log:
+  level: debug
+  file: "logs/api-server-dev.log"
+
+cors:
+  allowed_origins: ["http://localhost:3000", "http://127.0.0.1:3000"]

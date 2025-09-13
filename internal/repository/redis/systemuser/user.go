@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"api-server/internal/app/model/system"
+	"api-server/internal/domain/system"
 	"api-server/internal/repository/redis"
 )
 

@@ -1,0 +1,55 @@
+# 生产环境配置
+# 注意：敏感信息应通过环境变量设置，不要直接写在配置文件中
+
+server:
+  port: 8080
+  mode: release
+  read_timeout: 60s
+  write_timeout: 60s
+
+jwt:
+  # 生产环境中应通过 JWT_KEY 环境变量设置
+  expiration: 168 # 7天
+
+database:
+  postgres:
+    # 生产环境中应通过 PGSQL_DSN 环境变量设置
+    max_idle_conns: 10
+    max_open_conns: 100
+    conn_max_lifetime: "1h"
+
+redis:
+  # 生产环境中应通过 REDIS_HOST 和 REDIS_PASSWORD 环境变量设置
+  db: 0
+  pool_size: 20
+
+admin:
+  # 生产环境中应通过 ADMIN_PASSWORD 环境变量设置
+  password: ""
+
+security:
+  # 生产环境中应通过 PWD_SALT 环境变量设置
+  bcrypt_cost: 12
+
+log:
+  level: info
+  file: "logs/api-server.log"
+  max_size: 100
+  max_age: 30
+  max_backups: 10
+  compress: true
+
+cors:
+  # 生产环境应限制允许的域名
+  allowed_origins: ["https://yourdomain.com"]
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["Content-Type", "Authorization"]
+  max_age: 86400
+
+rate_limit:
+  login:
+    rate: 5
+    burst: 10
+  api:
+    rate: 200
+    burst: 400

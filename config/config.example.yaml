@@ -1,0 +1,64 @@
+# 配置文件示例
+# 复制此文件为 config.yaml 并修改相应的配置
+
+# 服务配置
+server:
+  port: 8080
+  mode: release # debug, release, test
+  read_timeout: 60s
+  write_timeout: 60s
+
+# JWT配置
+jwt:
+  secret: "your-jwt-secret-key-change-this-in-production"
+  expiration: 168 # 7天，单位：小时
+
+# 数据库配置
+database:
+  postgres:
+    dsn: "postgres://user:password@localhost:5432/art_design_pro?sslmode=disable"
+    max_idle_conns: 10
+    max_open_conns: 100
+    conn_max_lifetime: "1h"
+
+# Redis配置
+redis:
+  host: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 10
+
+# 管理员配置
+admin:
+  password: "admin123456"
+
+# 密码加密配置
+security:
+  password_salt: "your-password-salt-change-this"
+  bcrypt_cost: 12
+
+# 日志配置
+log:
+  level: info # debug, info, warn, error
+  file: "logs/api-server.log"
+  max_size: 100 # MB
+  max_age: 30 # days
+  max_backups: 10
+  compress: true
+
+# CORS配置
+cors:
+  allowed_origins: ["*"]
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["*"]
+  expose_headers: []
+  max_age: 86400 # 24小时
+
+# 限流配置
+rate_limit:
+  login:
+    rate: 5 # 每分钟最多5次登录尝试
+    burst: 10
+  api:
+    rate: 100 # 每分钟最多100次API请求
+    burst: 200
