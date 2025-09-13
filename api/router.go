@@ -6,6 +6,7 @@ import (
 	"api-server/api/app/system/department"
 	"api-server/api/app/system/menu"
 	"api-server/api/app/system/role"
+	"api-server/api/app/system/tenant"
 	"api-server/api/app/system/user"
 	"api-server/api/middleware"
 )
@@ -42,6 +43,10 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.POST("/user", middleware.TokenVerify, user.AddUser)
 		systemRouter.PUT("/user", middleware.TokenVerify, user.UpdateUser)
 		systemRouter.DELETE("/user", middleware.TokenVerify, user.DeleteUser)
+		systemRouter.GET("/tenant", middleware.TokenVerify, middleware.SuperAdminVerify, tenant.FindTenant)
+		systemRouter.POST("/tenant", middleware.TokenVerify, middleware.SuperAdminVerify, tenant.AddTenant)
+		systemRouter.PUT("/tenant", middleware.TokenVerify, middleware.SuperAdminVerify, tenant.UpdateTenant)
+		systemRouter.DELETE("/tenant", middleware.TokenVerify, middleware.SuperAdminVerify, tenant.DeleteTenant)
 	}
 }
 
