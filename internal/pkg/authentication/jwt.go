@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"api-server/internal/pkg/config"
-	"api-server/util/id"
+	"api-server/internal/pkg/id"
 
 	"github.com/golang-jwt/jwt/v5"
 )

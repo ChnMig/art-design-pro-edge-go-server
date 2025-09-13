@@ -7,8 +7,8 @@ import (
 	"gorm.io/gorm"
 
 	"api-server/internal/pkg/config"
-	"api-server/db/pgdb"
-	"api-server/util/encryption"
+	"api-server/internal/pkg/database"
+	"api-server/internal/pkg/encryption"
 )
 
 // encryptionPWD 已移除MD5支持，新安装只支持bcrypt
@@ -46,7 +46,7 @@ func VerifyUser(tenantCode, account, password string) (SystemUser, SystemTenant,
 	}
 
 	// 根据租户ID和账号查找用户
-	err = pgdb.GetClient().Where("tenant_id = ? AND account = ?", tenant.ID, account).First(&user).Error
+	err = database.GetPostgres().Where("tenant_id = ? AND account = ?", tenant.ID, account).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return user, tenant, nil // 返回空用户，ID为0表示未找到
@@ -66,7 +66,7 @@ func VerifyUser(tenantCode, account, password string) (SystemUser, SystemTenant,
 
 // 记录用户登录日志
 func CreateLoginLog(log *SystemUserLoginLog) error {
-	if err := pgdb.GetClient().Create(log).Error; err != nil {
+	if err := database.GetPostgres().Create(log).Error; err != nil {
 		zap.L().Error("failed to record login log", zap.Error(err))
 		return err
 	}
@@ -77,7 +77,7 @@ func CreateLoginLog(log *SystemUserLoginLog) error {
 func FindLoginLogList(loginLog *SystemUserLoginLog, page, pageSize int) ([]SystemUserLoginLog, int64, error) {
 	var loginLogs []SystemUserLoginLog
 	var total int64
-	db := pgdb.GetClient()
+	db := database.GetPostgres()
 
 	// 构建基础查询
 	baseQuery := db.Model(&SystemUserLoginLog{}).Where("deleted_at IS NULL")
@@ -122,7 +122,7 @@ type UserWithRelations struct {
 func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, int64, error) {
 	var usersWithRelations []UserWithRelations
 	var total int64
-	db := pgdb.GetClient()
+	db := database.GetPostgres()
 	// 构建基础查询
 	baseQuery := db.Table("system_users").
 		Joins("left join system_roles on system_users.role_id = system_roles.id").
@@ -184,7 +184,7 @@ func AddUser(user *SystemUser) error {
 
 	user.Password = hashedPassword
 
-	if err := pgdb.GetClient().Create(user).Error; err != nil {
+	if err := database.GetPostgres().Create(user).Error; err != nil {
 		zap.L().Error("failed to add user", zap.Error(err))
 		return err
 	}
@@ -192,7 +192,7 @@ func AddUser(user *SystemUser) error {
 }
 
 func GetUser(user *SystemUser) error {
-	if err := pgdb.GetClient().Where(user).First(user).Error; err != nil {
+	if err := database.GetPostgres().Where(user).First(user).Error; err != nil {
 		zap.L().Error("failed to get user", zap.Error(err))
 		return err
 	}
@@ -210,7 +210,7 @@ func UpdateUser(user *SystemUser) error {
 		user.Password = hashedPassword
 	}
 
-	if err := pgdb.GetClient().Updates(user).Error; err != nil {
+	if err := database.GetPostgres().Updates(user).Error; err != nil {
 		zap.L().Error("failed to update user", zap.Error(err))
 		return err
 	}
@@ -218,7 +218,7 @@ func UpdateUser(user *SystemUser) error {
 }
 
 func DeleteUser(user *SystemUser) error {
-	if err := pgdb.GetClient().Delete(user).Error; err != nil {
+	if err := database.GetPostgres().Delete(user).Error; err != nil {
 		zap.L().Error("failed to delete user", zap.Error(err))
 		return err
 	}
@@ -227,7 +227,7 @@ func DeleteUser(user *SystemUser) error {
 
 // FindAllUsers 查询所有用户
 func FindAllUsers(users *[]SystemUser) error {
-	if err := pgdb.GetClient().Find(users).Error; err != nil {
+	if err := database.GetPostgres().Find(users).Error; err != nil {
 		zap.L().Error("failed to find all users", zap.Error(err))
 		return err
 	}

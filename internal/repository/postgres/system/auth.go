@@ -3,11 +3,11 @@ package system
 import (
 	"go.uber.org/zap"
 
-	"api-server/db/pgdb"
+	"api-server/internal/pkg/database"
 )
 
 func GetMenuAuth(auth *SystemMenuAuth) error {
-	if err := pgdb.GetClient().Where(auth).First(auth).Error; err != nil {
+	if err := database.GetPostgres().Where(auth).First(auth).Error; err != nil {
 		zap.L().Error("failed to get menu Auth", zap.Error(err))
 		return err
 	}
@@ -15,7 +15,7 @@ func GetMenuAuth(auth *SystemMenuAuth) error {
 }
 
 func DeleteMenuAuth(menuAuth *SystemMenuAuth) error {
-	if err := pgdb.GetClient().Delete(&menuAuth).Error; err != nil {
+	if err := database.GetPostgres().Delete(&menuAuth).Error; err != nil {
 		zap.L().Error("failed to delete menu Auth", zap.Error(err))
 		return err
 	}
@@ -23,7 +23,7 @@ func DeleteMenuAuth(menuAuth *SystemMenuAuth) error {
 }
 
 func AddMenuAuth(menuAuth *SystemMenuAuth) error {
-	if err := pgdb.GetClient().Create(&menuAuth).Error; err != nil {
+	if err := database.GetPostgres().Create(&menuAuth).Error; err != nil {
 		zap.L().Error("failed to create menu Auth", zap.Error(err))
 		return err
 	}
@@ -31,7 +31,7 @@ func AddMenuAuth(menuAuth *SystemMenuAuth) error {
 }
 
 func UpdateMenuAuth(menuAuth *SystemMenuAuth) error {
-	if err := pgdb.GetClient().Updates(&menuAuth).Error; err != nil {
+	if err := database.GetPostgres().Updates(&menuAuth).Error; err != nil {
 		zap.L().Error("failed to update menu Auth", zap.Error(err))
 		return err
 	}
@@ -40,7 +40,7 @@ func UpdateMenuAuth(menuAuth *SystemMenuAuth) error {
 
 func FindMenuAuthList(menuAuth *SystemMenuAuth) ([]SystemMenuAuth, error) {
 	var auths []SystemMenuAuth
-	if err := pgdb.GetClient().Where(menuAuth).Find(&auths).Error; err != nil {
+	if err := database.GetPostgres().Where(menuAuth).Find(&auths).Error; err != nil {
 		zap.L().Error("failed to find menu Auth list", zap.Error(err))
 		return nil, err
 	}

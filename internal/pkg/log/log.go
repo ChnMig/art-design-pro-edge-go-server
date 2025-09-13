@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"api-server/internal/pkg/config"
-	runmodel "api-server/util/run-model"
+	runmodel "api-server/internal/pkg/run-model"
 
 	"github.com/fsnotify/fsnotify"
 	"go.uber.org/zap"

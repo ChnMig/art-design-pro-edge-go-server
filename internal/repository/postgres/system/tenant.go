@@ -8,13 +8,13 @@ import (
 	"gorm.io/gorm"
 
 	"api-server/internal/pkg/config"
-	"api-server/db/pgdb"
+	"api-server/internal/pkg/database"
 )
 
 // GetTenantByCode 根据企业编号获取租户信息
 func GetTenantByCode(code string) (SystemTenant, error) {
 	var tenant SystemTenant
-	err := pgdb.GetClient().Where("code = ? AND status = 1", code).First(&tenant).Error
+	err := database.GetPostgres().Where("code = ? AND status = 1", code).First(&tenant).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return tenant, nil // 返回空租户，ID为0表示未找到
@@ -27,7 +27,7 @@ func GetTenantByCode(code string) (SystemTenant, error) {
 
 // GetTenant 获取租户信息
 func GetTenant(tenant *SystemTenant) error {
-	if err := pgdb.GetClient().Where(tenant).First(tenant).Error; err != nil {
+	if err := database.GetPostgres().Where(tenant).First(tenant).Error; err != nil {
 		zap.L().Error("failed to get tenant", zap.Error(err))
 		return err
 	}
@@ -36,7 +36,7 @@ func GetTenant(tenant *SystemTenant) error {
 
 // AddTenant 添加租户
 func AddTenant(tenant *SystemTenant) error {
-	if err := pgdb.GetClient().Create(tenant).Error; err != nil {
+	if err := database.GetPostgres().Create(tenant).Error; err != nil {
 		zap.L().Error("failed to add tenant", zap.Error(err))
 		return err
 	}
@@ -45,7 +45,7 @@ func AddTenant(tenant *SystemTenant) error {
 
 // UpdateTenant 更新租户
 func UpdateTenant(tenant *SystemTenant) error {
-	if err := pgdb.GetClient().Updates(tenant).Error; err != nil {
+	if err := database.GetPostgres().Updates(tenant).Error; err != nil {
 		zap.L().Error("failed to update tenant", zap.Error(err))
 		return err
 	}
@@ -54,7 +54,7 @@ func UpdateTenant(tenant *SystemTenant) error {
 
 // DeleteTenant 删除租户
 func DeleteTenant(tenant *SystemTenant) error {
-	if err := pgdb.GetClient().Delete(tenant).Error; err != nil {
+	if err := database.GetPostgres().Delete(tenant).Error; err != nil {
 		zap.L().Error("failed to delete tenant", zap.Error(err))
 		return err
 	}
@@ -65,7 +65,7 @@ func DeleteTenant(tenant *SystemTenant) error {
 func FindTenantList(tenant *SystemTenant, page, pageSize int) ([]SystemTenant, int64, error) {
 	var tenants []SystemTenant
 	var total int64
-	db := pgdb.GetClient()
+	db := database.GetPostgres()
 
 	// 构建基础查询
 	baseQuery := db.Model(&SystemTenant{}).Where("deleted_at IS NULL")
@@ -104,7 +104,7 @@ func FindTenantList(tenant *SystemTenant, page, pageSize int) ([]SystemTenant, i
 
 // FindAllTenants 查询所有租户
 func FindAllTenants(tenants *[]SystemTenant) error {
-	if err := pgdb.GetClient().Find(tenants).Error; err != nil {
+	if err := database.GetPostgres().Find(tenants).Error; err != nil {
 		zap.L().Error("failed to find all tenants", zap.Error(err))
 		return err
 	}

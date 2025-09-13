@@ -4,14 +4,14 @@ import (
 	"go.uber.org/zap"
 
 	"api-server/internal/pkg/config"
-	"api-server/db/pgdb"
+	"api-server/internal/pkg/database"
 )
 
 // FindDepartmentList 查询部门列表(带分页)
 func FindDepartmentList(department *SystemDepartment, page, pageSize int) ([]SystemDepartment, int64, error) {
 	var departments []SystemDepartment
 	var total int64
-	db := pgdb.GetClient()
+	db := database.GetPostgres()
 
 	// 构建基础查询
 	query := db.Model(&SystemDepartment{})
@@ -55,7 +55,7 @@ func FindDepartmentList(department *SystemDepartment, page, pageSize int) ([]Sys
 
 // GetDepartment 查询单个部门
 func GetDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Where(department).First(department).Error; err != nil {
+	if err := database.GetPostgres().Where(department).First(department).Error; err != nil {
 		zap.L().Error("failed to get department", zap.Error(err))
 		return err
 	}
@@ -63,7 +63,7 @@ func GetDepartment(department *SystemDepartment) error {
 }
 
 func AddDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Create(&department).Error; err != nil {
+	if err := database.GetPostgres().Create(&department).Error; err != nil {
 		zap.L().Error("failed to create department", zap.Error(err))
 		return err
 	}
@@ -71,7 +71,7 @@ func AddDepartment(department *SystemDepartment) error {
 }
 
 func UpdateDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Updates(&department).Error; err != nil {
+	if err := database.GetPostgres().Updates(&department).Error; err != nil {
 		zap.L().Error("failed to update department", zap.Error(err))
 		return err
 	}
@@ -79,7 +79,7 @@ func UpdateDepartment(department *SystemDepartment) error {
 }
 
 func DeleteDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Delete(&department).Error; err != nil {
+	if err := database.GetPostgres().Delete(&department).Error; err != nil {
 		zap.L().Error("failed to delete department", zap.Error(err))
 		return err
 	}
@@ -88,7 +88,7 @@ func DeleteDepartment(department *SystemDepartment) error {
 
 // CountUsersByDepartmentID 统计指定部门下的用户数量
 func CountUsersByDepartmentID(departmentID uint, count *int64) error {
-	if err := pgdb.GetClient().Model(&SystemUser{}).Where("department_id = ?", departmentID).Count(count).Error; err != nil {
+	if err := database.GetPostgres().Model(&SystemUser{}).Where("department_id = ?", departmentID).Count(count).Error; err != nil {
 		zap.L().Error("failed to count users by department id", zap.Error(err))
 		return err
 	}

@@ -5,11 +5,11 @@ import (
 	"gorm.io/gorm"
 
 	"api-server/internal/pkg/config"
-	"api-server/db/pgdb"
+	"api-server/internal/pkg/database"
 )
 
 func UpdateRole(role *SystemRole) error {
-	if err := pgdb.GetClient().Updates(&role).Error; err != nil {
+	if err := database.GetPostgres().Updates(&role).Error; err != nil {
 		zap.L().Error("failed to update role", zap.Error(err))
 		return err
 	}
@@ -17,7 +17,7 @@ func UpdateRole(role *SystemRole) error {
 }
 
 func AddRole(role *SystemRole) error {
-	if err := pgdb.GetClient().Create(&role).Error; err != nil {
+	if err := database.GetPostgres().Create(&role).Error; err != nil {
 		zap.L().Error("failed to create role", zap.Error(err))
 		return err
 	}
@@ -25,7 +25,7 @@ func AddRole(role *SystemRole) error {
 }
 
 func DeleteRole(role *SystemRole) error {
-	if err := pgdb.GetClient().Delete(&role).Error; err != nil {
+	if err := database.GetPostgres().Delete(&role).Error; err != nil {
 		zap.L().Error("failed to delete role", zap.Error(err))
 		return err
 	}
@@ -34,7 +34,7 @@ func DeleteRole(role *SystemRole) error {
 
 // GetRole 获取单个角色信息
 func GetRole(role *SystemRole) error {
-	if err := pgdb.GetClient().Where(role).First(role).Error; err != nil {
+	if err := database.GetPostgres().Where(role).First(role).Error; err != nil {
 		zap.L().Error("failed to get role", zap.Error(err))
 		return err
 	}
@@ -43,7 +43,7 @@ func GetRole(role *SystemRole) error {
 
 // FindAllRoles 查询所有角色
 func FindAllRoles(roles *[]SystemRole) error {
-	if err := pgdb.GetClient().Find(roles).Error; err != nil {
+	if err := database.GetPostgres().Find(roles).Error; err != nil {
 		zap.L().Error("failed to find all roles", zap.Error(err))
 		return err
 	}
@@ -54,7 +54,7 @@ func FindAllRoles(roles *[]SystemRole) error {
 func FindRoleList(role *SystemRole, page, pageSize int) ([]SystemRole, int64, error) {
 	var roles []SystemRole
 	var total int64
-	db := pgdb.GetClient()
+	db := database.GetPostgres()
 
 	// 构建基础查询
 	query := db.Model(&SystemRole{})
