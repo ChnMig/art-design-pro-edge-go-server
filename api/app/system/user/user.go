@@ -1,15 +1,15 @@
 package user
 
 import (
-	"strings"
+    "strings"
 
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+    "github.com/gin-gonic/gin"
+    "gorm.io/gorm"
 
-	"api-server/api/middleware"
-	"api-server/api/response"
-	"api-server/db/pgdb/system"
-	"api-server/db/rdb/systemuser"
+    "api-server/api/middleware"
+    "api-server/api/response"
+    "api-server/db/pgdb/system"
+    systemuser "api-server/db/rdb/systemUser"
 )
 
 func FindUserByCache(c *gin.Context) {

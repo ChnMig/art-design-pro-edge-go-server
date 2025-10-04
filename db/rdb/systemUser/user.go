@@ -1,16 +1,17 @@
 package systemuser
 
 import (
-	"encoding/json"
-	"strconv"
-	"time"
+    "context"
+    "encoding/json"
+    "strconv"
+    "time"
 
-	"github.com/go-redis/redis"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
+    "github.com/redis/go-redis/v9"
+    "go.uber.org/zap"
+    "gorm.io/gorm"
 
-	"api-server/db/pgdb/system"
-	"api-server/db/rdb"
+    "api-server/db/pgdb/system"
+    "api-server/db/rdb"
 )
 
 const (
@@ -33,7 +34,8 @@ type UserCacheInfo struct {
 
 // CacheAllUsers 缓存所有用户信息到Redis
 func CacheAllUsers() error {
-	client := rdb.GetClient()
+    client := rdb.GetClient()
+    ctx := context.Background()
 
 	// 获取所有用户信息
 	var users []system.SystemUser
@@ -56,7 +58,7 @@ func CacheAllUsers() error {
 	}
 
 	// 使用管道批量操作，提高效率
-	pipe := client.Pipeline()
+    pipe := client.Pipeline()
 
 	// 缓存用户列表
 	var userList []UserCacheInfo
@@ -79,7 +81,7 @@ func CacheAllUsers() error {
 			zap.L().Error("序列化用户信息失败", zap.Error(err))
 			continue
 		}
-		pipe.Set(UserInfoKey+strconv.FormatUint(uint64(user.ID), 10), userJSON, UserCacheExpiration)
+        pipe.Set(ctx, UserInfoKey+strconv.FormatUint(uint64(user.ID), 10), userJSON, UserCacheExpiration)
 	}
 
 	// 缓存完整用户列表
@@ -88,10 +90,10 @@ func CacheAllUsers() error {
 		zap.L().Error("序列化用户列表失败", zap.Error(err))
 		return err
 	}
-	pipe.Set(UserListKey, listJSON, UserCacheExpiration)
+    pipe.Set(ctx, UserListKey, listJSON, UserCacheExpiration)
 
 	// 执行管道操作
-	_, err = pipe.Exec()
+    _, err = pipe.Exec(ctx)
 	if err != nil {
 		zap.L().Error("缓存用户信息到Redis失败", zap.Error(err))
 		return err
@@ -103,10 +105,11 @@ func CacheAllUsers() error {
 
 // GetUserFromCache 从缓存中获取用户信息
 func GetUserFromCache(userID uint) (*UserCacheInfo, error) {
-	client := rdb.GetClient()
+    client := rdb.GetClient()
+    ctx := context.Background()
 
 	// 从Redis获取用户信息
-	val, err := client.Get(UserInfoKey + strconv.FormatUint(uint64(userID), 10)).Result()
+    val, err := client.Get(ctx, UserInfoKey+strconv.FormatUint(uint64(userID), 10)).Result()
 	if err != nil {
 		if err == redis.Nil {
 			// 缓存未命中，尝试单独获取并缓存该用户
@@ -128,18 +131,19 @@ func GetUserFromCache(userID uint) (*UserCacheInfo, error) {
 
 // GetAllUsersFromCache 从缓存中获取所有用户列表
 func GetAllUsersFromCache() ([]UserCacheInfo, error) {
-	client := rdb.GetClient()
+    client := rdb.GetClient()
+    ctx := context.Background()
 
 	// 从Redis获取用户列表
-	val, err := client.Get(UserListKey).Result()
+    val, err := client.Get(ctx, UserListKey).Result()
 	if err != nil {
 		if err == redis.Nil {
 			// 缓存未命中，重新缓存所有用户
-			if err = CacheAllUsers(); err != nil {
-				return nil, err
-			}
-			// 再次尝试获取
-			val, err = client.Get(UserListKey).Result()
+            if err = CacheAllUsers(); err != nil {
+                return nil, err
+            }
+            // 再次尝试获取
+            val, err = client.Get(ctx, UserListKey).Result()
 			if err != nil {
 				zap.L().Error("从Redis获取用户列表失败", zap.Error(err))
 				return nil, err
@@ -162,7 +166,8 @@ func GetAllUsersFromCache() ([]UserCacheInfo, error) {
 
 // cacheUserByID 单独获取并缓存指定ID的用户
 func cacheUserByID(userID uint) (*UserCacheInfo, error) {
-	client := rdb.GetClient()
+    client := rdb.GetClient()
+    ctx := context.Background()
 
 	// 获取用户信息
 	user := system.SystemUser{Model: gorm.Model{ID: userID}}
@@ -195,10 +200,10 @@ func cacheUserByID(userID uint) (*UserCacheInfo, error) {
 	}
 
 	// 缓存用户信息
-	if err = client.Set(UserInfoKey+strconv.FormatUint(uint64(user.ID), 10), userJSON, UserCacheExpiration).Err(); err != nil {
-		zap.L().Error("缓存用户信息到Redis失败", zap.Error(err))
-		return nil, err
-	}
+    if err = client.Set(ctx, UserInfoKey+strconv.FormatUint(uint64(user.ID), 10), userJSON, UserCacheExpiration).Err(); err != nil {
+        zap.L().Error("缓存用户信息到Redis失败", zap.Error(err))
+        return nil, err
+    }
 
 	return &userCache, nil
 }
