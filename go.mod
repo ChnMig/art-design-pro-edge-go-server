@@ -9,7 +9,7 @@ require (
 	github.com/goccy/go-yaml v1.18.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/mojocn/base64Captcha v1.3.8
-	github.com/redis/go-redis/v9 v9.14.0
+	github.com/redis/go-redis/v9 v9.15.1
 	github.com/sony/sonyflake v1.3.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.42.0
