@@ -30,5 +30,5 @@ rate_limit:
   general_burst_size: 200      # Burst size for general API requests
 
 tenant:
-  min_query_length: 3          # Minimum length of input for tenant code search (must be exceeded)
+  min_query_length: 3          # Minimum length of input for tenant code search (must be met or exceeded)
   default_code: "system"       # System default tenant code

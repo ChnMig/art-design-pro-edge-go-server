@@ -22,7 +22,7 @@ func SearchTenantCodeForLogin(c *gin.Context) {
     }
 
     // 校验最小长度（必须大于配置值）
-    if utf8.RuneCountInString(params.Code) <= config.TenantMinQueryLength {
+    if utf8.RuneCountInString(params.Code) < config.TenantMinQueryLength {
         response.ReturnError(c, response.INVALID_ARGUMENT, "输入长度过短")
         return
     }
@@ -46,4 +46,3 @@ func SearchTenantCodeForLogin(c *gin.Context) {
 
     response.ReturnData(c, result)
 }
-

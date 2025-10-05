@@ -179,7 +179,7 @@ Authorization: Bearer {your_jwt_token}
 **请求路径：** `/api/v1/admin/system/user/login/tenant`
 
 **请求参数：**
-- `code` (必填) - 用户输入的租户编码片段，长度必须大于系统配置的最小长度（默认 3）。
+- `code` (必填) - 用户输入的租户编码片段，长度必须大于或等于系统配置的最小长度（默认 3）。
 
 **响应示例：**
 ```json
