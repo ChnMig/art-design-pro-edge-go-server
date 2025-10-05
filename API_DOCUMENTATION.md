@@ -157,7 +157,7 @@ Authorization: Bearer {your_jwt_token}
     "tenant_info": {
       "tenant_id": 1,
       "tenant_code": "system",
-      "tenant_name": "默认企业"
+      "tenant_name": "平台管理"
     },
     "user_info": {
       "user_id": 1,
@@ -188,7 +188,7 @@ Authorization: Bearer {your_jwt_token}
   "status": "OK",
   "message": "请求成功",
   "data": [
-    { "id": 1, "code": "system", "name": "默认企业" }
+    { "id": 1, "code": "system", "name": "平台管理" }
   ],
   "timestamp": 1640995200
 }
@@ -788,7 +788,7 @@ Authorization: Bearer {your_jwt_token}
     {
       "id": 1,
       "code": "system",
-      "name": "默认企业",
+      "name": "平台管理",
       "contact": "",
       "phone": "",
       "email": "",

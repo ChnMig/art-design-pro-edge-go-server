@@ -25,13 +25,13 @@ func migrateData(db *gorm.DB) error {
 		tx.Model(&SystemTenant{}).Count(&tenantCount)
 		if tenantCount == 0 {
 			// 创建默认租户
-            defaultTenant := SystemTenant{
-                Model: gorm.Model{ID: 1},
-                Code:  config.DefaultTenantCode,
-                Name:  "默认企业",
-                Status: 1,
-                MaxUsers: 100,
-            }
+			defaultTenant := SystemTenant{
+				Model:    gorm.Model{ID: 1},
+				Code:     config.DefaultTenantCode,
+				Name:     "平台管理",
+				Status:   1,
+				MaxUsers: 100,
+			}
 			err := tx.Create(&defaultTenant).Error
 			if err != nil {
 				zap.L().Error("failed to create default tenant", zap.Error(err))
