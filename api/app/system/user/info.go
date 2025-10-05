@@ -12,7 +12,7 @@ import (
 func UpdateUserInfo(c *gin.Context) {
 	params := &struct {
 		Password string `json:"password" form:"password"`
-		Name     string `json:"name" form:"name" binding:"required"`
+		Username string `json:"username" form:"username" binding:"required"`
 		Phone    string `json:"phone" form:"phone" binding:"required"`
 		Gender   uint   `json:"gender" form:"gender" binding:"required"`
 	}{}
@@ -25,10 +25,10 @@ func UpdateUserInfo(c *gin.Context) {
 		return
 	}
 	u := system.SystemUser{
-		Model:  gorm.Model{ID: userID},
-		Name:   params.Name,
-		Phone:  params.Phone,
-		Gender: params.Gender,
+		Model:    gorm.Model{ID: userID},
+		Username: params.Username,
+		Phone:    params.Phone,
+		Gender:   params.Gender,
 	}
 	if params.Password != "" {
 		u.Password = params.Password

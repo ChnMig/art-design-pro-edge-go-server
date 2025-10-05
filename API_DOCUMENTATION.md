@@ -242,12 +242,17 @@ Authorization: Bearer {your_jwt_token}
 **请求参数：**
 ```json
 {
-  "name": "新姓名",
+  "username": "新昵称",
   "phone": "13900139000",
   "gender": 1,
   "password": "可选，若传则更新"
 }
 ```
+
+- `username` - 用户昵称，支持修改
+- `phone` - 手机号
+- `gender` - 性别 (1 男 / 2 女)
+- `password` - 可选，提供则更新密码
 
 #### 2.3 获取用户列表
 
