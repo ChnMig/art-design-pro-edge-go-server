@@ -25,5 +25,9 @@ secrets/
 *.sublime-workspace
 *.sublime-project
 
+# cache
+.gocache/
+
 server
+api-server
 /docker/postgres_data/

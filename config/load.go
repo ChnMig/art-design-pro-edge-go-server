@@ -11,9 +11,9 @@ import (
 
 // YamlConfig represents the configuration structure for YAML file
 type YamlConfig struct {
-	Server struct {
-		Port int `yaml:"port"`
-	} `yaml:"server"`
+    Server struct {
+        Port int `yaml:"port"`
+    } `yaml:"server"`
 	JWT struct {
 		Key        string `yaml:"key"`
 		Expiration string `yaml:"expiration"`
@@ -35,12 +35,16 @@ type YamlConfig struct {
 		Password string `yaml:"password"`
 		Salt     string `yaml:"salt"`
 	} `yaml:"admin"`
-	RateLimit struct {
-		LoginRatePerMinute int `yaml:"login_rate_per_minute"`
-		LoginBurstSize     int `yaml:"login_burst_size"`
-		GeneralRatePerSec  int `yaml:"general_rate_per_sec"`
-		GeneralBurstSize   int `yaml:"general_burst_size"`
-	} `yaml:"rate_limit"`
+    RateLimit struct {
+        LoginRatePerMinute int `yaml:"login_rate_per_minute"`
+        LoginBurstSize     int `yaml:"login_burst_size"`
+        GeneralRatePerSec  int `yaml:"general_rate_per_sec"`
+        GeneralBurstSize   int `yaml:"general_burst_size"`
+    } `yaml:"rate_limit"`
+    Tenant struct {
+        MinQueryLength int    `yaml:"min_query_length"`
+        DefaultCode    string `yaml:"default_code"`
+    } `yaml:"tenant"`
 }
 
 // LoadConfig loads configuration from config.yaml file
@@ -88,11 +92,11 @@ func LoadConfig() error {
 	if config.Admin.Password != "" {
 		AdminPassword = config.Admin.Password
 	}
-	if config.Admin.Salt != "" {
-		PWDSalt = config.Admin.Salt
-	}
-	
-	// Rate limiting configuration with defaults
+    if config.Admin.Salt != "" {
+        PWDSalt = config.Admin.Salt
+    }
+    
+    // Rate limiting configuration with defaults
 	if config.RateLimit.LoginRatePerMinute != 0 {
 		LoginRatePerMinute = config.RateLimit.LoginRatePerMinute
 	} else {
@@ -115,7 +119,19 @@ func LoadConfig() error {
 		GeneralBurstSize = config.RateLimit.GeneralBurstSize
 	} else {
 		GeneralBurstSize = 200 // default: allow 200 burst requests
-	}
-	
-	return nil
+    }
+    
+    // Tenant configuration with defaults
+    if config.Tenant.MinQueryLength != 0 {
+        TenantMinQueryLength = config.Tenant.MinQueryLength
+    } else {
+        TenantMinQueryLength = 3
+    }
+    if config.Tenant.DefaultCode != "" {
+        DefaultTenantCode = config.Tenant.DefaultCode
+    } else {
+        DefaultTenantCode = "system"
+    }
+    
+    return nil
 }

@@ -16,6 +16,7 @@ func systemRouter(router *gin.RouterGroup) {
 	{
 		systemRouter.GET("/user/login/captcha", middleware.LoginRateLimitMiddleware(), user.GetCaptcha)
 		systemRouter.POST("/user/login", middleware.LoginRateLimitMiddleware(), user.Login)
+		systemRouter.GET("/user/login/tenant", middleware.LoginRateLimitMiddleware(), user.SearchTenantCodeForLogin)
 		systemRouter.GET("/login/log", middleware.TokenVerify, user.FindLoginLogList)
 		systemRouter.GET("/user/info", middleware.TokenVerify, user.GetUserInfo)
 		systemRouter.PUT("/user/info", middleware.TokenVerify, user.UpdateUserInfo)

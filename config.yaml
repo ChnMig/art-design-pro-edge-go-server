@@ -28,3 +28,7 @@ rate_limit:
   login_burst_size: 60         # Burst size for login requests
   general_rate_per_sec: 100    # Maximum general API requests per second per IP
   general_burst_size: 200      # Burst size for general API requests
+
+tenant:
+  min_query_length: 3          # Minimum length of input for tenant code search (must be exceeded)
+  default_code: "system"       # System default tenant code

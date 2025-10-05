@@ -47,8 +47,11 @@ var (
 	// rate limit config
 	LoginRatePerMinute int
 	LoginBurstSize     int
-	GeneralRatePerSec  int
-	GeneralBurstSize   int
+    GeneralRatePerSec  int
+    GeneralBurstSize   int
+    // tenant config
+    TenantMinQueryLength int    // minimum input length for tenant code search
+    DefaultTenantCode    string // system default tenant code
 )
 
 // page config
