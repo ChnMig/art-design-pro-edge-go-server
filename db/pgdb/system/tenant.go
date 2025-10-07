@@ -2,7 +2,6 @@ package system
 
 import (
 	"errors"
-	"time"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -116,31 +115,26 @@ func ValidateTenant(tenant *SystemTenant) error {
 	if tenant.Status != 1 {
 		return errors.New("tenant is disabled")
 	}
-	
-	// 检查是否过期
-	if tenant.ExpiredAt != nil && tenant.ExpiredAt.Before(time.Now()) {
-		return errors.New("tenant has expired")
-	}
-	
-    return nil
+
+	return nil
 }
 
 // SuggestTenantByCode 根据代码进行模糊查询，返回前N条启用中的租户
 func SuggestTenantByCode(code string, limit int) ([]SystemTenant, error) {
-    var tenants []SystemTenant
-    if limit <= 0 {
-        limit = 10
-    }
-    db := pgdb.GetClient()
-    // 仅查询启用、未删除的租户，按创建时间倒序，模糊匹配code
-    err := db.Model(&SystemTenant{}).
-        Where("deleted_at IS NULL AND status = 1 AND code LIKE ?", "%"+code+"%").
-        Order("created_at DESC").
-        Limit(limit).
-        Find(&tenants).Error
-    if err != nil {
-        zap.L().Error("failed to suggest tenant by code", zap.Error(err))
-        return nil, err
-    }
-    return tenants, nil
+	var tenants []SystemTenant
+	if limit <= 0 {
+		limit = 10
+	}
+	db := pgdb.GetClient()
+	// 仅查询启用、未删除的租户，按创建时间倒序，模糊匹配code
+	err := db.Model(&SystemTenant{}).
+		Where("deleted_at IS NULL AND status = 1 AND code LIKE ?", "%"+code+"%").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&tenants).Error
+	if err != nil {
+		zap.L().Error("failed to suggest tenant by code", zap.Error(err))
+		return nil, err
+	}
+	return tenants, nil
 }

@@ -1,10 +1,6 @@
 package system
 
-import (
-	"time"
-
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 // Tenant 租户/企业表
 type SystemTenant struct {
@@ -16,8 +12,6 @@ type SystemTenant struct {
 	Email       string             `json:"email,omitempty"`                            // 邮箱
 	Address     string             `json:"address,omitempty"`                          // 地址
 	Status      uint               `json:"status,omitempty" gorm:"default:1"`          // 状态(1:启用 2:禁用)
-	ExpiredAt   *time.Time         `json:"expired_at,omitempty"`                       // 过期时间
-	MaxUsers    uint               `json:"max_users,omitempty" gorm:"default:100"`     // 最大用户数
 	SystemUsers []SystemUser       `json:"users,omitempty" gorm:"foreignKey:TenantID"`
 	Departments []SystemDepartment `json:"departments,omitempty" gorm:"foreignKey:TenantID"`
 	Roles       []SystemRole       `json:"roles,omitempty" gorm:"foreignKey:TenantID"`
