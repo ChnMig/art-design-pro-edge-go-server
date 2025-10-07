@@ -10,6 +10,10 @@ import (
 )
 
 func AddMenuAuth(c *gin.Context) {
+	if !middleware.IsSuperAdmin(c) {
+		response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以创建菜单权限")
+		return
+	}
 	params := &struct {
 		MenuID uint   `json:"menu_id"`
 		Mark   string `json:"mark"` // 标识
@@ -31,6 +35,10 @@ func AddMenuAuth(c *gin.Context) {
 }
 
 func UpdateMenuAuth(c *gin.Context) {
+	if !middleware.IsSuperAdmin(c) {
+		response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以修改菜单权限")
+		return
+	}
 	params := &struct {
 		ID     uint   `json:"id"`
 		Title  string `json:"title"`
@@ -54,6 +62,10 @@ func UpdateMenuAuth(c *gin.Context) {
 }
 
 func DeleteMenuAuth(c *gin.Context) {
+	if !middleware.IsSuperAdmin(c) {
+		response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以删除菜单权限")
+		return
+	}
 	params := &struct {
 		ID uint `json:"id" form:"id" binding:"required"`
 	}{}

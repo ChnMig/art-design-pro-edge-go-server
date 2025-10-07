@@ -43,6 +43,11 @@ func SuperAdminVerify(c *gin.Context) {
 	c.Next()
 }
 
+// IsSuperAdmin 判断当前请求是否为平台超级管理员
+func IsSuperAdmin(c *gin.Context) bool {
+	return GetCurrentUserID(c) == 1
+}
+
 // TenantAdminVerify 租户管理员权限验证中间件
 // 允许超级管理员或租户管理员执行特定操作
 func TenantAdminVerify(c *gin.Context) {

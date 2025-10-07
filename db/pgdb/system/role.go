@@ -66,6 +66,9 @@ func FindRoleList(role *SystemRole, page, pageSize int) ([]SystemRole, int64, er
 	if role.Status != 0 {
 		query = query.Where("status = ?", role.Status)
 	}
+	if role.TenantID != 0 {
+		query = query.Where("tenant_id = ?", role.TenantID)
+	}
 
 	// 获取符合条件的总记录数
 	if err := query.Count(&total).Error; err != nil {

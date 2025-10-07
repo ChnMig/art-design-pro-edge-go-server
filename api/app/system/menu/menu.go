@@ -14,11 +14,26 @@ import (
 )
 
 func GetMenuList(c *gin.Context) {
+	isSuperAdmin := middleware.IsSuperAdmin(c)
+	tenantID := middleware.GetTenantID(c)
+
 	// 查询菜单数据
 	menus, menup, err := system.GetMenuData()
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
 		return
+	}
+	if !isSuperAdmin {
+		if tenantID == 0 {
+			response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+			return
+		}
+		scopeIDs, err := system.GetTenantMenuScopeIDs(tenantID)
+		if err != nil {
+			response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+			return
+		}
+		menus, menup = system.FilterMenusByIDs(menus, menup, scopeIDs)
 	}
 	// 构建菜单树
 	menuTree := menu.BuildMenuTree(menus, menup, true)
@@ -26,6 +41,10 @@ func GetMenuList(c *gin.Context) {
 }
 
 func DeleteMenu(c *gin.Context) {
+	if !middleware.IsSuperAdmin(c) {
+		response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以删除菜单")
+		return
+	}
 	params := &struct {
 		ID uint `json:"id" form:"id" binding:"required"`
 	}{}
@@ -61,6 +80,10 @@ func DeleteMenu(c *gin.Context) {
 }
 
 func AddMenu(c *gin.Context) {
+	if !middleware.IsSuperAdmin(c) {
+		response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以创建菜单")
+		return
+	}
 	params := &struct {
 		Path          string `json:"path" form:"path" binding:"required"`
 		Name          string `json:"name" form:"name" binding:"required"`
@@ -129,6 +152,10 @@ func AddMenu(c *gin.Context) {
 }
 
 func UpdateMenu(c *gin.Context) {
+	if !middleware.IsSuperAdmin(c) {
+		response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以修改菜单")
+		return
+	}
 	params := &struct {
 		ID            uint   `json:"id" form:"id" binding:"required"`
 		Path          string `json:"path" form:"path" binding:"required"`
@@ -222,11 +249,48 @@ func GetMenuListByRoleID(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	isSuperAdmin := middleware.IsSuperAdmin(c)
+	currentTenantID := middleware.GetTenantID(c)
+
+	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
+	if err := system.GetRole(&roleEntity); err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
+		return
+	}
+	if !isSuperAdmin {
+		if currentTenantID == 0 || roleEntity.TenantID != currentTenantID {
+			response.ReturnError(c, response.PERMISSION_DENIED, "无权查看该角色菜单")
+			return
+		}
+	}
 	// 查询菜单数据
 	allMenus, allAuths, roleMenuIds, roleAuthIds, err := system.GetMenuDataByRoleID(params.RoleID)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询角色菜单失败")
 		return
+	}
+	if !isSuperAdmin {
+		scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
+		if err != nil {
+			response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+			return
+		}
+		allMenus, allAuths = system.FilterMenusByIDs(allMenus, allAuths, scopeIDs)
+		if len(allMenus) == 0 {
+			roleMenuIds = []uint{}
+			roleAuthIds = []uint{}
+		} else {
+			allowedMenuIDs := make([]uint, 0, len(allMenus))
+			for _, m := range allMenus {
+				allowedMenuIDs = append(allowedMenuIDs, m.ID)
+			}
+			roleMenuIds = system.FilterUintIDs(roleMenuIds, allowedMenuIDs)
+			allowedAuthIDs := make([]uint, 0, len(allAuths))
+			for _, auth := range allAuths {
+				allowedAuthIDs = append(allowedAuthIDs, auth.ID)
+			}
+			roleAuthIds = system.FilterUintIDs(roleAuthIds, allowedAuthIDs)
+		}
 	}
 	// 构建带权限标记的菜单树
 	menuTree := menu.BuildMenuTreeWithPermission(allMenus, allAuths, roleMenuIds, roleAuthIds, true)
@@ -241,6 +305,7 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	isSuperAdmin := middleware.IsSuperAdmin(c)
 	// 尝试将 params.MenuData 转成结构体
 	var menuData []menu.MenuResponse
 	err := json.Unmarshal([]byte(params.MenuData), &menuData)
@@ -249,6 +314,27 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 		return
 	}
 
+	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
+	if err := system.GetRole(&roleEntity); err != nil {
+		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
+		return
+	}
+	if !isSuperAdmin {
+		tenantID := middleware.GetTenantID(c)
+		if tenantID == 0 || tenantID != roleEntity.TenantID {
+			response.ReturnError(c, response.PERMISSION_DENIED, "无权调整该角色菜单")
+			return
+		}
+		scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
+		if err != nil {
+			response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+			return
+		}
+		if !validateMenuScope(menuData, scopeIDs) {
+			response.ReturnError(c, response.PERMISSION_DENIED, "菜单超出可分配范围")
+			return
+		}
+	}
 	// 保存角色菜单数据
 	err = menu.SaveRoleMenu(params.RoleID, menuData)
 	if err != nil {
@@ -257,4 +343,27 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 	}
 
 	response.ReturnData(c, nil)
+}
+
+func validateMenuScope(menus []menu.MenuResponse, allowed []uint) bool {
+	if len(allowed) == 0 {
+		return len(menus) == 0
+	}
+	allowedSet := make(map[uint]struct{}, len(allowed))
+	for _, id := range allowed {
+		allowedSet[id] = struct{}{}
+	}
+	var walk func(items []menu.MenuResponse) bool
+	walk = func(items []menu.MenuResponse) bool {
+		for _, m := range items {
+			if _, ok := allowedSet[m.ID]; !ok {
+				return false
+			}
+			if len(m.Children) > 0 && !walk(m.Children) {
+				return false
+			}
+		}
+		return true
+	}
+	return walk(menus)
 }

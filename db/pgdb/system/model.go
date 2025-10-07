@@ -94,3 +94,17 @@ type SystemUserLoginLog struct {
 	IP          string `json:"ip,omitempty"`
 	LoginStatus string `json:"login_status,omitempty"` // 登录状态：success, failed
 }
+
+// SystemTenantMenuScope 定义每个租户可用的最大菜单范围
+type SystemTenantMenuScope struct {
+	gorm.Model
+	TenantID uint `json:"tenant_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
+	MenuID   uint `json:"menu_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
+}
+
+// SystemTenantRoleScope 定义每个租户可用的最大角色范围
+type SystemTenantRoleScope struct {
+	gorm.Model
+	TenantID uint `json:"tenant_id,omitempty" gorm:"not null;index:idx_tenant_role,uniqueIndex:idx_tenant_role"`
+	RoleID   uint `json:"role_id,omitempty" gorm:"not null;index:idx_tenant_role,uniqueIndex:idx_tenant_role"`
+}

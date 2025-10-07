@@ -10,7 +10,17 @@ import (
 )
 
 func migrateTable(db *gorm.DB) error {
-	err := db.AutoMigrate(&SystemTenant{}, &SystemDepartment{}, &SystemRole{}, &SystemMenu{}, &SystemMenuAuth{}, &SystemUser{}, &SystemUserLoginLog{})
+	err := db.AutoMigrate(
+		&SystemTenant{},
+		&SystemDepartment{},
+		&SystemRole{},
+		&SystemMenu{},
+		&SystemMenuAuth{},
+		&SystemUser{},
+		&SystemUserLoginLog{},
+		&SystemTenantMenuScope{},
+		&SystemTenantRoleScope{},
+	)
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
 		return err
@@ -49,15 +59,18 @@ func migrateData(db *gorm.DB) error {
 		// 创建菜单
 		menus := []SystemMenu{
 			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/index/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 1},
-			{Model: gorm.Model{ID: 2}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "&#xe72b;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 2},
-			{Model: gorm.Model{ID: 3}, Path: "menu", Name: "SystemMenu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 1},
-			{Model: gorm.Model{ID: 4}, Path: "role", Name: "SystemRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 2},
-			{Model: gorm.Model{ID: 5}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 3},
-			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 4},
-			{Model: gorm.Model{ID: 7}, Path: "tenant", Name: "SystemTenant", Component: "/system/tenant/index", Title: "租户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 5},
-			{Model: gorm.Model{ID: 8}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 1},
-			{Model: gorm.Model{ID: 9}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 2},
-			{Model: gorm.Model{ID: 10}, Path: "/private", Name: "Private", Component: "/index/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
+			{Model: gorm.Model{ID: 2}, Path: "/platform", Name: "Platform", Component: "/index/index", Title: "平台管理", Icon: "appstore", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 2},
+			{Model: gorm.Model{ID: 3}, Path: "tenant", Name: "PlatformTenant", Component: "/platform/tenant/index", Title: "租户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 1},
+			{Model: gorm.Model{ID: 4}, Path: "role", Name: "PlatformRole", Component: "/platform/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 2},
+			{Model: gorm.Model{ID: 5}, Path: "menu", Name: "PlatformMenu", Component: "/platform/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 3},
+			{Model: gorm.Model{ID: 6}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "setting", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 3},
+			{Model: gorm.Model{ID: 7}, Path: "role", Name: "TenantRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 6, Sort: 1},
+			{Model: gorm.Model{ID: 8}, Path: "menu", Name: "TenantMenu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 6, Sort: 2},
+			{Model: gorm.Model{ID: 9}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 6, Sort: 3},
+			{Model: gorm.Model{ID: 10}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 6, Sort: 4},
+			{Model: gorm.Model{ID: 11}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 1},
+			{Model: gorm.Model{ID: 12}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 2},
+			{Model: gorm.Model{ID: 13}, Path: "/private", Name: "Private", Component: "/index/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
 		}
 		err := tx.Create(&menus).Error
 		if err != nil {
@@ -111,25 +124,42 @@ func migrateData(db *gorm.DB) error {
 			return err
 		}
 		// 为普通用户分配工作台和分析页菜单
-		var consoleMenu, analysisMenu, dashboardMenu SystemMenu
+		var dashboardMenu SystemMenu
 		err = tx.First(&dashboardMenu, 1).Error
 		if err != nil {
 			zap.L().Error("failed to find dashboard menu", zap.Error(err))
 			return err
 		}
-		err = tx.First(&consoleMenu, 8).Error
-		if err != nil {
-			zap.L().Error("failed to find console menu", zap.Error(err))
+		var systemMenusForTenant []SystemMenu
+		if err := tx.Where("id IN ?", []uint{6, 7, 8, 9, 10}).Find(&systemMenusForTenant).Error; err != nil {
+			zap.L().Error("failed to find system menus for default tenant", zap.Error(err))
 			return err
 		}
-		err = tx.First(&analysisMenu, 9).Error
-		if err != nil {
-			zap.L().Error("failed to find analysis menu", zap.Error(err))
-			return err
-		}
-		err = tx.Model(&normalRole).Association("SystemMenus").Append([]SystemMenu{dashboardMenu, consoleMenu, analysisMenu})
+		systemMenusForTenant = append(systemMenusForTenant, dashboardMenu)
+		err = tx.Model(&normalRole).Association("SystemMenus").Append(systemMenusForTenant)
 		if err != nil {
 			zap.L().Error("failed to associate console and analysis menus with normal role", zap.Error(err))
+			return err
+		}
+		// 默认租户可访问的菜单范围包含系统管理模块
+		menuScopes := []SystemTenantMenuScope{
+			{TenantID: 1, MenuID: 6},
+			{TenantID: 1, MenuID: 7},
+			{TenantID: 1, MenuID: 8},
+			{TenantID: 1, MenuID: 9},
+			{TenantID: 1, MenuID: 10},
+		}
+		if err := tx.Create(&menuScopes).Error; err != nil {
+			zap.L().Error("failed to create default tenant menu scope", zap.Error(err))
+			return err
+		}
+
+		roleScopes := []SystemTenantRoleScope{
+			{TenantID: 1, RoleID: 1},
+			{TenantID: 1, RoleID: 2},
+		}
+		if err := tx.Create(&roleScopes).Error; err != nil {
+			zap.L().Error("failed to create default tenant role scope", zap.Error(err))
 			return err
 		}
 
@@ -179,7 +209,7 @@ func migrateData(db *gorm.DB) error {
 func resetSequences(db *gorm.DB) error {
 	tables := []string{
 		"system_tenants", "system_menus", "system_roles", "system_departments", "system_users",
-		"system_menu_auths", // 添加这个表以确保菜单权限序列也被重置
+		"system_menu_auths", "system_tenant_menu_scopes", "system_tenant_role_scopes",
 	}
 
 	for _, table := range tables {

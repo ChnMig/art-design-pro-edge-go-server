@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 
+	platform "api-server/api/app/platform"
 	"api-server/api/app/system/department"
 	"api-server/api/app/system/menu"
 	"api-server/api/app/system/role"
@@ -48,6 +49,31 @@ func systemRouter(router *gin.RouterGroup) {
 		systemRouter.POST("/tenant", middleware.TokenVerify, middleware.SuperAdminVerify, tenant.AddTenant)
 		systemRouter.PUT("/tenant", middleware.TokenVerify, middleware.SuperAdminVerify, tenant.UpdateTenant)
 		systemRouter.DELETE("/tenant", middleware.TokenVerify, middleware.SuperAdminVerify, tenant.DeleteTenant)
+	}
+
+	platformRouter := router.Group("/admin/platform", middleware.TokenVerify, middleware.SuperAdminVerify)
+	{
+		platformRouter.GET("/menu", menu.GetMenuList)
+		platformRouter.POST("/menu", menu.AddMenu)
+		platformRouter.PUT("/menu", menu.UpdateMenu)
+		platformRouter.DELETE("/menu", menu.DeleteMenu)
+		platformRouter.GET("/menu/auth", menu.GetMenuAuthList)
+		platformRouter.POST("/menu/auth", menu.AddMenuAuth)
+		platformRouter.PUT("/menu/auth", menu.UpdateMenuAuth)
+		platformRouter.DELETE("/menu/auth", menu.DeleteMenuAuth)
+		platformRouter.GET("/menu/scope", platform.GetTenantMenuScope)
+		platformRouter.PUT("/menu/scope", platform.UpdateTenantMenuScope)
+
+		platformRouter.GET("/role", role.GetRoleList)
+		platformRouter.POST("/role", role.AddRole)
+		platformRouter.PUT("/role", role.UpdateRole)
+		platformRouter.DELETE("/role", role.DeleteRole)
+		platformRouter.GET("/role/scope", platform.GetTenantRoleScope)
+		platformRouter.PUT("/role/scope", platform.UpdateTenantRoleScope)
+		platformRouter.GET("/tenant", tenant.FindTenant)
+		platformRouter.POST("/tenant", tenant.AddTenant)
+		platformRouter.PUT("/tenant", tenant.UpdateTenant)
+		platformRouter.DELETE("/tenant", tenant.DeleteTenant)
 	}
 }
 

@@ -166,3 +166,67 @@ func FindMenuList(menu *SystemMenu, page, pageSize int) ([]SystemMenu, int64, er
 
 	return menus, total, nil
 }
+
+func FilterMenusByIDs(allMenus []SystemMenu, allPermissions []SystemMenuAuth, allowedMenuIDs []uint) ([]SystemMenu, []SystemMenuAuth) {
+	if len(allowedMenuIDs) == 0 {
+		return []SystemMenu{}, []SystemMenuAuth{}
+	}
+	menuMap := make(map[uint]SystemMenu, len(allMenus))
+	for _, menu := range allMenus {
+		menuMap[menu.ID] = menu
+	}
+	allowedSet := make(map[uint]struct{}, len(allowedMenuIDs))
+	for _, id := range allowedMenuIDs {
+		if _, exists := menuMap[id]; exists {
+			allowedSet[id] = struct{}{}
+		}
+	}
+	// 补充父级菜单
+	for id := range allowedSet {
+		current := menuMap[id]
+		for current.ParentID != 0 {
+			if _, exists := allowedSet[current.ParentID]; exists {
+				break
+			}
+			if parent, ok := menuMap[current.ParentID]; ok {
+				allowedSet[parent.ID] = struct{}{}
+				current = parent
+			} else {
+				break
+			}
+		}
+	}
+	filteredMenus := make([]SystemMenu, 0, len(allowedSet))
+	for _, menu := range allMenus {
+		if _, ok := allowedSet[menu.ID]; ok {
+			filteredMenus = append(filteredMenus, menu)
+		}
+	}
+	filteredPermissions := make([]SystemMenuAuth, 0)
+	for _, perm := range allPermissions {
+		if _, ok := allowedSet[perm.MenuID]; ok {
+			filteredPermissions = append(filteredPermissions, perm)
+		}
+	}
+	return filteredMenus, filteredPermissions
+}
+
+func FilterUintIDs(source []uint, allowedIDs []uint) []uint {
+	if len(source) == 0 {
+		return source
+	}
+	if len(allowedIDs) == 0 {
+		return []uint{}
+	}
+	allowedSet := make(map[uint]struct{}, len(allowedIDs))
+	for _, id := range allowedIDs {
+		allowedSet[id] = struct{}{}
+	}
+	result := make([]uint, 0, len(source))
+	for _, id := range source {
+		if _, ok := allowedSet[id]; ok {
+			result = append(result, id)
+		}
+	}
+	return result
+}
