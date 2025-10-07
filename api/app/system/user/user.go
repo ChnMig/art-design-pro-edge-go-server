@@ -1,15 +1,15 @@
 package user
 
 import (
-    "strings"
+	"strings"
 
-    "github.com/gin-gonic/gin"
-    "gorm.io/gorm"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
-    "api-server/api/middleware"
-    "api-server/api/response"
-    "api-server/db/pgdb/system"
-    systemuser "api-server/db/rdb/systemUser"
+	"api-server/api/middleware"
+	"api-server/api/response"
+	"api-server/db/pgdb/system"
+	systemuser "api-server/db/rdb/systemUser"
 )
 
 func FindUserByCache(c *gin.Context) {
@@ -86,8 +86,8 @@ func FindUserByCache(c *gin.Context) {
 
 func FindUser(c *gin.Context) {
 	params := &struct {
-		Username     string `json:"username" form:"username"`     // 昵称
-		Name         string `json:"name" form:"name"`             // 姓名
+		Username     string `json:"username" form:"username"` // 昵称
+		Name         string `json:"name" form:"name"`         // 姓名
 		Phone        string `json:"phone" form:"phone"`
 		DepartmentID uint   `json:"department_id" form:"department_id"`
 		RoleID       uint   `json:"role_id" form:"role_id"`
@@ -95,14 +95,14 @@ func FindUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	
+
 	// 获取当前租户ID
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
 		return
 	}
-	
+
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
 	u := system.SystemUser{
@@ -119,12 +119,46 @@ func FindUser(c *gin.Context) {
 		return
 	}
 
-	// 使用索引方式清空密码
-	for i := range usersWithRelations {
-		usersWithRelations[i].SystemUser.Password = ""
+	type userListItem struct {
+		ID             uint   `json:"id"`
+		TenantID       uint   `json:"tenant_id"`
+		DepartmentID   uint   `json:"department_id"`
+		RoleID         uint   `json:"role_id"`
+		Name           string `json:"name"`
+		Username       string `json:"username"`
+		Account        string `json:"account"`
+		Phone          string `json:"phone"`
+		Gender         uint   `json:"gender"`
+		Status         uint   `json:"status"`
+		CreatedAt      int64  `json:"created_at"`
+		UpdatedAt      int64  `json:"updated_at"`
+		RoleName       string `json:"role_name"`
+		RoleDesc       string `json:"role_desc"`
+		DepartmentName string `json:"department_name"`
 	}
 
-	response.ReturnDataWithTotal(c, int(total), usersWithRelations)
+	items := make([]userListItem, len(usersWithRelations))
+	for i, item := range usersWithRelations {
+		items[i] = userListItem{
+			ID:             item.SystemUser.ID,
+			TenantID:       item.SystemUser.TenantID,
+			DepartmentID:   item.SystemUser.DepartmentID,
+			RoleID:         item.SystemUser.RoleID,
+			Name:           item.SystemUser.Name,
+			Username:       item.SystemUser.Username,
+			Account:        item.SystemUser.Account,
+			Phone:          item.SystemUser.Phone,
+			Gender:         item.SystemUser.Gender,
+			Status:         item.SystemUser.Status,
+			CreatedAt:      item.SystemUser.CreatedAt.Unix(),
+			UpdatedAt:      item.SystemUser.UpdatedAt.Unix(),
+			RoleName:       item.RoleName,
+			RoleDesc:       item.RoleDesc,
+			DepartmentName: item.DepartmentName,
+		}
+	}
+
+	response.ReturnDataWithTotal(c, int(total), items)
 }
 
 func AddUser(c *gin.Context) {
@@ -142,14 +176,14 @@ func AddUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	
+
 	// 获取当前租户ID
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
 		return
 	}
-	
+
 	u := system.SystemUser{
 		TenantID:     tenantID,
 		Name:         params.Name,
@@ -185,14 +219,14 @@ func UpdateUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	
+
 	// 获取当前租户ID
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
 		return
 	}
-	
+
 	u := system.SystemUser{
 		Model:        gorm.Model{ID: params.ID},
 		TenantID:     tenantID,
