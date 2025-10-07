@@ -183,6 +183,11 @@ func AddUser(c *gin.Context) {
 		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
 		return
 	}
+	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
+	if err := system.GetRole(&roleEntity); err != nil || roleEntity.TenantID != tenantID {
+		response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
+		return
+	}
 
 	u := system.SystemUser{
 		TenantID:     tenantID,
@@ -224,6 +229,12 @@ func UpdateUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
+		return
+	}
+
+	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
+	if err := system.GetRole(&roleEntity); err != nil || roleEntity.TenantID != tenantID {
+		response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
 		return
 	}
 

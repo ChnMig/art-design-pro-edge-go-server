@@ -68,8 +68,6 @@ func systemRouter(router *gin.RouterGroup) {
 		platformRouter.POST("/role", role.AddRole)
 		platformRouter.PUT("/role", role.UpdateRole)
 		platformRouter.DELETE("/role", role.DeleteRole)
-		platformRouter.GET("/role/scope", platform.GetTenantRoleScope)
-		platformRouter.PUT("/role/scope", platform.UpdateTenantRoleScope)
 		platformRouter.GET("/tenant", tenant.FindTenant)
 		platformRouter.POST("/tenant", tenant.AddTenant)
 		platformRouter.PUT("/tenant", tenant.UpdateTenant)

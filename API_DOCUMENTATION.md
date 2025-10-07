@@ -394,6 +394,8 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
+> 说明：`role_id` 必须为当前租户已创建的角色，不能选择其他租户或平台预置角色。
+
 #### 2.6 更新用户
 
 **接口描述：** 更新用户信息
@@ -430,6 +432,8 @@ Authorization: Bearer {your_jwt_token}
   "timestamp": 1640995200
 }
 ```
+
+> 说明：更新时若修改角色，`role_id` 同样必须属于当前租户。
 
 #### 2.7 删除用户
 
@@ -754,11 +758,10 @@ Authorization: Bearer {your_jwt_token}
 
 - **获取角色列表：** `GET /api/v1/admin/platform/role`，需要查询参数 `tenant_id` 指定目标租户。
 - **创建角色：** `POST /api/v1/admin/platform/role`，请求体需包含 `tenant_id`、`name`、`status`、`desc`。
-- **更新角色：** `PUT /api/v1/admin/platform/role`，可通过 `tenant_id` 将角色调整至指定租户。
+- **更新角色：** `PUT /api/v1/admin/platform/role`，可调整角色名称、描述、状态以及归属租户。
 - **删除角色：** `DELETE /api/v1/admin/platform/role`。
-- **维护角色可见范围：**
-  - `GET /api/v1/admin/platform/role/scope?tenant_id=1`
-  - `PUT /api/v1/admin/platform/role/scope`
+
+> 说明：平台管理员创建或修改的角色仅对指定租户生效，可用于初始化或协助运营处理。
 
 **示例 - 获取角色列表：**
 ```json
@@ -780,32 +783,23 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-**示例 - 设置角色范围：**
-```json
-{
-  "tenant_id": 1,
-  "role_ids": [1, 2]
-}
-```
-
 #### 6.2 租户角色管理
 
-- **获取角色列表：** `GET /api/v1/admin/system/role`。接口根据登录租户自动裁剪范围，仅返回平台已分配且启用的角色。
-- **更新角色信息：** `PUT /api/v1/admin/system/role`，允许修改名称、描述和状态。
-- **删除角色：** `DELETE /api/v1/admin/system/role`（仅限角色在可管理范围内）。
-- **创建角色：** 如需新增角色，请由平台管理员在平台角色管理界面创建。
+- **获取角色列表：** `GET /api/v1/admin/system/role`，自动限定为当前登录租户。
+- **创建角色：** `POST /api/v1/admin/system/role`，租户自行创建，仅对本租户生效。
+- **更新角色信息：** `PUT /api/v1/admin/system/role`。
+- **删除角色：** `DELETE /api/v1/admin/system/role`。
 
-**请求示例（更新角色）：**
+**请求示例（创建角色）：**
 ```json
 {
-  "id": 2,
   "name": "业务管理员",
   "status": 1,
   "desc": "负责日常业务配置"
 }
 ```
 
-**响应示例（更新角色）：**
+**响应示例（创建角色）：**
 ```json
 {
   "code": 200,
@@ -821,6 +815,9 @@ Authorization: Bearer {your_jwt_token}
   "timestamp": 1641002400
 }
 ```
+
+> 提示：用户管理中的角色选择列表仅包含本租户创建的角色，平台仅限制菜单范围，不提供通用角色池。
+
 ### 7. 租户管理 **(超级管理员权限)**
 
 > 注意：以下接口需要超级管理员权限

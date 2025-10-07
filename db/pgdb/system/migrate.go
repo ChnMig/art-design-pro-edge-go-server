@@ -15,11 +15,10 @@ func migrateTable(db *gorm.DB) error {
 		&SystemDepartment{},
 		&SystemRole{},
 		&SystemMenu{},
-		&SystemMenuAuth{},
-		&SystemUser{},
-		&SystemUserLoginLog{},
-		&SystemTenantMenuScope{},
-		&SystemTenantRoleScope{},
+        &SystemMenuAuth{},
+        &SystemUser{},
+        &SystemUserLoginLog{},
+        &SystemTenantMenuScope{},
 	)
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
@@ -154,16 +153,7 @@ func migrateData(db *gorm.DB) error {
 			return err
 		}
 
-		roleScopes := []SystemTenantRoleScope{
-			{TenantID: 1, RoleID: 1},
-			{TenantID: 1, RoleID: 2},
-		}
-		if err := tx.Create(&roleScopes).Error; err != nil {
-			zap.L().Error("failed to create default tenant role scope", zap.Error(err))
-			return err
-		}
-
-		// 检查是否已有部门数据
+        // 检查是否已有部门数据
 		tx.Model(&SystemDepartment{}).Count(&count)
 		if count > 0 {
 			zap.L().Info("department data already exists, skipping department creation")
@@ -207,10 +197,10 @@ func migrateData(db *gorm.DB) error {
 }
 
 func resetSequences(db *gorm.DB) error {
-	tables := []string{
-		"system_tenants", "system_menus", "system_roles", "system_departments", "system_users",
-		"system_menu_auths", "system_tenant_menu_scopes", "system_tenant_role_scopes",
-	}
+    tables := []string{
+        "system_tenants", "system_menus", "system_roles", "system_departments", "system_users",
+        "system_menu_auths", "system_tenant_menu_scopes",
+    }
 
 	for _, table := range tables {
 		seqName := table + "_id_seq"

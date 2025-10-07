@@ -61,28 +61,6 @@ func GetRoleList(c *gin.Context) {
 		return
 	}
 
-	if !isSuperAdmin {
-		roleScopeIDs, err := system.GetTenantRoleScopeIDs(targetTenantID)
-		if err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "获取角色范围失败")
-			return
-		}
-		if len(roleScopeIDs) > 0 {
-			scopeSet := make(map[uint]struct{}, len(roleScopeIDs))
-			for _, id := range roleScopeIDs {
-				scopeSet[id] = struct{}{}
-			}
-			filtered := make([]system.SystemRole, 0, len(roles))
-			for _, r := range roles {
-				if _, ok := scopeSet[r.ID]; ok {
-					filtered = append(filtered, r)
-				}
-			}
-			roles = filtered
-			total = int64(len(filtered))
-		}
-	}
-
 	// 返回带总数的结果
 	response.ReturnDataWithTotal(c, int(total), roles)
 }
@@ -97,27 +75,38 @@ func AddRole(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	if !middleware.IsSuperAdmin(c) {
-		response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以创建角色")
-		return
+	var (
+		role       system.SystemRole
+		targetID   uint
+		isSuper    = middleware.IsSuperAdmin(c)
+		tenantID   = middleware.GetTenantID(c)
+		createDesc = params.Desc
+	)
+
+	if isSuper {
+		if params.TenantID == 0 {
+			response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 为必填参数")
+			return
+		}
+		targetID = params.TenantID
+	} else {
+		if tenantID == 0 {
+			response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+			return
+		}
+		targetID = tenantID
 	}
-	if params.TenantID == 0 {
-		response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 为必填参数")
-		return
-	}
-	role := system.SystemRole{
-		TenantID: params.TenantID,
+
+	role = system.SystemRole{
+		TenantID: targetID,
 		Name:     params.Name,
 		Status:   uint(params.Status),
-		Desc:     params.Desc,
+		Desc:     createDesc,
 	}
+
 	err := system.AddRole(&role)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加角色失败")
-		return
-	}
-	if err := system.AddTenantRoleScope(params.TenantID, role.ID); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "同步角色范围失败")
 		return
 	}
 	response.ReturnData(c, role)
@@ -153,24 +142,8 @@ func UpdateRole(c *gin.Context) {
 			response.ReturnError(c, response.PERMISSION_DENIED, "无权操作该角色")
 			return
 		}
-		roleScopeIDs, err := system.GetTenantRoleScopeIDs(currentTenantID)
-		if err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "获取角色范围失败")
-			return
-		}
-		if len(roleScopeIDs) > 0 {
-			allowed := false
-			for _, id := range roleScopeIDs {
-				if id == originalRole.ID {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
-				response.ReturnError(c, response.PERMISSION_DENIED, "角色不在可管理范围内")
-				return
-			}
-		}
+		// 非超级管理员不允许调整角色归属租户
+		targetTenantID = originalRole.TenantID
 	}
 
 	updatedRole := system.SystemRole{
@@ -184,17 +157,6 @@ func UpdateRole(c *gin.Context) {
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新角色失败")
 		return
-	}
-	if isSuperAdmin && targetTenantID != originalRole.TenantID {
-		// 移动角色到新的租户后，需要更新范围
-		if err := system.RemoveTenantRoleScope(originalRole.TenantID, updatedRole.ID); err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "同步角色范围失败")
-			return
-		}
-		if err := system.AddTenantRoleScope(targetTenantID, updatedRole.ID); err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "同步角色范围失败")
-			return
-		}
 	}
 	response.ReturnData(c, updatedRole)
 }
@@ -217,34 +179,10 @@ func DeleteRole(c *gin.Context) {
 			response.ReturnError(c, response.PERMISSION_DENIED, "无权删除该角色")
 			return
 		}
-		roleScopeIDs, err := system.GetTenantRoleScopeIDs(tenantID)
-		if err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "获取角色范围失败")
-			return
-		}
-		if len(roleScopeIDs) > 0 {
-			allowed := false
-			for _, id := range roleScopeIDs {
-				if id == role.ID {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
-				response.ReturnError(c, response.PERMISSION_DENIED, "角色不在可管理范围内")
-				return
-			}
-		}
 	}
 	if err := system.DeleteRole(&role); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "删除角色失败")
 		return
-	}
-	if middleware.IsSuperAdmin(c) {
-		if err := system.RemoveTenantRoleScope(role.TenantID, role.ID); err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "同步角色范围失败")
-			return
-		}
 	}
 	response.ReturnData(c, role)
 }
