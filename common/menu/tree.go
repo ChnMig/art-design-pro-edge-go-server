@@ -146,6 +146,17 @@ func convertMenuToResponseWithPermission(menu system.SystemMenu, roleMenuIds []u
 
 // 递归构建菜单子项
 func buildMenuChildren(parent *MenuResponse, allMenus []system.SystemMenu, allPermissions []system.SystemMenuAuth, all bool) {
+	// 为当前菜单添加权限列表
+	for _, perm := range allPermissions {
+		if perm.MenuID == parent.ID {
+			parent.Meta.AuthList = append(parent.Meta.AuthList, MenuAuthResp{
+				ID:       perm.ID,
+				Title:    perm.Title,
+				AuthMark: perm.Mark,
+			})
+		}
+	}
+
 	var childMenus []system.SystemMenu
 
 	// 收集当前父菜单下的所有子菜单
@@ -184,6 +195,18 @@ func buildMenuChildren(parent *MenuResponse, allMenus []system.SystemMenu, allPe
 
 // 递归构建带权限标记的菜单子项
 func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.SystemMenu, allPermissions []system.SystemMenuAuth, roleMenuIds []uint, roleAuthIds []uint, all bool) {
+	// 为当前菜单添加权限列表，并标记角色是否拥有
+	for _, perm := range allPermissions {
+		if perm.MenuID == parent.ID {
+			parent.Meta.AuthList = append(parent.Meta.AuthList, MenuAuthResp{
+				ID:            perm.ID,
+				Title:         perm.Title,
+				AuthMark:      perm.Mark,
+				HasPermission: containsUint(roleAuthIds, perm.ID),
+			})
+		}
+	}
+
 	var childMenus []system.SystemMenu
 
 	// 收集当前父菜单下的所有子菜单
