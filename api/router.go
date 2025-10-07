@@ -4,6 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	platform "api-server/api/app/platform"
+	platformMenu "api-server/api/app/platform/menu"
+	platformRole "api-server/api/app/platform/role"
 	"api-server/api/app/system/department"
 	"api-server/api/app/system/menu"
 	"api-server/api/app/system/role"
@@ -53,21 +55,21 @@ func systemRouter(router *gin.RouterGroup) {
 
 	platformRouter := router.Group("/admin/platform", middleware.TokenVerify, middleware.SuperAdminVerify)
 	{
-		platformRouter.GET("/menu", menu.GetMenuList)
-		platformRouter.POST("/menu", menu.AddMenu)
-		platformRouter.PUT("/menu", menu.UpdateMenu)
-		platformRouter.DELETE("/menu", menu.DeleteMenu)
-		platformRouter.GET("/menu/auth", menu.GetMenuAuthList)
-		platformRouter.POST("/menu/auth", menu.AddMenuAuth)
-		platformRouter.PUT("/menu/auth", menu.UpdateMenuAuth)
-		platformRouter.DELETE("/menu/auth", menu.DeleteMenuAuth)
+		platformRouter.GET("/menu", platformMenu.GetMenuList)
+		platformRouter.POST("/menu", platformMenu.AddMenu)
+		platformRouter.PUT("/menu", platformMenu.UpdateMenu)
+		platformRouter.DELETE("/menu", platformMenu.DeleteMenu)
+		platformRouter.GET("/menu/auth", platformMenu.GetMenuAuthList)
+		platformRouter.POST("/menu/auth", platformMenu.AddMenuAuth)
+		platformRouter.PUT("/menu/auth", platformMenu.UpdateMenuAuth)
+		platformRouter.DELETE("/menu/auth", platformMenu.DeleteMenuAuth)
 		platformRouter.GET("/menu/scope", platform.GetTenantMenuScope)
 		platformRouter.PUT("/menu/scope", platform.UpdateTenantMenuScope)
 
-		platformRouter.GET("/role", role.GetRoleList)
-		platformRouter.POST("/role", role.AddRole)
-		platformRouter.PUT("/role", role.UpdateRole)
-		platformRouter.DELETE("/role", role.DeleteRole)
+		platformRouter.GET("/role", platformRole.GetRoleList)
+		platformRouter.POST("/role", platformRole.AddRole)
+		platformRouter.PUT("/role", platformRole.UpdateRole)
+		platformRouter.DELETE("/role", platformRole.DeleteRole)
 		platformRouter.GET("/tenant", tenant.FindTenant)
 		platformRouter.POST("/tenant", tenant.AddTenant)
 		platformRouter.PUT("/tenant", tenant.UpdateTenant)

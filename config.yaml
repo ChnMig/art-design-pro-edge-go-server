@@ -31,4 +31,4 @@ rate_limit:
 
 tenant:
   min_query_length: 3          # Minimum length of input for tenant code search (must be met or exceeded)
-  default_code: "system"       # System default tenant code
+  default_code: "platform"       # System default tenant code

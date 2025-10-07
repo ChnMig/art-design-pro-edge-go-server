@@ -67,41 +67,41 @@ func GetRoleList(c *gin.Context) {
 
 func AddRole(c *gin.Context) {
 	params := &struct {
-		TenantID uint   `json:"tenant_id"`
-		Name     string `json:"name" form:"name" binding:"required"`
-		Status   int    `json:"status" form:"status" binding:"required"`
-		Desc     string `json:"desc" form:"desc"`
+		Name   string `json:"name" form:"name" binding:"required"`
+		Status int    `json:"status" form:"status" binding:"required"`
+		Desc   string `json:"desc" form:"desc"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	var (
-		role       system.SystemRole
-		targetID   uint
-		isSuper    = middleware.IsSuperAdmin(c)
-		tenantID   = middleware.GetTenantID(c)
-		createDesc = params.Desc
-	)
-
-	if isSuper {
-		if params.TenantID == 0 {
-			response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 为必填参数")
-			return
-		}
-		targetID = params.TenantID
-	} else {
+	tenantID := middleware.GetTenantID(c)
+	if !middleware.IsSuperAdmin(c) {
 		if tenantID == 0 {
 			response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
 			return
 		}
-		targetID = tenantID
 	}
 
-	role = system.SystemRole{
+	targetID := tenantID
+	if middleware.IsSuperAdmin(c) {
+		tenantIDParam := c.Query("tenant_id")
+		if tenantIDParam == "" {
+			response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 为必填参数")
+			return
+		}
+		idValue, err := strconv.ParseUint(tenantIDParam, 10, 64)
+		if err != nil || idValue == 0 {
+			response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 参数无效")
+			return
+		}
+		targetID = uint(idValue)
+	}
+
+	role := system.SystemRole{
 		TenantID: targetID,
 		Name:     params.Name,
 		Status:   uint(params.Status),
-		Desc:     createDesc,
+		Desc:     params.Desc,
 	}
 
 	err := system.AddRole(&role)

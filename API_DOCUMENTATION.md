@@ -131,7 +131,7 @@ Authorization: Bearer {your_jwt_token}
 **请求参数：**
 ```json
 {
-  "tenant_code": "system",
+  "tenant_code": "platform",
   "account": "admin",
   "password": "123456",
   "captcha": "1234",
@@ -156,7 +156,7 @@ Authorization: Bearer {your_jwt_token}
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "tenant_info": {
       "tenant_id": 1,
-      "tenant_code": "system",
+      "tenant_code": "platform",
       "tenant_name": "平台管理"
     },
     "user_info": {
@@ -188,7 +188,7 @@ Authorization: Bearer {your_jwt_token}
   "status": "OK",
   "message": "请求成功",
   "data": [
-    { "id": 1, "code": "system", "name": "平台管理" }
+    { "id": 1, "code": "platform", "name": "平台管理" }
   ],
   "timestamp": 1640995200
 }
@@ -394,7 +394,7 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-> 说明：`role_id` 必须为当前租户已创建的角色，不能选择其他租户或平台预置角色。
+> 说明：`role_id` 必须为当前租户已创建的角色。
 
 #### 2.6 更新用户
 
@@ -433,7 +433,7 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-> 说明：更新时若修改角色，`role_id` 同样必须属于当前租户。
+
 
 #### 2.7 删除用户
 
@@ -816,7 +816,7 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-> 提示：用户管理中的角色选择列表仅包含本租户创建的角色，平台仅限制菜单范围，不提供通用角色池。
+> 提示：用户管理中的角色选择列表仅包含本租户创建的角色。
 
 ### 7. 租户管理 **(超级管理员权限)**
 
@@ -847,7 +847,7 @@ Authorization: Bearer {your_jwt_token}
   "data": [
     {
       "id": 1,
-      "code": "system",
+      "code": "platform",
       "name": "平台管理",
       "contact": "",
       "phone": "",
@@ -983,7 +983,7 @@ Authorization: Bearer {your_jwt_token}
   "data": [
     {
       "id": 1,
-      "tenant_code": "system",
+      "tenant_code": "platform",
       "user_name": "admin",
       "ip": "192.168.1.100",
       "login_status": "success",

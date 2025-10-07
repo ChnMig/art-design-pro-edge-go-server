@@ -130,7 +130,7 @@ func LoadConfig() error {
     if config.Tenant.DefaultCode != "" {
         DefaultTenantCode = config.Tenant.DefaultCode
     } else {
-        DefaultTenantCode = "system"
+        DefaultTenantCode = "platform"
     }
     
     return nil
