@@ -59,11 +59,11 @@ func migrateData(db *gorm.DB) error {
 		// 创建菜单
 		menus := []SystemMenu{
 			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/index/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 1},
-			{Model: gorm.Model{ID: 2}, Path: "/platform", Name: "Platform", Component: "/index/index", Title: "平台管理", Icon: "appstore", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 2},
+			{Model: gorm.Model{ID: 2}, Path: "/platform", Name: "Platform", Component: "/index/index", Title: "平台管理", Icon: "&#xe72b;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 2},
 			{Model: gorm.Model{ID: 3}, Path: "tenant", Name: "PlatformTenant", Component: "/platform/tenant/index", Title: "租户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 1},
 			{Model: gorm.Model{ID: 4}, Path: "role", Name: "PlatformRole", Component: "/platform/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 2},
 			{Model: gorm.Model{ID: 5}, Path: "menu", Name: "PlatformMenu", Component: "/platform/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 3},
-			{Model: gorm.Model{ID: 6}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "setting", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 3},
+			{Model: gorm.Model{ID: 6}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "&#xe72b;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 3},
 			{Model: gorm.Model{ID: 7}, Path: "role", Name: "TenantRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 6, Sort: 1},
 			{Model: gorm.Model{ID: 8}, Path: "menu", Name: "TenantMenu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 6, Sort: 2},
 			{Model: gorm.Model{ID: 9}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 6, Sort: 3},

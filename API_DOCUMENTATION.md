@@ -559,7 +559,7 @@ Authorization: Bearer {your_jwt_token}
       "id": 6,
       "name": "系统管理",
       "path": "/system",
-      "icon": "setting",
+      "icon": "&#xe72b;",
       "children": [
         { "id": 7, "name": "角色管理", "path": "/system/role" },
         { "id": 8, "name": "菜单管理", "path": "/system/menu" },
