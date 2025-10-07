@@ -11,7 +11,7 @@ type SystemTenant struct {
 	Phone       string             `json:"phone,omitempty"`                            // 联系电话
 	Email       string             `json:"email,omitempty"`                            // 邮箱
 	Address     string             `json:"address,omitempty"`                          // 地址
-	Status      uint               `json:"status,omitempty" gorm:"default:1"`          // 状态(1:启用 2:禁用)
+	Status      uint               `json:"status,omitempty" gorm:"default:1"`          // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
 	SystemUsers []SystemUser       `json:"users,omitempty" gorm:"foreignKey:TenantID"`
 	Departments []SystemDepartment `json:"departments,omitempty" gorm:"foreignKey:TenantID"`
 	Roles       []SystemRole       `json:"roles,omitempty" gorm:"foreignKey:TenantID"`
@@ -23,7 +23,7 @@ type SystemDepartment struct {
 	TenantID    uint         `json:"tenant_id,omitempty" gorm:"not null;index"` // 租户ID
 	Name        string       `json:"name,omitempty"`
 	Sort        uint         `json:"sort,omitempty"`
-	Status      uint         `json:"status,omitempty"` // 状态(1:启用 2:禁用)
+	Status      uint         `json:"status,omitempty"` // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
 	SystemUsers []SystemUser `json:"users,omitempty" gorm:"foreignKey:DepartmentID"`
 }
 
@@ -33,7 +33,7 @@ type SystemRole struct {
 	TenantID        uint             `json:"tenant_id,omitempty" gorm:"not null;index"` // 租户ID
 	Name            string           `json:"name,omitempty"`
 	Desc            string           `json:"desc,omitempty"`
-	Status          uint             `json:"status,omitempty"`                                             // 状态(1:启用 2:禁用)
+	Status          uint             `json:"status,omitempty"`                                             // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
 	SystemMenus     []SystemMenu     `json:"menus,omitempty" gorm:"many2many:system_roles__system_menus;"` // 多对多关联菜单表
 	SystemUsers     []SystemUser     `json:"users,omitempty" gorm:"foreignKey:RoleID"`
 	SystemMenuAuths []SystemMenuAuth `json:"menu_auths,omitempty" gorm:"many2many:system_roles__system_auths;"` // 多对多关联菜单按钮权限表
@@ -55,7 +55,7 @@ type SystemMenu struct {
 	IsIframe        uint             `json:"is_iframe,omitempty"`            // 是否内嵌(1:内嵌 2:不内嵌)
 	KeepAlive       uint             `json:"keep_alive,omitempty"`           // 是否缓存(1:缓存 2:不缓存)
 	IsFirstLevel    uint             `json:"is_in_main_container,omitempty"` // 是否在主容器内(一级菜单使用)(1:是 2:否)
-	Status          uint             `json:"status,omitempty"`               // 状态(1:启用 2:禁用)
+	Status          uint             `json:"status,omitempty"`               // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
 	Level           uint             `json:"level,omitempty"`                // 层级(从1开始)
 	ParentID        uint             `json:"parent_id,omitempty"`            // 父级ID
 	Sort            uint             `json:"sort,omitempty"`                 // 排序(从小到大，值越小越靠前)
@@ -84,7 +84,7 @@ type SystemUser struct {
 	Password     string `json:"password,omitempty"`
 	Phone        string `json:"phone,omitempty"`
 	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
-	Status       uint   `json:"status,omitempty"` // 状态(1:启用 2:禁用)
+	Status       uint   `json:"status,omitempty"` // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
 }
 
 type SystemUserLoginLog struct {

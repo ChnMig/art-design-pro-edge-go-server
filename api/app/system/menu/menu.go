@@ -96,7 +96,7 @@ func AddMenu(c *gin.Context) {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
 			return
 		}
-		if parentMenu.Status != 1 {
+		if parentMenu.Status != system.StatusEnabled {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单已禁用")
 			return
 		}
@@ -163,13 +163,13 @@ func UpdateMenu(c *gin.Context) {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
 			return
 		}
-		if parent.Status != 1 {
+		if parent.Status != system.StatusEnabled {
 			response.ReturnError(c, response.DATA_LOSS, "父级菜单已禁用")
 			return
 		}
 		level = parent.Level + 1
 	}
-	if params.Status == 2 {
+	if params.Status == system.StatusDisabled {
 		// 判断子菜单是否是禁用状态
 		children, _, err := system.FindMenuList(&system.SystemMenu{ParentID: params.ID}, -1, -1)
 		if err != nil {
@@ -180,7 +180,7 @@ func UpdateMenu(c *gin.Context) {
 		}
 		if len(children) > 0 {
 			for _, v := range children {
-				if v.Status == 1 {
+				if v.Status == system.StatusEnabled {
 					response.ReturnError(c, response.DATA_LOSS, "请先禁用子菜单")
 					return
 				}

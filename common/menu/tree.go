@@ -58,10 +58,8 @@ func BuildMenuTree(menus []system.SystemMenu, permissions []system.SystemMenuAut
 	if len(menus) > 0 {
 		for _, menu := range menus {
 			if menu.ParentID == 0 {
-				if !all {
-					if menu.Status == 2 {
-						continue
-					}
+				if !all && menu.Status == system.StatusDisabled {
+					continue
 				}
 				rootMenus = append(rootMenus, menu)
 			}
@@ -90,7 +88,7 @@ func BuildMenuTreeWithPermission(menus []system.SystemMenu, permissions []system
 	if len(menus) > 0 {
 		for _, menu := range menus {
 			if menu.ParentID == 0 {
-				if !all && menu.Status == 2 {
+				if !all && menu.Status == system.StatusDisabled {
 					continue
 				}
 				rootMenus = append(rootMenus, menu)
@@ -131,7 +129,7 @@ func convertMenuToResponse(menu system.SystemMenu) MenuResponse {
 			Link:          menu.Link,
 			IsIframe:      menu.IsIframe == 1,     // 1表示是iframe
 			IsFirstLevel:  menu.IsFirstLevel == 1, // 1表示在主容器中
-			IsEnable:      menu.Status == 1,       // 1表示启用
+			IsEnable:      menu.Status == system.StatusEnabled,
 			Sort:          menu.Sort,
 		},
 	}
@@ -162,7 +160,7 @@ func buildMenuChildren(parent *MenuResponse, allMenus []system.SystemMenu, allPe
 	// 收集当前父菜单下的所有子菜单
 	for _, menu := range allMenus {
 		if menu.ParentID == parent.ID {
-			if !all && menu.Status == 2 {
+			if !all && menu.Status == system.StatusDisabled {
 				continue
 			}
 			childMenus = append(childMenus, menu)
@@ -212,7 +210,7 @@ func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.Sys
 	// 收集当前父菜单下的所有子菜单
 	for _, menu := range allMenus {
 		if menu.ParentID == parent.ID {
-			if !all && menu.Status == 2 {
+			if !all && menu.Status == system.StatusDisabled {
 				continue
 			}
 			childMenus = append(childMenus, menu)

@@ -34,7 +34,7 @@ func SuperAdminVerify(c *gin.Context) {
 		return
 	}
 
-	if user.Status != 1 {
+	if user.Status != system.StatusEnabled {
 		response.ReturnError(c, response.UNAUTHENTICATED, "用户已被禁用")
 		c.Abort()
 		return
@@ -72,7 +72,7 @@ func TenantAdminVerify(c *gin.Context) {
 		return
 	}
 
-	if user.Status != 1 {
+	if user.Status != system.StatusEnabled {
 		response.ReturnError(c, response.UNAUTHENTICATED, "用户已被禁用")
 		c.Abort()
 		return

@@ -29,7 +29,7 @@ func migrateData(db *gorm.DB) error {
 				Model:  gorm.Model{ID: 1},
 				Code:   config.DefaultTenantCode,
 				Name:   "平台管理",
-				Status: 1,
+				Status: StatusEnabled,
 			}
 			err := tx.Create(&defaultTenant).Error
 			if err != nil {
@@ -48,16 +48,16 @@ func migrateData(db *gorm.DB) error {
 
 		// 创建菜单
 		menus := []SystemMenu{
-			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/index/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 1},
-			{Model: gorm.Model{ID: 2}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "&#xe72b;", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 2},
-			{Model: gorm.Model{ID: 3}, Path: "menu", Name: "SystemMenu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 1},
-			{Model: gorm.Model{ID: 4}, Path: "role", Name: "SystemRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 2},
-			{Model: gorm.Model{ID: 5}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 3},
-			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 4},
-			{Model: gorm.Model{ID: 7}, Path: "tenant", Name: "SystemTenant", Component: "/system/tenant/index", Title: "租户管理", KeepAlive: 2, Status: 1, Level: 2, ParentID: 2, Sort: 5},
-			{Model: gorm.Model{ID: 8}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 1},
-			{Model: gorm.Model{ID: 9}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: 1, Level: 2, ParentID: 1, Sort: 2},
-			{Model: gorm.Model{ID: 10}, Path: "/private", Name: "Private", Component: "/index/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: 1, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
+			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/index/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 1},
+			{Model: gorm.Model{ID: 2}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "&#xe72b;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 2},
+			{Model: gorm.Model{ID: 3}, Path: "menu", Name: "SystemMenu", Component: "/system/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 1},
+			{Model: gorm.Model{ID: 4}, Path: "role", Name: "SystemRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 2},
+			{Model: gorm.Model{ID: 5}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 3},
+			{Model: gorm.Model{ID: 6}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 4},
+			{Model: gorm.Model{ID: 7}, Path: "tenant", Name: "SystemTenant", Component: "/system/tenant/index", Title: "租户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 5},
+			{Model: gorm.Model{ID: 8}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 1},
+			{Model: gorm.Model{ID: 9}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 2},
+			{Model: gorm.Model{ID: 10}, Path: "/private", Name: "Private", Component: "/index/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
 		}
 		err := tx.Create(&menus).Error
 		if err != nil {
@@ -74,8 +74,8 @@ func migrateData(db *gorm.DB) error {
 
 		// 创建角色（默认租户）
 		roles := []SystemRole{
-			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "超级管理员", Desc: "拥有所有权限", Status: 1},
-			{Model: gorm.Model{ID: 2}, TenantID: 1, Name: "普通用户", Desc: "普通用户", Status: 1},
+			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "超级管理员", Desc: "拥有所有权限", Status: StatusEnabled},
+			{Model: gorm.Model{ID: 2}, TenantID: 1, Name: "普通用户", Desc: "普通用户", Status: StatusEnabled},
 		}
 		err = tx.Create(&roles).Error
 		if err != nil {
@@ -142,7 +142,7 @@ func migrateData(db *gorm.DB) error {
 
 		// 创建部门（默认租户）
 		departments := []SystemDepartment{
-			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "管理中心", Sort: 1, Status: 1},
+			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "管理中心", Sort: 1, Status: StatusEnabled},
 		}
 		err = tx.Create(&departments).Error
 		if err != nil {
@@ -164,7 +164,7 @@ func migrateData(db *gorm.DB) error {
 			return hashErr
 		}
 		users := []SystemUser{
-			{Model: gorm.Model{ID: 1}, TenantID: 1, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Account: "admin", Password: pwd, Status: 1, Gender: 1},
+			{Model: gorm.Model{ID: 1}, TenantID: 1, DepartmentID: 1, RoleID: 1, Name: "超级管理员", Username: "admin", Account: "admin", Password: pwd, Status: StatusEnabled, Gender: 1},
 		}
 		err = tx.Create(&users).Error
 		if err != nil {

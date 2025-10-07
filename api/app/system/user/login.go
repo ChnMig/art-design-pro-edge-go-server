@@ -61,7 +61,7 @@ func Login(c *gin.Context) {
 		response.ReturnError(c, response.INVALID_ARGUMENT, "账号或密码错误")
 		return
 	}
-	if user.Status != 1 {
+	if user.Status != system.StatusEnabled {
 		// 记录登录失败日志（账号已被禁用）
 		failedLog := system.SystemUserLoginLog{
 			TenantCode:  params.TenantCode,
@@ -99,8 +99,8 @@ func Login(c *gin.Context) {
 			"tenant_name": tenant.Name,
 		},
 		"user_info": gin.H{
-			"user_id": user.ID,
-			"name":    user.Name,
+			"user_id":  user.ID,
+			"name":     user.Name,
 			"username": user.Username,
 			"account":  user.Account,
 		},

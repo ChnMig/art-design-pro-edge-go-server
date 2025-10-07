@@ -112,7 +112,7 @@ func FindAllTenants(tenants *[]SystemTenant) error {
 
 // ValidateTenant 验证租户状态和权限
 func ValidateTenant(tenant *SystemTenant) error {
-	if tenant.Status != 1 {
+	if tenant.Status != StatusEnabled {
 		return errors.New("tenant is disabled")
 	}
 
