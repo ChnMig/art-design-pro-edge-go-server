@@ -145,7 +145,7 @@ func FindMenuList(menu *SystemMenu, page, pageSize int) ([]SystemMenu, int64, er
 	}
 
 	// 构建排序
-	queryOrder := query.Order("sort DESC, id DESC")
+	queryOrder := query.Order("sort ASC, id ASC")
 
 	// 判断是否需要分页
 	if page == config.CancelPage && pageSize == config.CancelPageSize {

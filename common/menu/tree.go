@@ -222,17 +222,17 @@ func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.Sys
 	}
 }
 
-// 对菜单切片按 Sort 从大到小排序，Sort 为 0 则按 ID 从大到小排序
+// 对菜单切片按 Sort 从小到大排序，Sort 为 0 则按 ID 从小到大排序（0 视为最大值）
 func sortMenus(menus []system.SystemMenu) {
 	sort.Slice(menus, func(i, j int) bool {
 		// 如果两个菜单都有 Sort 值并且不为 0
 		if menus[i].Sort > 0 && menus[j].Sort > 0 {
-			// Sort 值不同时，按 Sort 从大到小排序
+			// Sort 值不同时，按 Sort 从小到大排序
 			if menus[i].Sort != menus[j].Sort {
-				return menus[i].Sort > menus[j].Sort // 从大到小排序
+				return menus[i].Sort < menus[j].Sort
 			}
-			// Sort 值相同时，按 ID 从大到小排序
-			return menus[i].ID > menus[j].ID
+			// Sort 值相同时，按 ID 从小到大排序
+			return menus[i].ID < menus[j].ID
 		}
 
 		// 如果只有其中一个有 Sort 值
@@ -244,8 +244,8 @@ func sortMenus(menus []system.SystemMenu) {
 			return false // j 排在前面
 		}
 
-		// 都没有 Sort 值，按 ID 从大到小排序
-		return menus[i].ID > menus[j].ID
+		// 都没有 Sort 值或都为 0，按 ID 从小到大排序
+		return menus[i].ID < menus[j].ID
 	})
 }
 
