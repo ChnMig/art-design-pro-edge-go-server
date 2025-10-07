@@ -10,7 +10,6 @@ type SystemTenant struct {
 	Contact     string             `json:"contact,omitempty"`                          // 联系人
 	Phone       string             `json:"phone,omitempty"`                            // 联系电话
 	Email       string             `json:"email,omitempty"`                            // 邮箱
-	Address     string             `json:"address,omitempty"`                          // 地址
 	Status      uint               `json:"status,omitempty" gorm:"default:1"`          // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
 	SystemUsers []SystemUser       `json:"users,omitempty" gorm:"foreignKey:TenantID"`
 	Departments []SystemDepartment `json:"departments,omitempty" gorm:"foreignKey:TenantID"`

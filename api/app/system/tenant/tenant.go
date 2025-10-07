@@ -45,7 +45,6 @@ func AddTenant(c *gin.Context) {
 		Contact string `json:"contact" form:"contact"`
 		Phone   string `json:"phone" form:"phone"`
 		Email   string `json:"email" form:"email"`
-		Address string `json:"address" form:"address"`
 		Status  uint   `json:"status" form:"status" binding:"required"`
 	}{}
 	if !middleware.CheckParam(params, c) {
@@ -58,7 +57,6 @@ func AddTenant(c *gin.Context) {
 		Contact: params.Contact,
 		Phone:   params.Phone,
 		Email:   params.Email,
-		Address: params.Address,
 		Status:  params.Status,
 	}
 
@@ -79,7 +77,6 @@ func UpdateTenant(c *gin.Context) {
 		Contact string `json:"contact" form:"contact"`
 		Phone   string `json:"phone" form:"phone"`
 		Email   string `json:"email" form:"email"`
-		Address string `json:"address" form:"address"`
 		Status  uint   `json:"status" form:"status" binding:"required"`
 	}{}
 	if !middleware.CheckParam(params, c) {
@@ -93,7 +90,6 @@ func UpdateTenant(c *gin.Context) {
 		Contact: params.Contact,
 		Phone:   params.Phone,
 		Email:   params.Email,
-		Address: params.Address,
 		Status:  params.Status,
 	}
 
