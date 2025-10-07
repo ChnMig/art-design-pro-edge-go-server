@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 
-	platform "api-server/api/app/platform"
 	platformMenu "api-server/api/app/platform/menu"
 	platformRole "api-server/api/app/platform/role"
 	"api-server/api/app/system/department"
@@ -63,8 +62,8 @@ func systemRouter(router *gin.RouterGroup) {
 		platformRouter.POST("/menu/auth", platformMenu.AddMenuAuth)
 		platformRouter.PUT("/menu/auth", platformMenu.UpdateMenuAuth)
 		platformRouter.DELETE("/menu/auth", platformMenu.DeleteMenuAuth)
-		platformRouter.GET("/menu/scope", platform.GetTenantMenuScope)
-		platformRouter.PUT("/menu/scope", platform.UpdateTenantMenuScope)
+		platformRouter.GET("/menu/scope", platformMenu.GetTenantMenuScope)
+		platformRouter.PUT("/menu/scope", platformMenu.UpdateTenantMenuScope)
 
 		platformRouter.GET("/role", platformRole.GetRoleList)
 		platformRouter.POST("/role", platformRole.AddRole)
