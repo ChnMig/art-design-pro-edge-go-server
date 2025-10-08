@@ -14,41 +14,15 @@ import (
     "api-server/db/pgdb/system"
 )
 
-// GetMenuList 获取平台菜单，并基于 tenant_id 标记该组织已拥有的菜单与权限
-// GET /api/v1/admin/platform/menu?tenant_id={id}
+// GetMenuList 获取平台菜单定义（不带租户 hasPermission 标记）。
+// GET /api/v1/admin/platform/menu
 func GetMenuList(c *gin.Context) {
-    tenantIDParam := c.Query("tenant_id")
-    if tenantIDParam == "" {
-        response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 为必填参数")
-        return
-    }
-    tenantIDValue, err := strconv.ParseUint(tenantIDParam, 10, 64)
-    if err != nil || tenantIDValue == 0 {
-        response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 参数无效")
-        return
-    }
-
-    // 查询全部菜单与权限
     menus, allAuths, err := system.GetMenuData()
     if err != nil {
         response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
         return
     }
-    // 查询该组织已授权的菜单范围（菜单级别）
-    scopeIDs, err := system.GetTenantMenuScopeIDs(uint(tenantIDValue))
-    if err != nil {
-        response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-        return
-    }
-    // 查询该组织已授权的按钮权限（按钮级别）。未配置则不派生，保持未勾选状态。
-    roleAuthIds, err := system.GetTenantAuthScopeIDs(uint(tenantIDValue))
-    if err != nil {
-        response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
-        return
-    }
-
-    // 构建带权限标记的菜单树（all=true 包含所有菜单）
-    menuTree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, scopeIDs, roleAuthIds, true)
+    menuTree := commonmenu.BuildMenuTree(menus, allAuths, true)
     response.ReturnData(c, menuTree)
 }
 
@@ -116,65 +90,10 @@ func AddMenu(c *gin.Context) {
 	response.ReturnData(c, menu)
 }
 
-// UpdateMenu 根据入参判断：当包含 tenant_id 和 menu_data 时，按组织范围保存
+// UpdateMenu 更新平台菜单定义
 // PUT /api/v1/admin/platform/menu
 func UpdateMenu(c *gin.Context) {
-    // 解析组织范围更新请求
-    scopeReq := &struct {
-        TenantID uint   `json:"tenant_id" form:"tenant_id"`
-        MenuData string `json:"menu_data" form:"menu_data"`
-    }{}
-    // 先不校验，尝试绑定；若 TenantID 存在则按范围更新处理
-    _ = c.ShouldBind(scopeReq)
-    if scopeReq.TenantID != 0 && scopeReq.MenuData != "" {
-        // 鉴权：平台管理员
-        if !middleware.IsSuperAdmin(c) {
-            response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以调整租户菜单范围")
-            return
-        }
-        // 反序列化 menu_data
-        var menuData []commonmenu.MenuResponse
-        if err := json.Unmarshal([]byte(scopeReq.MenuData), &menuData); err != nil {
-            response.ReturnError(c, response.INVALID_ARGUMENT, "menu_data 参数错误")
-            return
-        }
-        // 提取被勾选的菜单与按钮权限ID
-        menuIDs := extractCheckedMenuIDs(menuData)
-        authIDs := extractCheckedAuthIDs(menuData)
-
-        // 过滤按钮权限：仅保留属于已勾选菜单的按钮
-        if len(authIDs) > 0 && len(menuIDs) > 0 {
-            // 查询所有权限以确定归属菜单
-            _, allAuths, err := system.GetMenuData()
-            if err != nil {
-                response.ReturnError(c, response.DATA_LOSS, "查询菜单权限失败")
-                return
-            }
-            authIDs = filterAuthIDsByMenus(authIDs, menuIDs, allAuths)
-        }
-
-        // 保存菜单范围与按钮权限范围（全量覆盖）
-        if err := system.SaveTenantMenuScope(scopeReq.TenantID, menuIDs); err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "保存菜单范围失败")
-            return
-        }
-        if err := system.SaveTenantAuthScope(scopeReq.TenantID, authIDs); err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "保存按钮权限范围失败")
-            return
-        }
-
-        // 返回最新的带权限标记的完整树，便于前端直接更新状态
-        menus, allAuths, err := system.GetMenuData()
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
-            return
-        }
-        menuTree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, menuIDs, authIDs, true)
-        response.ReturnData(c, menuTree)
-        return
-    }
-
-    // 否则按“菜单定义更新”处理（与原先一致）
+    // 菜单定义更新
     params := &struct {
         ID            uint   `json:"id" form:"id" binding:"required"`
         Path          string `json:"path" form:"path" binding:"required"`
@@ -358,6 +277,84 @@ func DeleteMenuAuth(c *gin.Context) {
 		return
 	}
 	response.ReturnData(c, auth)
+}
+
+// GetTenantMenu 获取指定租户的菜单范围（带菜单与按钮权限标记）
+// GET /api/v1/admin/platform/menu/tenant?tenant_id={id}
+func GetTenantMenu(c *gin.Context) {
+    tenantIDParam := c.Query("tenant_id")
+    if tenantIDParam == "" {
+        response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 为必填参数")
+        return
+    }
+    tenantIDValue, err := strconv.ParseUint(tenantIDParam, 10, 64)
+    if err != nil || tenantIDValue == 0 {
+        response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 参数无效")
+        return
+    }
+    menus, allAuths, err := system.GetMenuData()
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
+        return
+    }
+    scopeIDs, err := system.GetTenantMenuScopeIDs(uint(tenantIDValue))
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+        return
+    }
+    roleAuthIds, err := system.GetTenantAuthScopeIDs(uint(tenantIDValue))
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
+        return
+    }
+    tree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, scopeIDs, roleAuthIds, true)
+    response.ReturnData(c, tree)
+}
+
+// UpdateTenantMenu 更新指定租户的菜单范围与按钮权限范围
+// PUT /api/v1/admin/platform/menu/tenant
+func UpdateTenantMenu(c *gin.Context) {
+    if !middleware.IsSuperAdmin(c) {
+        response.ReturnError(c, response.PERMISSION_DENIED, "仅平台管理员可以调整租户菜单范围")
+        return
+    }
+    req := &struct {
+        TenantID uint   `json:"tenant_id" binding:"required"`
+        MenuData string `json:"menu_data" binding:"required"`
+    }{}
+    if !middleware.CheckParam(req, c) {
+        return
+    }
+    var menuData []commonmenu.MenuResponse
+    if err := json.Unmarshal([]byte(req.MenuData), &menuData); err != nil {
+        response.ReturnError(c, response.INVALID_ARGUMENT, "menu_data 参数错误")
+        return
+    }
+    menuIDs := extractCheckedMenuIDs(menuData)
+    authIDs := extractCheckedAuthIDs(menuData)
+    if len(authIDs) > 0 && len(menuIDs) > 0 {
+        _, allAuths, err := system.GetMenuData()
+        if err != nil {
+            response.ReturnError(c, response.DATA_LOSS, "查询菜单权限失败")
+            return
+        }
+        authIDs = filterAuthIDsByMenus(authIDs, menuIDs, allAuths)
+    }
+    if err := system.SaveTenantMenuScope(req.TenantID, menuIDs); err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "保存菜单范围失败")
+        return
+    }
+    if err := system.SaveTenantAuthScope(req.TenantID, authIDs); err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "保存按钮权限范围失败")
+        return
+    }
+    menus, allAuths, err := system.GetMenuData()
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
+        return
+    }
+    tree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, menuIDs, authIDs, true)
+    response.ReturnData(c, tree)
 }
 
 // extractCheckedMenuIDs 递归提取树中被勾选的菜单ID

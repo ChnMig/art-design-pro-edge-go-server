@@ -46,10 +46,13 @@ func systemRouter(router *gin.RouterGroup) {
 
 	platformRouter := router.Group("/admin/platform", middleware.TokenVerify, middleware.SuperAdminVerify)
 	{
-    	platformRouter.GET("/menu", platformMenu.GetMenuList)
-    	platformRouter.POST("/menu", platformMenu.AddMenu)
-    	platformRouter.PUT("/menu", platformMenu.UpdateMenu)
-    	platformRouter.DELETE("/menu", platformMenu.DeleteMenu)
+        platformRouter.GET("/menu", platformMenu.GetMenuList)
+        platformRouter.POST("/menu", platformMenu.AddMenu)
+        platformRouter.PUT("/menu", platformMenu.UpdateMenu)
+        platformRouter.DELETE("/menu", platformMenu.DeleteMenu)
+        // 租户菜单范围
+        platformRouter.GET("/menu/tenant", platformMenu.GetTenantMenu)
+        platformRouter.PUT("/menu/tenant", platformMenu.UpdateTenantMenu)
     	platformRouter.GET("/menu/auth", platformMenu.GetMenuAuthList)
     	platformRouter.POST("/menu/auth", platformMenu.AddMenuAuth)
     	platformRouter.PUT("/menu/auth", platformMenu.UpdateMenuAuth)
