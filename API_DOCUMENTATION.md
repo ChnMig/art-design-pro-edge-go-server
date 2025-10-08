@@ -558,7 +558,29 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-当请求体包含超出平台授权范围的菜单节点时，将返回 `PERMISSION_DENIED`。
+范围校验规则（非超级管理员）：
+- 菜单范围：仅允许提交平台为该租户配置的“菜单范围”内的菜单；超出将返回 `PERMISSION_DENIED`（消息：菜单超出可分配范围）。
+- 按钮范围：仅允许提交该租户“按钮权限范围”内的按钮；若未配置按钮范围，则不允许提交任何按钮。超出将返回 `PERMISSION_DENIED`（消息：按钮权限超出可分配范围）。
+
+错误示例（菜单越权）
+```json
+{
+  "code": 403,
+  "status": "PERMISSION_DENIED",
+  "message": "菜单超出可分配范围",
+  "timestamp": 1640995200
+}
+```
+
+错误示例（按钮越权或未配置按钮范围时提交了按钮）
+```json
+{
+  "code": 403,
+  "status": "PERMISSION_DENIED",
+  "message": "按钮权限超出可分配范围",
+  "timestamp": 1640995200
+}
+```
 
 ### 5. 部门管理
 

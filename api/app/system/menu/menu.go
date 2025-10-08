@@ -108,22 +108,32 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
 		return
 	}
-	if !isSuperAdmin {
-		tenantID := middleware.GetTenantID(c)
-		if tenantID == 0 || tenantID != roleEntity.TenantID {
-			response.ReturnError(c, response.PERMISSION_DENIED, "无权调整该角色菜单")
-			return
-		}
-		scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
-		if err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-			return
-		}
-		if !validateMenuScope(menuData, scopeIDs) {
-			response.ReturnError(c, response.PERMISSION_DENIED, "菜单超出可分配范围")
-			return
-		}
-	}
+    if !isSuperAdmin {
+        tenantID := middleware.GetTenantID(c)
+        if tenantID == 0 || tenantID != roleEntity.TenantID {
+            response.ReturnError(c, response.PERMISSION_DENIED, "无权调整该角色菜单")
+            return
+        }
+        scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
+        if err != nil {
+            response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+            return
+        }
+        if !validateMenuScope(menuData, scopeIDs) {
+            response.ReturnError(c, response.PERMISSION_DENIED, "菜单超出可分配范围")
+            return
+        }
+        // 校验按钮权限是否在租户允许的按钮范围内
+        authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
+        if err != nil {
+            response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
+            return
+        }
+        if !validateAuthScope(menuData, authScopeIDs) {
+            response.ReturnError(c, response.PERMISSION_DENIED, "按钮权限超出可分配范围")
+            return
+        }
+    }
 	// 保存角色菜单数据
 	err = menu.SaveRoleMenu(params.RoleID, menuData)
 	if err != nil {
@@ -131,7 +141,7 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 		return
 	}
 
-	response.ReturnData(c, nil)
+    response.ReturnData(c, nil)
 }
 
 func validateMenuScope(menus []menu.MenuResponse, allowed []uint) bool {
@@ -155,4 +165,43 @@ func validateMenuScope(menus []menu.MenuResponse, allowed []uint) bool {
 		return true
 	}
 	return walk(menus)
+}
+
+// validateAuthScope 校验所有被勾选的按钮权限是否均在允许集合中
+func validateAuthScope(menus []menu.MenuResponse, allowed []uint) bool {
+    // 未配置按钮范围表示不允许勾选任何按钮
+    if len(allowed) == 0 {
+        // 只要发现任意一个被勾选的按钮即不合法
+        var anyChecked bool
+        var walk func(items []menu.MenuResponse)
+        walk = func(items []menu.MenuResponse) {
+            for _, m := range items {
+                for _, a := range m.Meta.AuthList {
+                    if a.HasPermission { anyChecked = true; return }
+                }
+                if len(m.Children) > 0 { walk(m.Children) }
+            }
+        }
+        walk(menus)
+        return !anyChecked
+    }
+    allowedSet := make(map[uint]struct{}, len(allowed))
+    for _, id := range allowed { allowedSet[id] = struct{}{} }
+    var okAll = true
+    var walk func(items []menu.MenuResponse)
+    walk = func(items []menu.MenuResponse) {
+        for _, m := range items {
+            for _, a := range m.Meta.AuthList {
+                if a.HasPermission {
+                    if _, ok := allowedSet[a.ID]; !ok {
+                        okAll = false
+                        return
+                    }
+                }
+            }
+            if len(m.Children) > 0 { walk(m.Children) }
+        }
+    }
+    walk(menus)
+    return okAll
 }
