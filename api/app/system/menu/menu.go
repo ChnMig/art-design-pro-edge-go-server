@@ -40,29 +40,47 @@ func GetMenuListByRoleID(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "查询角色菜单失败")
 		return
 	}
-	if !isSuperAdmin {
-		scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
-		if err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-			return
-		}
-		allMenus, allAuths = system.FilterMenusByIDs(allMenus, allAuths, scopeIDs)
-		if len(allMenus) == 0 {
-			roleMenuIds = []uint{}
-			roleAuthIds = []uint{}
-		} else {
-			allowedMenuIDs := make([]uint, 0, len(allMenus))
-			for _, m := range allMenus {
-				allowedMenuIDs = append(allowedMenuIDs, m.ID)
-			}
-			roleMenuIds = system.FilterUintIDs(roleMenuIds, allowedMenuIDs)
-			allowedAuthIDs := make([]uint, 0, len(allAuths))
-			for _, auth := range allAuths {
-				allowedAuthIDs = append(allowedAuthIDs, auth.ID)
-			}
-			roleAuthIds = system.FilterUintIDs(roleAuthIds, allowedAuthIDs)
-		}
-	}
+    if !isSuperAdmin {
+        scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
+        if err != nil {
+            response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+            return
+        }
+        // 先按“菜单范围”过滤可见的菜单与其按钮定义
+        allMenus, allAuths = system.FilterMenusByIDs(allMenus, allAuths, scopeIDs)
+
+        // 再按“按钮权限范围”过滤按钮
+        authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
+        if err != nil {
+            response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
+            return
+        }
+        if len(authScopeIDs) > 0 {
+            allowedAuthSet := make(map[uint]struct{}, len(authScopeIDs))
+            for _, id := range authScopeIDs { allowedAuthSet[id] = struct{}{} }
+            filteredAuths := make([]system.SystemMenuAuth, 0, len(allAuths))
+            for _, a := range allAuths {
+                if _, ok := allowedAuthSet[a.ID]; ok { filteredAuths = append(filteredAuths, a) }
+            }
+            allAuths = filteredAuths
+        } else {
+            allAuths = []system.SystemMenuAuth{}
+        }
+
+        // 过滤角色当前拥有的菜单/按钮集合到允许集合内
+        if len(allMenus) == 0 {
+            roleMenuIds = []uint{}
+            roleAuthIds = []uint{}
+        } else {
+            allowedMenuIDs := make([]uint, 0, len(allMenus))
+            for _, m := range allMenus { allowedMenuIDs = append(allowedMenuIDs, m.ID) }
+            roleMenuIds = system.FilterUintIDs(roleMenuIds, allowedMenuIDs)
+
+            allowedAuthIDs := make([]uint, 0, len(allAuths))
+            for _, auth := range allAuths { allowedAuthIDs = append(allowedAuthIDs, auth.ID) }
+            roleAuthIds = system.FilterUintIDs(roleAuthIds, allowedAuthIDs)
+        }
+    }
 	// 构建带权限标记的菜单树
 	menuTree := menu.BuildMenuTreeWithPermission(allMenus, allAuths, roleMenuIds, roleAuthIds, true)
 	response.ReturnData(c, menuTree)
