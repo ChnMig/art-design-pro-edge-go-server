@@ -170,25 +170,13 @@ func buildMenuChildren(parent *MenuResponse, allMenus []system.SystemMenu, allPe
 	// 对子菜单进行排序
 	sortMenus(childMenus)
 
-	// 处理排序后的子菜单
-	for _, menu := range childMenus {
-		child := convertMenuToResponse(menu)
-
-		// 为子菜单添加权限列表
-		for _, perm := range allPermissions {
-			if perm.MenuID == menu.ID {
-				child.Meta.AuthList = append(child.Meta.AuthList, MenuAuthResp{
-					ID:       perm.ID,
-					Title:    perm.Title,
-					AuthMark: perm.Mark,
-				})
-			}
-		}
-
-		// 递归处理这个子菜单的子菜单
-		buildMenuChildren(&child, allMenus, allPermissions, all)
-		parent.Children = append(parent.Children, child)
-	}
+    // 处理排序后的子菜单
+    for _, menu := range childMenus {
+        child := convertMenuToResponse(menu)
+        // 递归处理这个子菜单的子菜单（在递归函数开头会为当前 child 填充权限列表）
+        buildMenuChildren(&child, allMenus, allPermissions, all)
+        parent.Children = append(parent.Children, child)
+    }
 }
 
 // 递归构建带权限标记的菜单子项
@@ -220,27 +208,13 @@ func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.Sys
 	// 对子菜单进行排序
 	sortMenus(childMenus)
 
-	// 处理排序后的子菜单
-	for _, menu := range childMenus {
-		child := convertMenuToResponseWithPermission(menu, roleMenuIds)
-
-		// 为子菜单添加权限列表
-		for _, perm := range allPermissions {
-			if perm.MenuID == menu.ID {
-				authResp := MenuAuthResp{
-					ID:            perm.ID,
-					Title:         perm.Title,
-					AuthMark:      perm.Mark,
-					HasPermission: containsUint(roleAuthIds, perm.ID),
-				}
-				child.Meta.AuthList = append(child.Meta.AuthList, authResp)
-			}
-		}
-
-		// 递归处理这个子菜单的子菜单
-		buildMenuChildrenWithPermission(&child, allMenus, allPermissions, roleMenuIds, roleAuthIds, all)
-		parent.Children = append(parent.Children, child)
-	}
+    // 处理排序后的子菜单
+    for _, menu := range childMenus {
+        child := convertMenuToResponseWithPermission(menu, roleMenuIds)
+        // 递归处理这个子菜单的子菜单（在递归函数开头会为当前 child 填充权限列表并标记 HasPermission）
+        buildMenuChildrenWithPermission(&child, allMenus, allPermissions, roleMenuIds, roleAuthIds, all)
+        parent.Children = append(parent.Children, child)
+    }
 }
 
 // 对菜单切片按 Sort 从小到大排序，Sort 为 0 则按 ID 从小到大排序（0 视为最大值）
