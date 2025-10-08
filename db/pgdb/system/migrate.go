@@ -91,16 +91,15 @@ func migrateData(db *gorm.DB) error {
 			return nil
 		}
 
-		// 创建角色（默认租户）
-		roles := []SystemRole{
-			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "超级管理员", Desc: "拥有所有权限", Status: StatusEnabled},
-			{Model: gorm.Model{ID: 2}, TenantID: 1, Name: "普通用户", Desc: "普通用户", Status: StatusEnabled},
-		}
-		err = tx.Create(&roles).Error
-		if err != nil {
-			zap.L().Error("failed to create role", zap.Error(err))
-			return err
-		}
+        // 创建角色（默认租户）仅保留“超级管理员”
+        roles := []SystemRole{
+            {Model: gorm.Model{ID: 1}, TenantID: 1, Name: "超级管理员", Desc: "拥有所有权限", Status: StatusEnabled},
+        }
+        err = tx.Create(&roles).Error
+        if err != nil {
+            zap.L().Error("failed to create role", zap.Error(err))
+            return err
+        }
 
 		// 为角色分配菜单权限
 		// 超级管理员拥有所有菜单权限
@@ -122,32 +121,7 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to associate menus with admin role", zap.Error(err))
 			return err
 		}
-		// 为普通用户分配首页菜单
-		normalRole := SystemRole{}
-		err = tx.First(&normalRole, 2).Error
-		if err != nil {
-			zap.L().Error("failed to find normal role", zap.Error(err))
-			return err
-		}
-		// 为普通用户分配工作台和分析页菜单
-		var dashboardMenu SystemMenu
-		err = tx.First(&dashboardMenu, 1).Error
-		if err != nil {
-			zap.L().Error("failed to find dashboard menu", zap.Error(err))
-			return err
-		}
-        var systemMenusForTenant []SystemMenu
-        // 普通用户默认拥有：系统菜单（菜单/角色/部门/用户）
-        if err := tx.Where("id IN ?", []uint{6, 7, 8, 9, 10}).Find(&systemMenusForTenant).Error; err != nil {
-            zap.L().Error("failed to find system menus for default tenant", zap.Error(err))
-            return err
-        }
-        systemMenusForTenant = append(systemMenusForTenant, dashboardMenu)
-		err = tx.Model(&normalRole).Association("SystemMenus").Append(systemMenusForTenant)
-		if err != nil {
-			zap.L().Error("failed to associate console and analysis menus with normal role", zap.Error(err))
-			return err
-		}
+        // 移除默认“普通用户”角色及其权限分配，留给超级管理员自定义创建
         // 默认租户可访问的菜单范围：授权所有页面
         allMenuScopes := make([]SystemTenantMenuScope, 0, len(allMenus))
         for _, m := range allMenus {
