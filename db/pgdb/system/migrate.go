@@ -19,6 +19,7 @@ func migrateTable(db *gorm.DB) error {
         &SystemUser{},
         &SystemUserLoginLog{},
         &SystemTenantMenuScope{},
+        &SystemTenantAuthScope{},
 	)
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
@@ -176,7 +177,7 @@ func migrateData(db *gorm.DB) error {
 func resetSequences(db *gorm.DB) error {
     tables := []string{
         "system_tenants", "system_menus", "system_roles", "system_departments", "system_users",
-        "system_menu_auths", "system_tenant_menu_scopes",
+        "system_menu_auths", "system_tenant_menu_scopes", "system_tenant_auth_scopes",
     }
 
 	for _, table := range tables {

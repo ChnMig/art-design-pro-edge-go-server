@@ -97,7 +97,14 @@ type SystemUserLoginLog struct {
 
 // SystemTenantMenuScope 定义每个租户可用的最大菜单范围
 type SystemTenantMenuScope struct {
-	gorm.Model
-	TenantID uint `json:"tenant_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
-	MenuID   uint `json:"menu_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
+    gorm.Model
+    TenantID uint `json:"tenant_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
+    MenuID   uint `json:"menu_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
+}
+
+// SystemTenantAuthScope 定义每个租户可用的按钮权限范围
+type SystemTenantAuthScope struct {
+    gorm.Model
+    TenantID uint `json:"tenant_id,omitempty" gorm:"not null;index:idx_tenant_auth,uniqueIndex:idx_tenant_auth"`
+    AuthID   uint `json:"auth_id,omitempty" gorm:"not null;index:idx_tenant_auth,uniqueIndex:idx_tenant_auth"`
 }

@@ -40,9 +40,13 @@ func GetMenuList(c *gin.Context) {
         response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
         return
     }
-    // 组织按钮权限按菜单范围派生：属于范围内菜单的按钮标记为已拥有
-    roleAuthIds := make([]uint, 0)
-    if len(scopeIDs) > 0 {
+    // 查询该组织已授权的按钮权限（按钮级别）。若未配置，则回退为“按菜单范围派生全部按钮”。
+    roleAuthIds, err := system.GetTenantAuthScopeIDs(uint(tenantIDValue))
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
+        return
+    }
+    if len(roleAuthIds) == 0 && len(scopeIDs) > 0 {
         for _, a := range allAuths {
             for _, mid := range scopeIDs {
                 if a.MenuID == mid {
@@ -144,13 +148,39 @@ func UpdateMenu(c *gin.Context) {
             response.ReturnError(c, response.INVALID_ARGUMENT, "menu_data 参数错误")
             return
         }
-        // 提取被勾选的菜单ID
+        // 提取被勾选的菜单与按钮权限ID
         menuIDs := extractCheckedMenuIDs(menuData)
+        authIDs := extractCheckedAuthIDs(menuData)
+
+        // 过滤按钮权限：仅保留属于已勾选菜单的按钮
+        if len(authIDs) > 0 && len(menuIDs) > 0 {
+            // 查询所有权限以确定归属菜单
+            _, allAuths, err := system.GetMenuData()
+            if err != nil {
+                response.ReturnError(c, response.DATA_LOSS, "查询菜单权限失败")
+                return
+            }
+            authIDs = filterAuthIDsByMenus(authIDs, menuIDs, allAuths)
+        }
+
+        // 保存菜单范围与按钮权限范围（全量覆盖）
         if err := system.SaveTenantMenuScope(scopeReq.TenantID, menuIDs); err != nil {
             response.ReturnError(c, response.DATA_LOSS, "保存菜单范围失败")
             return
         }
-        response.ReturnData(c, gin.H{"tenant_id": scopeReq.TenantID, "menu_ids": menuIDs})
+        if err := system.SaveTenantAuthScope(scopeReq.TenantID, authIDs); err != nil {
+            response.ReturnError(c, response.DATA_LOSS, "保存按钮权限范围失败")
+            return
+        }
+
+        // 返回最新的带权限标记的完整树，便于前端直接更新状态
+        menus, allAuths, err := system.GetMenuData()
+        if err != nil {
+            response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
+            return
+        }
+        menuTree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, menuIDs, authIDs, true)
+        response.ReturnData(c, menuTree)
         return
     }
 
@@ -356,4 +386,51 @@ func extractCheckedMenuIDs(tree []commonmenu.MenuResponse) []uint {
     }
     walk(tree)
     return result
+}
+
+// extractCheckedAuthIDs 递归提取树中被勾选的按钮权限ID
+func extractCheckedAuthIDs(tree []commonmenu.MenuResponse) []uint {
+    var result []uint
+    var walk func(items []commonmenu.MenuResponse)
+    walk = func(items []commonmenu.MenuResponse) {
+        for _, m := range items {
+            if len(m.Meta.AuthList) > 0 {
+                for _, a := range m.Meta.AuthList {
+                    if a.HasPermission {
+                        result = append(result, a.ID)
+                    }
+                }
+            }
+            if len(m.Children) > 0 {
+                walk(m.Children)
+            }
+        }
+    }
+    walk(tree)
+    return result
+}
+
+// filterAuthIDsByMenus 过滤按钮权限，仅保留属于提供菜单集合的权限
+func filterAuthIDsByMenus(authIDs []uint, menuIDs []uint, allAuths []system.SystemMenuAuth) []uint {
+    if len(authIDs) == 0 || len(menuIDs) == 0 {
+        return []uint{}
+    }
+    menuSet := make(map[uint]struct{}, len(menuIDs))
+    for _, mid := range menuIDs {
+        menuSet[mid] = struct{}{}
+    }
+    // 建立 authID -> menuID 映射
+    authToMenu := make(map[uint]uint, len(allAuths))
+    for _, a := range allAuths {
+        authToMenu[a.ID] = a.MenuID
+    }
+    out := make([]uint, 0, len(authIDs))
+    for _, aid := range authIDs {
+        if mid, ok := authToMenu[aid]; ok {
+            if _, allowed := menuSet[mid]; allowed {
+                out = append(out, aid)
+            }
+        }
+    }
+    return out
 }
