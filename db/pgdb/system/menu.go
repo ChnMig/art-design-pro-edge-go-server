@@ -80,20 +80,20 @@ func GetMenuDataByRoleID(roleID uint) ([]SystemMenu, []SystemMenuAuth, []uint, [
 
 // 新增一个菜单
 func AddMenu(menu *SystemMenu) error {
-	if err := pgdb.GetClient().Create(&menu).Error; err != nil {
-		zap.L().Error("failed to create menu", zap.Error(err))
-		return err
-	}
-	return nil
+    if err := pgdb.GetClient().Create(menu).Error; err != nil {
+        zap.L().Error("failed to create menu", zap.Error(err))
+        return err
+    }
+    return nil
 }
 
 // 删除一个菜单
 func DeleteMenu(menu *SystemMenu) error {
-	if err := pgdb.GetClient().Delete(&menu).Error; err != nil {
-		zap.L().Error("failed to delete menu", zap.Error(err))
-		return err
-	}
-	return nil
+    if err := pgdb.GetClient().Delete(menu).Error; err != nil {
+        zap.L().Error("failed to delete menu", zap.Error(err))
+        return err
+    }
+    return nil
 }
 
 func UpdateMenu(menu *SystemMenu) error {
