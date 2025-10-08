@@ -40,21 +40,11 @@ func GetMenuList(c *gin.Context) {
         response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
         return
     }
-    // 查询该组织已授权的按钮权限（按钮级别）。若未配置，则回退为“按菜单范围派生全部按钮”。
+    // 查询该组织已授权的按钮权限（按钮级别）。未配置则不派生，保持未勾选状态。
     roleAuthIds, err := system.GetTenantAuthScopeIDs(uint(tenantIDValue))
     if err != nil {
         response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
         return
-    }
-    if len(roleAuthIds) == 0 && len(scopeIDs) > 0 {
-        for _, a := range allAuths {
-            for _, mid := range scopeIDs {
-                if a.MenuID == mid {
-                    roleAuthIds = append(roleAuthIds, a.ID)
-                    break
-                }
-            }
-        }
     }
 
     // 构建带权限标记的菜单树（all=true 包含所有菜单）

@@ -474,7 +474,7 @@ Authorization: Bearer {your_jwt_token}
 - **查询参数：** `tenant_id`（必填）
 - **请求头：** `Authorization: Bearer {token}`
 
-接口返回所有菜单与其权限列表，并对属于该租户范围内的菜单（及其下的按钮权限）设置 `hasPermission = true` 标记，便于前端直接呈现勾选状态。
+接口返回所有菜单与其权限列表，并对属于该租户范围内的菜单设置 `hasPermission = true`。按钮权限的勾选状态根据“租户按钮权限范围”单独标记；若未配置按钮范围，则按钮均为未勾选。
 
 #### 3.2 新增平台菜单（定义）
 
@@ -507,7 +507,7 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-当 `menu_data` 中某节点 `hasPermission` 为 `true` 时，该菜单会被加入该租户的范围。按钮权限的 `hasPermission` 仅用于呈现；目前租户范围按“菜单级别”存储，按钮权限将根据已授权菜单自动标记允许。
+当 `menu_data` 中某节点 `hasPermission` 为 `true` 时，该菜单会被加入该租户的范围。同时会保存被勾选的按钮权限为“租户按钮权限范围”；未勾选的按钮不会被派生为选中，即使其所属菜单被选中。
 
 #### 3.4 删除平台菜单（定义）
 
