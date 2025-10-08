@@ -325,21 +325,17 @@ func UpdateTenantMenu(c *gin.Context) {
     if !middleware.CheckParam(req, c) {
         return
     }
+    // 全量覆盖：解析为完整菜单树响应结构
     var menuData []commonmenu.MenuResponse
     if err := json.Unmarshal([]byte(req.MenuData), &menuData); err != nil {
         response.ReturnError(c, response.INVALID_ARGUMENT, "menu_data 参数错误")
         return
     }
+    // 从全量树中直接提取被勾选的菜单与按钮权限
     menuIDs := extractCheckedMenuIDs(menuData)
     authIDs := extractCheckedAuthIDs(menuData)
-    if len(authIDs) > 0 && len(menuIDs) > 0 {
-        _, allAuths, err := system.GetMenuData()
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "查询菜单权限失败")
-            return
-        }
-        authIDs = filterAuthIDsByMenus(authIDs, menuIDs, allAuths)
-    }
+    // 与角色接口对齐：按钮权限可独立于菜单勾选存在（不强制派生或过滤）
+
     if err := system.SaveTenantMenuScope(req.TenantID, menuIDs); err != nil {
         response.ReturnError(c, response.DATA_LOSS, "保存菜单范围失败")
         return
@@ -356,6 +352,9 @@ func UpdateTenantMenu(c *gin.Context) {
     tree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, menuIDs, authIDs, true)
     response.ReturnData(c, tree)
 }
+
+// 用于解析增量提交的结构（区分布尔字段是否出现）
+// 清理：不再使用增量补丁结构，回退为全量覆盖模式
 
 // extractCheckedMenuIDs 递归提取树中被勾选的菜单ID
 func extractCheckedMenuIDs(tree []commonmenu.MenuResponse) []uint {
