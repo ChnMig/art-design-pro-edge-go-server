@@ -540,14 +540,14 @@ Authorization: Bearer {your_jwt_token}
   "status": "OK",
   "data": [
     {
-      "id": 6,
+      "id": 5,
       "name": "系统管理",
       "path": "/system",
       "icon": "&#xe72b;",
       "children": [
-        { "id": 7, "name": "角色管理", "path": "/system/role" },
-        { "id": 8, "name": "部门管理", "path": "/system/department" },
-        { "id": 9, "name": "用户管理", "path": "/system/user" }
+        { "id": 6, "name": "角色管理", "path": "/system/role" },
+        { "id": 7, "name": "部门管理", "path": "/system/department" },
+        { "id": 8, "name": "用户管理", "path": "/system/user" }
       ]
     }
   ],
@@ -570,7 +570,7 @@ Authorization: Bearer {your_jwt_token}
 ```json
 {
   "role_id": 2,
-  "menu_data": "[ { \"id\":7, \"hasPermission\":true } ]"
+  "menu_data": "[ { \"id\":6, \"hasPermission\":true } ]"
 }
 ```
 
