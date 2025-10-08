@@ -344,6 +344,11 @@ func UpdateTenantMenu(c *gin.Context) {
         response.ReturnError(c, response.DATA_LOSS, "保存按钮权限范围失败")
         return
     }
+    // 同步清理：移除该租户下角色中超出新范围的角色-菜单/角色-按钮关联
+    if err := system.PruneTenantRoleAssociations(req.TenantID, menuIDs, authIDs); err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "清理租户角色权限失败")
+        return
+    }
     menus, allAuths, err := system.GetMenuData()
     if err != nil {
         response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
