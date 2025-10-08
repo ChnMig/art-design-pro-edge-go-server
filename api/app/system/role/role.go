@@ -24,29 +24,13 @@ func GetRoleList(c *gin.Context) {
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
 
-	isSuperAdmin := middleware.IsSuperAdmin(c)
-	currentTenantID := middleware.GetTenantID(c)
-
-	var targetTenantID uint
-	if isSuperAdmin {
-		tenantIDParam := c.Query("tenant_id")
-		if tenantIDParam == "" {
-			response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 为必填参数")
-			return
-		}
-		idValue, err := strconv.ParseUint(tenantIDParam, 10, 64)
-		if err != nil || idValue == 0 {
-			response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 参数无效")
-			return
-		}
-		targetTenantID = uint(idValue)
-	} else {
-		if currentTenantID == 0 {
-			response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
-			return
-		}
-		targetTenantID = currentTenantID
-	}
+    // 从 JWT 中获取租户 ID，系统侧不再需要前端传 tenant_id
+    currentTenantID := middleware.GetTenantID(c)
+    if currentTenantID == 0 {
+        response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+        return
+    }
+    targetTenantID := currentTenantID
 
 	role := system.SystemRole{
 		TenantID: targetTenantID,
