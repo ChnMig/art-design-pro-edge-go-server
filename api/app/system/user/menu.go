@@ -24,40 +24,39 @@ func GetUserMenuList(c *gin.Context) {
         return
     }
 
-    // 非平台超级管理员需受“租户菜单范围”限制
-    if !middleware.IsSuperAdmin(c) {
-        tenantID := middleware.GetTenantID(c)
-        if tenantID == 0 {
-            response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
-            return
-        }
-        scopeIDs, err := system.GetTenantMenuScopeIDs(tenantID)
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-            return
-        }
-        // 在范围内过滤用户可见菜单与按钮权限
-        roleMenus, rolePermissions = system.FilterMenusByIDs(roleMenus, rolePermissions, scopeIDs)
+    // 所有用户（包括超级管理员）均受“租户菜单范围/按钮范围”限制；
+    // 超级管理员之所以通常看到全部菜单，是因为默认为其租户配置了全量范围。
+    tenantID := middleware.GetTenantID(c)
+    if tenantID == 0 {
+        response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+        return
+    }
+    scopeIDs, err := system.GetTenantMenuScopeIDs(tenantID)
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+        return
+    }
+    // 在范围内过滤用户可见菜单与按钮权限
+    roleMenus, rolePermissions = system.FilterMenusByIDs(roleMenus, rolePermissions, scopeIDs)
 
-        // 进一步按“租户按钮权限范围”过滤按钮
-        authScopeIDs, err := system.GetTenantAuthScopeIDs(tenantID)
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
-            return
+    // 进一步按“租户按钮权限范围”过滤按钮
+    authScopeIDs, err := system.GetTenantAuthScopeIDs(tenantID)
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
+        return
+    }
+    if len(authScopeIDs) > 0 {
+        // 构造集合以便过滤 rolePermissions
+        allowed := make(map[uint]struct{}, len(authScopeIDs))
+        for _, id := range authScopeIDs { allowed[id] = struct{}{} }
+        filtered := make([]system.SystemMenuAuth, 0, len(rolePermissions))
+        for _, a := range rolePermissions {
+            if _, ok := allowed[a.ID]; ok { filtered = append(filtered, a) }
         }
-        if len(authScopeIDs) > 0 {
-            // 构造集合以便过滤 rolePermissions
-            allowed := make(map[uint]struct{}, len(authScopeIDs))
-            for _, id := range authScopeIDs { allowed[id] = struct{}{} }
-            filtered := make([]system.SystemMenuAuth, 0, len(rolePermissions))
-            for _, a := range rolePermissions {
-                if _, ok := allowed[a.ID]; ok { filtered = append(filtered, a) }
-            }
-            rolePermissions = filtered
-        } else {
-            // 未配置按钮范围则全部按钮不勾选
-            rolePermissions = []system.SystemMenuAuth{}
-        }
+        rolePermissions = filtered
+    } else {
+        // 未配置按钮范围则全部按钮不勾选
+        rolePermissions = []system.SystemMenuAuth{}
     }
 
     // 提取（过滤后的）菜单ID与按钮权限ID

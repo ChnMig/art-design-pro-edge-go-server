@@ -28,58 +28,58 @@ func GetMenuListByRoleID(c *gin.Context) {
 		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
 		return
 	}
-	if !isSuperAdmin {
-		if currentTenantID == 0 || roleEntity.TenantID != currentTenantID {
-			response.ReturnError(c, response.PERMISSION_DENIED, "无权查看该角色菜单")
-			return
-		}
-	}
+    if !isSuperAdmin {
+        if currentTenantID == 0 || roleEntity.TenantID != currentTenantID {
+            response.ReturnError(c, response.PERMISSION_DENIED, "无权查看该角色菜单")
+            return
+        }
+    }
 	// 查询菜单数据
 	allMenus, allAuths, roleMenuIds, roleAuthIds, err := system.GetMenuDataByRoleID(params.RoleID)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询角色菜单失败")
 		return
 	}
-    if !isSuperAdmin {
-        scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-            return
-        }
-        // 先按“菜单范围”过滤可见的菜单与其按钮定义
-        allMenus, allAuths = system.FilterMenusByIDs(allMenus, allAuths, scopeIDs)
+    // 无论是否超级管理员，查询角色菜单时均按“租户菜单范围/按钮范围”限制显示，
+    // 以避免展示超出可分配范围的菜单造成混淆。
+    scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+        return
+    }
+    // 先按“菜单范围”过滤可见的菜单与其按钮定义
+    allMenus, allAuths = system.FilterMenusByIDs(allMenus, allAuths, scopeIDs)
 
-        // 再按“按钮权限范围”过滤按钮
-        authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
-            return
+    // 再按“按钮权限范围”过滤按钮
+    authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
+        return
+    }
+    if len(authScopeIDs) > 0 {
+        allowedAuthSet := make(map[uint]struct{}, len(authScopeIDs))
+        for _, id := range authScopeIDs { allowedAuthSet[id] = struct{}{} }
+        filteredAuths := make([]system.SystemMenuAuth, 0, len(allAuths))
+        for _, a := range allAuths {
+            if _, ok := allowedAuthSet[a.ID]; ok { filteredAuths = append(filteredAuths, a) }
         }
-        if len(authScopeIDs) > 0 {
-            allowedAuthSet := make(map[uint]struct{}, len(authScopeIDs))
-            for _, id := range authScopeIDs { allowedAuthSet[id] = struct{}{} }
-            filteredAuths := make([]system.SystemMenuAuth, 0, len(allAuths))
-            for _, a := range allAuths {
-                if _, ok := allowedAuthSet[a.ID]; ok { filteredAuths = append(filteredAuths, a) }
-            }
-            allAuths = filteredAuths
-        } else {
-            allAuths = []system.SystemMenuAuth{}
-        }
+        allAuths = filteredAuths
+    } else {
+        allAuths = []system.SystemMenuAuth{}
+    }
 
-        // 过滤角色当前拥有的菜单/按钮集合到允许集合内
-        if len(allMenus) == 0 {
-            roleMenuIds = []uint{}
-            roleAuthIds = []uint{}
-        } else {
-            allowedMenuIDs := make([]uint, 0, len(allMenus))
-            for _, m := range allMenus { allowedMenuIDs = append(allowedMenuIDs, m.ID) }
-            roleMenuIds = system.FilterUintIDs(roleMenuIds, allowedMenuIDs)
+    // 过滤角色当前拥有的菜单/按钮集合到允许集合内
+    if len(allMenus) == 0 {
+        roleMenuIds = []uint{}
+        roleAuthIds = []uint{}
+    } else {
+        allowedMenuIDs := make([]uint, 0, len(allMenus))
+        for _, m := range allMenus { allowedMenuIDs = append(allowedMenuIDs, m.ID) }
+        roleMenuIds = system.FilterUintIDs(roleMenuIds, allowedMenuIDs)
 
-            allowedAuthIDs := make([]uint, 0, len(allAuths))
-            for _, auth := range allAuths { allowedAuthIDs = append(allowedAuthIDs, auth.ID) }
-            roleAuthIds = system.FilterUintIDs(roleAuthIds, allowedAuthIDs)
-        }
+        allowedAuthIDs := make([]uint, 0, len(allAuths))
+        for _, auth := range allAuths { allowedAuthIDs = append(allowedAuthIDs, auth.ID) }
+        roleAuthIds = system.FilterUintIDs(roleAuthIds, allowedAuthIDs)
     }
 	// 构建带权限标记的菜单树
 	menuTree := menu.BuildMenuTreeWithPermission(allMenus, allAuths, roleMenuIds, roleAuthIds, true)
@@ -94,7 +94,7 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	isSuperAdmin := middleware.IsSuperAdmin(c)
+    isSuperAdmin := middleware.IsSuperAdmin(c)
 	// 尝试将 params.MenuData 转成结构体
 	var menuData []menu.MenuResponse
 	err := json.Unmarshal([]byte(params.MenuData), &menuData)
@@ -103,36 +103,38 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 		return
 	}
 
-	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
-	if err := system.GetRole(&roleEntity); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
-		return
-	}
+    roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
+    if err := system.GetRole(&roleEntity); err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "角色不存在")
+        return
+    }
+    // 权限校验：非超管只能调整本租户角色
     if !isSuperAdmin {
         tenantID := middleware.GetTenantID(c)
         if tenantID == 0 || tenantID != roleEntity.TenantID {
             response.ReturnError(c, response.PERMISSION_DENIED, "无权调整该角色菜单")
             return
         }
-        scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-            return
-        }
-        if !validateMenuScope(menuData, scopeIDs) {
-            response.ReturnError(c, response.PERMISSION_DENIED, "菜单超出可分配范围")
-            return
-        }
-        // 校验按钮权限是否在租户允许的按钮范围内
-        authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
-        if err != nil {
-            response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
-            return
-        }
-        if !validateAuthScope(menuData, authScopeIDs) {
-            response.ReturnError(c, response.PERMISSION_DENIED, "按钮权限超出可分配范围")
-            return
-        }
+    }
+    // 选择范围校验：无论是否超管，均需在角色所属租户范围内
+    scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
+        return
+    }
+    if !validateMenuScope(menuData, scopeIDs) {
+        response.ReturnError(c, response.PERMISSION_DENIED, "菜单超出可分配范围")
+        return
+    }
+    // 按钮权限范围校验
+    authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
+    if err != nil {
+        response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
+        return
+    }
+    if !validateAuthScope(menuData, authScopeIDs) {
+        response.ReturnError(c, response.PERMISSION_DENIED, "按钮权限超出可分配范围")
+        return
     }
 	// 保存角色菜单数据
 	err = menu.SaveRoleMenu(params.RoleID, menuData)
