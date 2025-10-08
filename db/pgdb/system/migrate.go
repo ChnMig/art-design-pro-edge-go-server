@@ -140,18 +140,15 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to associate console and analysis menus with normal role", zap.Error(err))
 			return err
 		}
-		// 默认租户可访问的菜单范围包含系统管理模块
-		menuScopes := []SystemTenantMenuScope{
-			{TenantID: 1, MenuID: 6},
-			{TenantID: 1, MenuID: 7},
-			{TenantID: 1, MenuID: 8},
-			{TenantID: 1, MenuID: 9},
-			{TenantID: 1, MenuID: 10},
-		}
-		if err := tx.Create(&menuScopes).Error; err != nil {
-			zap.L().Error("failed to create default tenant menu scope", zap.Error(err))
-			return err
-		}
+        // 默认租户可访问的菜单范围：授权所有页面
+        allMenuScopes := make([]SystemTenantMenuScope, 0, len(allMenus))
+        for _, m := range allMenus {
+            allMenuScopes = append(allMenuScopes, SystemTenantMenuScope{TenantID: 1, MenuID: m.ID})
+        }
+        if err := tx.Create(&allMenuScopes).Error; err != nil {
+            zap.L().Error("failed to create default tenant full menu scope", zap.Error(err))
+            return err
+        }
 
         // 检查是否已有部门数据
 		tx.Model(&SystemDepartment{}).Count(&count)
