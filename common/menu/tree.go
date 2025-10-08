@@ -339,22 +339,23 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 
 // 递归提取有权限的菜单ID和权限ID
 func extractPermissions(menuTree []MenuResponse, menuIDs *[]uint, authIDs *[]uint) {
-	for _, menu := range menuTree {
-		// 如果菜单有权限，添加菜单ID
-		if menu.HasPermission {
-			*menuIDs = append(*menuIDs, menu.ID)
+    for _, menu := range menuTree {
+        // 菜单本身的授权
+        if menu.HasPermission {
+            *menuIDs = append(*menuIDs, menu.ID)
+        }
 
-			// 检查菜单的权限列表
-			for _, auth := range menu.Meta.AuthList {
-				if auth.HasPermission {
-					*authIDs = append(*authIDs, auth.ID)
-				}
-			}
-		}
+        // 按钮级别授权与菜单是否勾选解耦：
+        // 只要按钮被勾选，就记录其权限ID，避免因页面未勾选而误清空已选按钮权限。
+        for _, auth := range menu.Meta.AuthList {
+            if auth.HasPermission {
+                *authIDs = append(*authIDs, auth.ID)
+            }
+        }
 
-		// 递归处理子菜单
-		if len(menu.Children) > 0 {
-			extractPermissions(menu.Children, menuIDs, authIDs)
-		}
-	}
+        // 递归处理子菜单
+        if len(menu.Children) > 0 {
+            extractPermissions(menu.Children, menuIDs, authIDs)
+        }
+    }
 }
