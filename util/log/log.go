@@ -8,15 +8,17 @@ import (
 	runmodel "api-server/util/run-model"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var logger *zap.Logger
+var (
+	logger      *zap.Logger
+	monitorDone chan struct{}
+)
 
-// Creating Dev logger
-// DEV mode outputs logs to the terminal and is more readable
 func createDevLogger() *zap.Logger {
 	encoder := zap.NewDevelopmentEncoderConfig()
 	core := zapcore.NewTee(
@@ -26,8 +28,6 @@ func createDevLogger() *zap.Logger {
 	return zap.New(core, zap.AddCaller())
 }
 
-// Creating product logger
-// The product pattern outputs logs to a file and is architecturally structured, in json format.
 func createProductLogger(fileName string) *zap.Logger {
 	fileEncoder := zap.NewProductionEncoderConfig()
 	fileEncoder.EncodeTime = zapcore.ISO8601TimeEncoder
@@ -44,55 +44,73 @@ func createProductLogger(fileName string) *zap.Logger {
 	return zap.New(core, zap.AddCaller())
 }
 
-// SetLogger to prevent zap persistence problems after files are deleted
+// SetLogger 根据运行模式初始化 logger
 func SetLogger() {
-	// Get log mode
 	switch {
 	case runmodel.IsDev():
 		logger = createDevLogger()
-	case runmodel.IsRelease():
-		logger = createProductLogger(config.LogPath)
 	default:
 		logger = createProductLogger(config.LogPath)
 	}
 	zap.ReplaceGlobals(logger)
 }
 
-// Listen to log files
-// When the log file is deleted manually, we will automatically create a new one.
 func monitorFile() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		zap.L().Error("File listening error", zap.Error(err))
+		zap.L().Error("日志监听初始化失败", zap.Error(err))
 		return
 	}
 	defer watcher.Close()
-	err = watcher.Add(config.LogPath)
-	if err != nil {
-		zap.L().Error("File listening error", zap.Error(err))
+	if err = watcher.Add(config.LogPath); err != nil {
+		zap.L().Error("日志监听失败", zap.Error(err))
 	}
 	for {
 		select {
 		case event := <-watcher.Events:
-			if event.Has(fsnotify.Remove) {
-				zap.L().Warn("the log file was deleted")
-				SetLogger()
-			}
-			if event.Has(fsnotify.Rename) {
-				zap.L().Warn("log files are renamed and new files are monitored")
+			if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
+				zap.L().Warn("日志文件变更，重新初始化 logger")
 				SetLogger()
 			}
 		case err := <-watcher.Errors:
-			zap.L().Error("file listening error", zap.Error(err))
+			zap.L().Error("日志监听出错", zap.Error(err))
+		case <-monitorDone:
+			return
 		}
 	}
 }
 
 func GetLogger() *zap.Logger {
+	if logger == nil {
+		SetLogger()
+	}
 	return logger
 }
 
-func init() {
-	SetLogger()
-	go monitorFile()
+// StartMonitor 仅在生产环境监控日志文件
+func StartMonitor() {
+	if runmodel.IsRelease() {
+		monitorDone = make(chan struct{})
+		go monitorFile()
+	}
+}
+
+// StopMonitor 退出时清理监控并刷新缓冲
+func StopMonitor() {
+	if monitorDone != nil {
+		close(monitorDone)
+	}
+	if logger != nil {
+		_ = logger.Sync()
+	}
+}
+
+// FromContext 提供带 request 信息的 logger
+func FromContext(c *gin.Context) *zap.Logger {
+	if loggerVal, exists := c.Get("logger"); exists {
+		if contextLogger, ok := loggerVal.(*zap.Logger); ok {
+			return contextLogger
+		}
+	}
+	return GetLogger()
 }

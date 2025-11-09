@@ -23,10 +23,15 @@ func IssueID() string {
 	return fmt.Sprintf("%v", id)
 }
 
+// IssueMd5ID Deprecated: 请使用 GenerateID
 func IssueMd5ID() string {
+	return GenerateID()
+}
+
+// GenerateID 使用 Sonyflake + MD5 生成唯一 ID，用于请求追踪
+func GenerateID() string {
 	keyID := IssueID()
-	id := fmt.Sprintf("%x", md5.Sum([]byte(keyID)))
-	return id
+	return fmt.Sprintf("%x", md5.Sum([]byte(keyID)))
 }
 
 func init() {

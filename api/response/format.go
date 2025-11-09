@@ -11,6 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
+func getTraceID(c *gin.Context) string {
+	if traceID, exists := c.Get("X-Request-ID"); exists {
+		if id, ok := traceID.(string); ok {
+			return id
+		}
+	}
+	return ""
+}
+
 // 递归处理数据结构，转换时间和ID字段
 func processData(data interface{}) interface{} {
 	if data == nil {
@@ -122,6 +131,7 @@ func processData(data interface{}) interface{} {
 
 func ReturnErrorWithData(c *gin.Context, data responseData, result interface{}) {
 	data.Timestamp = time.Now().Unix()
+	data.TraceID = getTraceID(c)
 	data.Data = processData(result)
 	c.JSON(http.StatusOK, data)
 	// Return directly
@@ -132,6 +142,7 @@ func ReturnErrorWithData(c *gin.Context, data responseData, result interface{}) 
 func ReturnData(c *gin.Context, result interface{}) {
 	data := Success
 	data.Timestamp = time.Now().Unix()
+	data.TraceID = getTraceID(c)
 	data.Data = processData(result)
 	c.JSON(http.StatusOK, data)
 	// Return directly
@@ -142,6 +153,7 @@ func ReturnData(c *gin.Context, result interface{}) {
 func ReturnDataWithTotal(c *gin.Context, count int, result interface{}) {
 	data := Success
 	data.Timestamp = time.Now().Unix()
+	data.TraceID = getTraceID(c)
 	data.Data = processData(result)
 	data.Total = &count
 	c.JSON(http.StatusOK, data)
@@ -152,6 +164,7 @@ func ReturnDataWithTotal(c *gin.Context, count int, result interface{}) {
 // ResponseError 错误响应
 func ReturnError(c *gin.Context, data responseData, description string) {
 	data.Timestamp = time.Now().Unix()
+	data.TraceID = getTraceID(c)
 	data.Message = func() string {
 		if description == "" {
 			return data.Message
@@ -167,6 +180,7 @@ func ReturnError(c *gin.Context, data responseData, description string) {
 func ReturnSuccess(c *gin.Context) {
 	data := Success
 	data.Timestamp = time.Now().Unix()
+	data.TraceID = getTraceID(c)
 	c.JSON(http.StatusOK, data)
 	// Return directly
 	c.Abort()

@@ -11,6 +11,7 @@ import (
 	"api-server/api/app/system/tenant"
 	"api-server/api/app/system/user"
 	"api-server/api/middleware"
+	"api-server/config"
 )
 
 func systemRouter(router *gin.RouterGroup) {
@@ -46,17 +47,17 @@ func systemRouter(router *gin.RouterGroup) {
 
 	platformRouter := router.Group("/admin/platform", middleware.TokenVerify, middleware.SuperAdminVerify)
 	{
-        platformRouter.GET("/menu", platformMenu.GetMenuList)
-        platformRouter.POST("/menu", platformMenu.AddMenu)
-        platformRouter.PUT("/menu", platformMenu.UpdateMenu)
-        platformRouter.DELETE("/menu", platformMenu.DeleteMenu)
-        // 租户菜单范围
-        platformRouter.GET("/menu/tenant", platformMenu.GetTenantMenu)
-        platformRouter.PUT("/menu/tenant", platformMenu.UpdateTenantMenu)
-    	platformRouter.GET("/menu/auth", platformMenu.GetMenuAuthList)
-    	platformRouter.POST("/menu/auth", platformMenu.AddMenuAuth)
-    	platformRouter.PUT("/menu/auth", platformMenu.UpdateMenuAuth)
-    	platformRouter.DELETE("/menu/auth", platformMenu.DeleteMenuAuth)
+		platformRouter.GET("/menu", platformMenu.GetMenuList)
+		platformRouter.POST("/menu", platformMenu.AddMenu)
+		platformRouter.PUT("/menu", platformMenu.UpdateMenu)
+		platformRouter.DELETE("/menu", platformMenu.DeleteMenu)
+		// 租户菜单范围
+		platformRouter.GET("/menu/tenant", platformMenu.GetTenantMenu)
+		platformRouter.PUT("/menu/tenant", platformMenu.UpdateTenantMenu)
+		platformRouter.GET("/menu/auth", platformMenu.GetMenuAuthList)
+		platformRouter.POST("/menu/auth", platformMenu.AddMenuAuth)
+		platformRouter.PUT("/menu/auth", platformMenu.UpdateMenuAuth)
+		platformRouter.DELETE("/menu/auth", platformMenu.DeleteMenuAuth)
 
 		platformRouter.GET("/role", platformRole.GetRoleList)
 		platformRouter.POST("/role", platformRole.AddRole)
@@ -71,13 +72,23 @@ func systemRouter(router *gin.RouterGroup) {
 
 // InitApi init gshop app
 func InitApi() *gin.Engine {
-	// gin.Default uses Use by default. Two global middlewares are added, Logger(), Recovery(), Logger is to print logs, Recovery is panic and returns 500
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
-	// https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies
+	if config.RunModel == config.RunModelDevValue {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
 	router.SetTrustedProxies(nil)
-	// Add consent cross-domain middleware
+
+	if config.EnableRateLimit {
+		router.Use(middleware.IPRateLimit(config.GlobalRateLimit, config.GlobalRateBurst))
+	}
+	router.Use(middleware.SecurityHeaders())
+	router.Use(middleware.RequestID())
+	router.Use(middleware.BodySizeLimit(config.MaxBodySize))
 	router.Use(middleware.CorssDomainHandler())
+
 	// static
 	router.Static("/static", "./static")
 	// api-v1

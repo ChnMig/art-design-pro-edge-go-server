@@ -7,6 +7,7 @@ type responseData struct {
 	Status    string      `json:"status"`
 	Message   string      `json:"message,omitempty"`
 	Data      interface{} `json:"data,omitempty"`
+	TraceID   string      `json:"trace_id,omitempty"`
 	Timestamp int64       `json:"timestamp"`
 	Total     *int        `json:"total,omitempty"`
 }

@@ -25,10 +25,10 @@ var (
 	// log
 	LogDir        = filepath.Join(pathtool.GetCurrentDirectory(), "log")   // log directory
 	LogPath       = filepath.Join(LogDir, fmt.Sprintf("%s.log", SelfName)) // self log path
-	LogMaxSize    = 50                                                     // M
-	LogMaxBackups = 3                                                      // backups
-	LogMaxAge     = 30                                                     // days
-	LogModelDev   = "dev"                                                  // dev model
+	LogMaxSize    = 50
+	LogMaxBackups = 3
+	LogMaxAge     = 30
+	LogModelDev   = "dev"
 )
 
 // Configuration variables that will be loaded from YAML
@@ -36,6 +36,16 @@ var (
 	// jWT
 	JWTKey        string
 	JWTExpiration time.Duration
+	// server
+	MaxBodySize     int64
+	ShutdownTimeout time.Duration
+	ReadTimeout     time.Duration
+	WriteTimeout    time.Duration
+	IdleTimeout     time.Duration
+	MaxHeaderBytes  int
+	EnableRateLimit bool
+	GlobalRateLimit int
+	GlobalRateBurst int
 	// redis
 	RedisHost     string
 	RedisPassword string
@@ -47,11 +57,11 @@ var (
 	// rate limit config
 	LoginRatePerMinute int
 	LoginBurstSize     int
-    GeneralRatePerSec  int
-    GeneralBurstSize   int
-    // tenant config
-    TenantMinQueryLength int    // minimum input length for tenant code search
-    DefaultTenantCode    string // system default tenant code
+	GeneralRatePerSec  int
+	GeneralBurstSize   int
+	// tenant config
+	TenantMinQueryLength int
+	DefaultTenantCode    string
 )
 
 // page config

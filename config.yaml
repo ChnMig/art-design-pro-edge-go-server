@@ -1,10 +1,24 @@
 # Configuration file for the admin server
 server:
   port: 8080
+  max_body_size: "10MB"
+  max_header_bytes: 1048576
+  shutdown_timeout: "10s"
+  read_timeout: "30s"
+  write_timeout: "30s"
+  idle_timeout: "120s"
+  enable_rate_limit: false
+  global_rate_limit: 100
+  global_rate_burst: 200
 
 jwt:
   key: "CvXPiv34e2474LC5Xj7IP"  # Change this key before deployment
   expiration: "12h"  # JWT token expiration time
+
+log:
+  max_size: 50
+  max_backups: 3
+  max_age: 30
 
 redis:
   host: "127.0.0.1:6379"  # Redis server address
