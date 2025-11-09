@@ -1,5 +1,7 @@
 # Build
 bulid/
+bin/
+dist/
 *.exe
 
 # Environment variables and sensitive configuration
@@ -17,6 +19,7 @@ secrets/
 
 # Log
 *.log
+coverage.out
 
 # OSX dir files
 .DS_Store

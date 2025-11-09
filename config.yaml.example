@@ -1,0 +1,50 @@
+# HTTP Service 配置示例
+# 复制为 config.yaml 并替换占位值；所有字段都可用环境变量 HTTP_SERVICES_<SECTION>_<KEY> 覆盖
+
+server:
+  port: 8080
+  max_body_size: "10MB"
+  max_header_bytes: 1048576
+  shutdown_timeout: "10s"
+  read_timeout: "30s"
+  write_timeout: "30s"
+  idle_timeout: "120s"
+  enable_rate_limit: false
+  global_rate_limit: 100
+  global_rate_burst: 200
+
+jwt:
+  key: "YOUR_SECRET_KEY_HERE"   # 请务必替换为至少32位的强密钥
+  expiration: "12h"
+
+log:
+  max_size: 50
+  max_backups: 3
+  max_age: 30
+
+redis:
+  host: "127.0.0.1:6379"
+  password: "your-redis-password"
+
+postgres:
+  host: "127.0.0.1"
+  user: "postgres"
+  password: "your-postgres-password"
+  dbname: "server"
+  port: 5432
+  sslmode: "disable"
+  timezone: "Asia/Shanghai"
+
+admin:
+  password: "change-me"
+  salt: "your-password-salt"
+
+rate_limit:
+  login_rate_per_minute: 30
+  login_burst_size: 60
+  general_rate_per_sec: 100
+  general_burst_size: 200
+
+tenant:
+  min_query_length: 3
+  default_code: "platform"
