@@ -12,7 +12,7 @@ server:
   global_rate_burst: 200
 
 jwt:
-  key: "CvXPiv34e2474LC5Xj7IP"  # Change this key before deployment
+  key: "8hDe2TnbG3fQkiD82D2gqqlNVtusZl7q"  # Change this key before deployment
   expiration: "12h"  # JWT token expiration time
 
 log:
