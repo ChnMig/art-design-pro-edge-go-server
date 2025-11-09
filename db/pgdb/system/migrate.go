@@ -15,11 +15,11 @@ func migrateTable(db *gorm.DB) error {
 		&SystemDepartment{},
 		&SystemRole{},
 		&SystemMenu{},
-        &SystemMenuAuth{},
-        &SystemUser{},
-        &SystemUserLoginLog{},
-        &SystemTenantMenuScope{},
-        &SystemTenantAuthScope{},
+		&SystemMenuAuth{},
+		&SystemUser{},
+		&SystemUserLoginLog{},
+		&SystemTenantMenuScope{},
+		&SystemTenantAuthScope{},
 	)
 	if err != nil {
 		zap.L().Error("failed to migrate system model", zap.Error(err))
@@ -56,27 +56,27 @@ func migrateData(db *gorm.DB) error {
 			return nil
 		}
 
-        // 创建菜单（适配当前前端路由结构）
-        menus := []SystemMenu{
-            // 顶部一级：仪表盘
-            {Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/index/index", Title: "仪表盘", Icon: "&#xe721;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 1},
-            // 顶部一级：平台管理
-            {Model: gorm.Model{ID: 2}, Path: "/platform", Name: "Platform", Component: "/index/index", Title: "平台管理", Icon: "&#xe72b;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 2},
-            // 平台管理二级（去除“菜单范围”页面）
-            {Model: gorm.Model{ID: 3}, Path: "tenant", Name: "PlatformTenant", Component: "/platform/tenant/index", Title: "租户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 1},
-            {Model: gorm.Model{ID: 4}, Path: "menu", Name: "PlatformMenu", Component: "/platform/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 2},
-            // 顶部一级：系统管理
-            {Model: gorm.Model{ID: 5}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "&#xe72b;", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 3},
-            // 系统管理二级（不包含“菜单管理”，菜单仅平台管理可操作）
-            {Model: gorm.Model{ID: 6}, Path: "role", Name: "TenantRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 5, Sort: 1},
-            {Model: gorm.Model{ID: 7}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 5, Sort: 2},
-            {Model: gorm.Model{ID: 8}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 5, Sort: 3},
-            // 仪表盘子页
-            {Model: gorm.Model{ID: 9}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 1},
-            {Model: gorm.Model{ID: 10}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 2},
-            // 隐藏页
-            {Model: gorm.Model{ID: 11}, Path: "/private", Name: "Private", Component: "/index/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
-        }
+		// 创建菜单（适配当前前端路由结构）
+		menus := []SystemMenu{
+			// 顶部一级：仪表盘
+			{Model: gorm.Model{ID: 1}, Path: "/dashboard", Name: "Dashboard", Component: "/index/index", Title: "仪表盘", Icon: "ri-dashboard-line", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 1},
+			// 顶部一级：平台管理
+			{Model: gorm.Model{ID: 2}, Path: "/platform", Name: "Platform", Component: "/index/index", Title: "平台管理", Icon: "ri-settings-line", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 2},
+			// 平台管理二级（去除“菜单范围”页面）
+			{Model: gorm.Model{ID: 3}, Path: "tenant", Name: "PlatformTenant", Component: "/platform/tenant/index", Title: "租户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 1},
+			{Model: gorm.Model{ID: 4}, Path: "menu", Name: "PlatformMenu", Component: "/platform/menu/index", Title: "菜单管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 2, Sort: 2},
+			// 顶部一级：系统管理
+			{Model: gorm.Model{ID: 5}, Path: "/system", Name: "System", Component: "/index/index", Title: "系统管理", Icon: "ri-user-line", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 3},
+			// 系统管理二级（不包含“菜单管理”，菜单仅平台管理可操作）
+			{Model: gorm.Model{ID: 6}, Path: "role", Name: "TenantRole", Component: "/system/role/index", Title: "角色管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 5, Sort: 1},
+			{Model: gorm.Model{ID: 7}, Path: "department", Name: "SystemDepartment", Component: "/system/department/index", Title: "部门管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 5, Sort: 2},
+			{Model: gorm.Model{ID: 8}, Path: "user", Name: "SystemUser", Component: "/system/user/index", Title: "用户管理", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 5, Sort: 3},
+			// 仪表盘子页
+			{Model: gorm.Model{ID: 9}, Path: "console", Name: "DashboardConsole", Component: "/dashboard/console/index", Title: "工作台", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 1},
+			{Model: gorm.Model{ID: 10}, Path: "analysis", Name: "DashboardAnalysis", Component: "/dashboard/analysis/index", Title: "分析页", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 2, ParentID: 1, Sort: 2},
+			// 隐藏页
+			{Model: gorm.Model{ID: 11}, Path: "/private", Name: "Private", Component: "/index/index", Title: "隐藏页面", Icon: "", KeepAlive: 2, Status: StatusEnabled, Level: 1, ParentID: 0, Sort: 99, IsHide: 1},
+		}
 		err := tx.Create(&menus).Error
 		if err != nil {
 			zap.L().Error("failed to create menu", zap.Error(err))
@@ -90,15 +90,15 @@ func migrateData(db *gorm.DB) error {
 			return nil
 		}
 
-        // 创建角色（默认租户）仅保留“超级管理员”
-        roles := []SystemRole{
-            {Model: gorm.Model{ID: 1}, TenantID: 1, Name: "超级管理员", Desc: "拥有所有权限", Status: StatusEnabled},
-        }
-        err = tx.Create(&roles).Error
-        if err != nil {
-            zap.L().Error("failed to create role", zap.Error(err))
-            return err
-        }
+		// 创建角色（默认租户）仅保留“超级管理员”
+		roles := []SystemRole{
+			{Model: gorm.Model{ID: 1}, TenantID: 1, Name: "超级管理员", Desc: "拥有所有权限", Status: StatusEnabled},
+		}
+		err = tx.Create(&roles).Error
+		if err != nil {
+			zap.L().Error("failed to create role", zap.Error(err))
+			return err
+		}
 
 		// 为角色分配菜单权限
 		// 超级管理员拥有所有菜单权限
@@ -120,18 +120,18 @@ func migrateData(db *gorm.DB) error {
 			zap.L().Error("failed to associate menus with admin role", zap.Error(err))
 			return err
 		}
-        // 移除默认“普通用户”角色及其权限分配，留给超级管理员自定义创建
-        // 默认租户可访问的菜单范围：授权所有页面
-        allMenuScopes := make([]SystemTenantMenuScope, 0, len(allMenus))
-        for _, m := range allMenus {
-            allMenuScopes = append(allMenuScopes, SystemTenantMenuScope{TenantID: 1, MenuID: m.ID})
-        }
-        if err := tx.Create(&allMenuScopes).Error; err != nil {
-            zap.L().Error("failed to create default tenant full menu scope", zap.Error(err))
-            return err
-        }
+		// 移除默认“普通用户”角色及其权限分配，留给超级管理员自定义创建
+		// 默认租户可访问的菜单范围：授权所有页面
+		allMenuScopes := make([]SystemTenantMenuScope, 0, len(allMenus))
+		for _, m := range allMenus {
+			allMenuScopes = append(allMenuScopes, SystemTenantMenuScope{TenantID: 1, MenuID: m.ID})
+		}
+		if err := tx.Create(&allMenuScopes).Error; err != nil {
+			zap.L().Error("failed to create default tenant full menu scope", zap.Error(err))
+			return err
+		}
 
-        // 检查是否已有部门数据
+		// 检查是否已有部门数据
 		tx.Model(&SystemDepartment{}).Count(&count)
 		if count > 0 {
 			zap.L().Info("department data already exists, skipping department creation")
@@ -175,10 +175,10 @@ func migrateData(db *gorm.DB) error {
 }
 
 func resetSequences(db *gorm.DB) error {
-    tables := []string{
-        "system_tenants", "system_menus", "system_roles", "system_departments", "system_users",
-        "system_menu_auths", "system_tenant_menu_scopes", "system_tenant_auth_scopes",
-    }
+	tables := []string{
+		"system_tenants", "system_menus", "system_roles", "system_departments", "system_users",
+		"system_menu_auths", "system_tenant_menu_scopes", "system_tenant_auth_scopes",
+	}
 
 	for _, table := range tables {
 		seqName := table + "_id_seq"
