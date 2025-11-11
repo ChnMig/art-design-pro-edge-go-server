@@ -3,13 +3,13 @@ package admin
 import (
 	"github.com/gin-gonic/gin"
 
-	platformMenu "api-server/api/app/platform/menu"
-	platformRole "api-server/api/app/platform/role"
-	"api-server/api/app/system/department"
-	"api-server/api/app/system/menu"
-	"api-server/api/app/system/role"
-	"api-server/api/app/system/tenant"
-	"api-server/api/app/system/user"
+	platformMenu "api-server/api/app/v1/private/admin/platform/menu"
+	platformRole "api-server/api/app/v1/private/admin/platform/role"
+	"api-server/api/app/v1/private/admin/system/department"
+	"api-server/api/app/v1/private/admin/system/menu"
+	"api-server/api/app/v1/private/admin/system/role"
+	"api-server/api/app/v1/private/admin/system/tenant"
+	"api-server/api/app/v1/private/admin/system/user"
 	"api-server/api/middleware"
 )
 

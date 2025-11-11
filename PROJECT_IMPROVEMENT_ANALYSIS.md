@@ -134,7 +134,7 @@ func CorssDomainHandler() gin.HandlerFunc {
 
 **当前问题代码**:
 ```go
-// api/app/system/user/user.go - 处理器中包含业务逻辑
+// api/app/v1/private/admin/system/user/user.go - 处理器中包含业务逻辑
 func CreateUser(c *gin.Context) {
     var u AddUserRequest
     c.ShouldBindJSON(&u)
