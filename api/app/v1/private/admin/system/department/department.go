@@ -1,14 +1,11 @@
 package department
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/db/pgdb/system"
+	departmentdomain "api-server/domain/admin/department"
 )
 
 func AddDepartment(c *gin.Context) {
@@ -20,17 +17,16 @@ func AddDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	depatment := system.SystemDepartment{
+	department, err := departmentdomain.AddDepartment(departmentdomain.AddInput{
 		Name:   params.Name,
 		Status: uint(params.Status),
 		Sort:   uint(params.Sort),
-	}
-	err := system.AddDepartment(&depatment)
+	})
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加部门失败")
 		return
 	}
-	response.ReturnData(c, depatment)
+	response.ReturnData(c, department)
 }
 
 func UpdateDepartment(c *gin.Context) {
@@ -43,13 +39,12 @@ func UpdateDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	department := system.SystemDepartment{
-		Model:  gorm.Model{ID: params.ID},
+	department, err := departmentdomain.UpdateDepartment(departmentdomain.UpdateInput{
+		ID:     params.ID,
 		Name:   params.Name,
 		Status: uint(params.Status),
 		Sort:   uint(params.Sort),
-	}
-	err := system.UpdateDepartment(&department)
+	})
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新部门失败")
 		return
@@ -70,13 +65,11 @@ func GetDepartmentList(c *gin.Context) {
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
 
-	department := system.SystemDepartment{
+	// 调用带分页的查询函数
+	departments, total, err := departmentdomain.FindDepartmentList(departmentdomain.FindListQuery{
 		Name:   params.Name,
 		Status: params.Status,
-	}
-
-	// 调用带分页的查询函数
-	departments, total, err := system.FindDepartmentList(&department, page, pageSize)
+	}, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询部门失败")
 		return
@@ -93,29 +86,9 @@ func DeleteDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	department := system.SystemDepartment{Model: gorm.Model{ID: params.ID}}
-	err := system.GetDepartment(&department)
+	department, err := departmentdomain.DeleteDepartment(params.ID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.ReturnError(c, response.DATA_LOSS, "部门不存在")
-			return
-		}
-		response.ReturnError(c, response.DATA_LOSS, "查询部门失败")
-		return
-	}
-	// 检查部门下是否还有用户
-	var userCount int64
-	if err := system.CountUsersByDepartmentID(params.ID, &userCount); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "检查部门用户失败")
-		return
-	}
-	if userCount > 0 {
-		response.ReturnError(c, response.DATA_LOSS, "请先删除部门下的用户")
-		return
-	}
-	err = system.DeleteDepartment(&department)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "删除部门失败")
+		ReturnDomainError(c, err, "删除部门失败")
 		return
 	}
 	response.ReturnData(c, department)

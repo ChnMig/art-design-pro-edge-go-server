@@ -4,11 +4,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/db/pgdb/system"
+	roledomain "api-server/domain/admin/role"
 )
 
 func GetRoleList(c *gin.Context) {
@@ -32,14 +31,12 @@ func GetRoleList(c *gin.Context) {
 	}
 	targetTenantID := currentTenantID
 
-	role := system.SystemRole{
+	// 调用带分页的查询函数
+	roles, total, err := roledomain.FindRoleList(roledomain.FindListQuery{
 		TenantID: targetTenantID,
 		Name:     params.Name,
 		Status:   params.Status,
-	}
-
-	// 调用带分页的查询函数
-	roles, total, err := system.FindRoleList(&role, page, pageSize)
+	}, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "获取角色列表失败")
 		return
@@ -81,14 +78,12 @@ func AddRole(c *gin.Context) {
 		targetID = uint(idValue)
 	}
 
-	role := system.SystemRole{
+	role, err := roledomain.AddRole(roledomain.AddInput{
 		TenantID: targetID,
 		Name:     params.Name,
 		Status:   uint(params.Status),
 		Desc:     params.Desc,
-	}
-
-	err := system.AddRole(&role)
+	})
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加角色失败")
 		return
@@ -110,9 +105,9 @@ func UpdateRole(c *gin.Context) {
 	isSuperAdmin := middleware.IsSuperAdmin(c)
 	currentTenantID := middleware.GetTenantID(c)
 
-	originalRole := system.SystemRole{Model: gorm.Model{ID: params.ID}}
-	if err := system.GetRole(&originalRole); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
+	originalRole, err := roledomain.GetRole(params.ID)
+	if err != nil {
+		ReturnDomainError(c, err, "角色不存在")
 		return
 	}
 
@@ -130,14 +125,13 @@ func UpdateRole(c *gin.Context) {
 		targetTenantID = originalRole.TenantID
 	}
 
-	updatedRole := system.SystemRole{
-		Model:    gorm.Model{ID: params.ID},
+	updatedRole, err := roledomain.UpdateRole(roledomain.UpdateInput{
+		ID:       params.ID,
 		TenantID: targetTenantID,
 		Name:     params.Name,
 		Status:   uint(params.Status),
 		Desc:     params.Desc,
-	}
-	err := system.UpdateRole(&updatedRole)
+	})
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新角色失败")
 		return
@@ -152,21 +146,21 @@ func DeleteRole(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	role := system.SystemRole{Model: gorm.Model{ID: params.ID}}
-	if err := system.GetRole(&role); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
+	roleEntity, err := roledomain.GetRole(params.ID)
+	if err != nil {
+		ReturnDomainError(c, err, "角色不存在")
 		return
 	}
 	if !middleware.IsSuperAdmin(c) {
 		tenantID := middleware.GetTenantID(c)
-		if tenantID == 0 || role.TenantID != tenantID {
+		if tenantID == 0 || roleEntity.TenantID != tenantID {
 			response.ReturnError(c, response.PERMISSION_DENIED, "无权删除该角色")
 			return
 		}
 	}
-	if err := system.DeleteRole(&role); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "删除角色失败")
+	if err := roledomain.DeleteRole(params.ID); err != nil {
+		ReturnDomainError(c, err, "删除角色失败")
 		return
 	}
-	response.ReturnData(c, role)
+	response.ReturnData(c, roleEntity)
 }

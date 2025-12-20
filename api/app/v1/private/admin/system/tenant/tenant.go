@@ -2,11 +2,10 @@ package tenant
 
 import (
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/db/pgdb/system"
+	tenantdomain "api-server/domain/admin/tenant"
 )
 
 // FindTenant 查询租户列表
@@ -22,13 +21,12 @@ func FindTenant(c *gin.Context) {
 
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
-	tenant := system.SystemTenant{
+
+	tenants, total, err := tenantdomain.FindTenantList(tenantdomain.FindListQuery{
 		Code:   params.Code,
 		Name:   params.Name,
 		Status: params.Status,
-	}
-
-	tenants, total, err := system.FindTenantList(&tenant, page, pageSize)
+	}, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询租户失败")
 		return
@@ -51,16 +49,15 @@ func AddTenant(c *gin.Context) {
 		return
 	}
 
-	tenant := system.SystemTenant{
+	_, err := tenantdomain.AddTenant(tenantdomain.AddTenantInput{
 		Code:    params.Code,
 		Name:    params.Name,
 		Contact: params.Contact,
 		Phone:   params.Phone,
 		Email:   params.Email,
 		Status:  params.Status,
-	}
-
-	if err := system.AddTenant(&tenant); err != nil {
+	})
+	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加租户失败")
 		return
 	}
@@ -83,17 +80,15 @@ func UpdateTenant(c *gin.Context) {
 		return
 	}
 
-	tenant := system.SystemTenant{
-		Model:   gorm.Model{ID: params.ID},
+	if err := tenantdomain.UpdateTenant(tenantdomain.UpdateTenantInput{
+		ID:      params.ID,
 		Code:    params.Code,
 		Name:    params.Name,
 		Contact: params.Contact,
 		Phone:   params.Phone,
 		Email:   params.Email,
 		Status:  params.Status,
-	}
-
-	if err := system.UpdateTenant(&tenant); err != nil {
+	}); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新租户失败")
 		return
 	}
@@ -110,12 +105,8 @@ func DeleteTenant(c *gin.Context) {
 		return
 	}
 
-	tenant := system.SystemTenant{
-		Model: gorm.Model{ID: params.ID},
-	}
-
-	if err := system.DeleteTenant(&tenant); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "删除租户失败")
+	if err := tenantdomain.DeleteTenant(params.ID); err != nil {
+		ReturnDomainError(c, err, "删除租户失败")
 		return
 	}
 

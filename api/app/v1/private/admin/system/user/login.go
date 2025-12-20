@@ -1,14 +1,15 @@
 package user
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
 	"api-server/api/auth"
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/db/pgdb/system"
-	"api-server/db/rdb/captcha"
+	userdomain "api-server/domain/admin/user"
 )
 
 func Login(c *gin.Context) {
@@ -23,8 +24,7 @@ func Login(c *gin.Context) {
 		return
 	}
 	// 验证验证码
-	captchaVerify := captcha.GetRedisStore().Verify(params.CaptchaID, params.Captcha, true)
-	if !captchaVerify {
+	if !userdomain.VerifyCaptcha(params.CaptchaID, params.Captcha) {
 		response.ReturnError(c, response.INVALID_ARGUMENT, "验证码错误")
 		return
 	}
@@ -33,57 +33,39 @@ func Login(c *gin.Context) {
 	clientIP := c.ClientIP()
 
 	// 查询用户（多租户验证）
-	user, tenant, err := system.VerifyUser(params.TenantCode, params.Account, params.Password)
+	user, tenant, err := userdomain.VerifyLogin(userdomain.LoginInput{
+		TenantCode: params.TenantCode,
+		Account:    params.Account,
+		Password:   params.Password,
+	})
+
 	if err != nil {
-		zap.L().Error("查询用户失败", zap.Error(err))
-		// 记录登录失败日志（验证码正确但查询失败）
-		failedLog := system.SystemUserLoginLog{
+		_ = userdomain.CreateLoginLogFromInput(userdomain.LoginLogInput{
 			TenantCode:  params.TenantCode,
 			UserName:    params.Account,
-			Password:    "", // 安全：不记录密码
 			IP:          clientIP,
 			LoginStatus: "failed",
+		})
+
+		switch {
+		case errors.Is(err, userdomain.ErrInvalidCredentials):
+			response.ReturnError(c, response.INVALID_ARGUMENT, "账号或密码错误")
+		case errors.Is(err, userdomain.ErrUserDisabled):
+			response.ReturnError(c, response.INVALID_ARGUMENT, "账号已被禁用")
+		default:
+			zap.L().Error("查询用户失败", zap.Error(err))
+			response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		}
-		system.CreateLoginLog(&failedLog)
-		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
-		return
-	}
-	if user.ID == 0 {
-		// 记录登录失败日志（账号或密码错误）
-		failedLog := system.SystemUserLoginLog{
-			TenantCode:  params.TenantCode,
-			UserName:    params.Account,
-			Password:    "", // 安全：不记录密码
-			IP:          clientIP,
-			LoginStatus: "failed",
-		}
-		system.CreateLoginLog(&failedLog)
-		response.ReturnError(c, response.INVALID_ARGUMENT, "账号或密码错误")
-		return
-	}
-	if user.Status != system.StatusEnabled {
-		// 记录登录失败日志（账号已被禁用）
-		failedLog := system.SystemUserLoginLog{
-			TenantCode:  params.TenantCode,
-			UserName:    params.Account,
-			Password:    "", // 安全：不记录密码
-			IP:          clientIP,
-			LoginStatus: "failed",
-		}
-		system.CreateLoginLog(&failedLog)
-		response.ReturnError(c, response.INVALID_ARGUMENT, "账号已被禁用")
 		return
 	}
 
 	// 记录登录成功日志
-	successLog := system.SystemUserLoginLog{
+	_ = userdomain.CreateLoginLogFromInput(userdomain.LoginLogInput{
 		TenantCode:  params.TenantCode,
 		UserName:    params.Account,
-		Password:    "", // 安全：不记录密码
 		IP:          clientIP,
 		LoginStatus: "success",
-	}
-	system.CreateLoginLog(&successLog)
+	})
 	// 生成多租户token
 	token, err := auth.JWTIssue(user.ID, tenant.ID, user.Account)
 	if err != nil {
@@ -118,11 +100,10 @@ func FindLoginLogList(c *gin.Context) {
 	// 获取分页参数
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
-	log := system.SystemUserLoginLog{
+	logs, total, err := userdomain.FindLoginLogList(userdomain.FindLoginLogQuery{
 		IP:       params.IP,
-		UserName: params.Username,
-	}
-	logs, total, err := system.FindLoginLogList(&log, page, pageSize)
+		Username: params.Username,
+	}, page, pageSize)
 	if err != nil {
 		zap.L().Error("查询登录日志失败", zap.Error(err))
 		response.ReturnError(c, response.DATA_LOSS, "查询登录日志失败")

@@ -3,10 +3,6 @@ package menu
 import (
 	"sort"
 
-	"go.uber.org/zap"
-	"gorm.io/gorm"
-
-	"api-server/db/pgdb"
 	"api-server/db/pgdb/system"
 )
 
@@ -252,84 +248,4 @@ func containsUint(slice []uint, item uint) bool {
 		}
 	}
 	return false
-}
-
-func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
-	// 从menuTree中提取所有有权限的菜单ID和权限ID
-	var menuIDs []uint
-	var authIDs []uint
-
-	// 递归提取所有有权限的菜单ID和权限ID
-	extractPermissions(menuTree, &menuIDs, &authIDs)
-
-	// 使用事务更新数据库
-	return pgdb.GetClient().Transaction(func(tx *gorm.DB) error {
-		// 查询角色
-		var role system.SystemRole
-		if err := tx.First(&role, roleID).Error; err != nil {
-			zap.L().Error("failed to find role", zap.Uint("roleID", roleID), zap.Error(err))
-			return err
-		}
-
-		// 更新角色的菜单关联
-		if err := tx.Model(&role).Association("SystemMenus").Clear(); err != nil {
-			zap.L().Error("failed to clear role menus", zap.Uint("roleID", roleID), zap.Error(err))
-			return err
-		}
-
-		if len(menuIDs) > 0 {
-			var menus []system.SystemMenu
-			if err := tx.Where("id IN ?", menuIDs).Find(&menus).Error; err != nil {
-				zap.L().Error("failed to find menus", zap.Uint("roleID", roleID), zap.Uints("menuIDs", menuIDs), zap.Error(err))
-				return err
-			}
-			if err := tx.Model(&role).Association("SystemMenus").Append(&menus); err != nil {
-				zap.L().Error("failed to append menus to role", zap.Uint("roleID", roleID), zap.Error(err))
-				return err
-			}
-		}
-
-		// 更新角色的权限关联
-		if err := tx.Model(&role).Association("SystemMenuAuths").Clear(); err != nil {
-			zap.L().Error("failed to clear role auths", zap.Uint("roleID", roleID), zap.Error(err))
-			return err
-		}
-
-		if len(authIDs) > 0 {
-			var auths []system.SystemMenuAuth
-			if err := tx.Where("id IN ?", authIDs).Find(&auths).Error; err != nil {
-				zap.L().Error("failed to find menu auths", zap.Uint("roleID", roleID), zap.Uints("authIDs", authIDs), zap.Error(err))
-				return err
-			}
-			if err := tx.Model(&role).Association("SystemMenuAuths").Append(&auths); err != nil {
-				zap.L().Error("failed to append auths to role", zap.Uint("roleID", roleID), zap.Error(err))
-				return err
-			}
-		}
-
-		return nil
-	})
-}
-
-// 递归提取有权限的菜单ID和权限ID
-func extractPermissions(menuTree []MenuResponse, menuIDs *[]uint, authIDs *[]uint) {
-	for _, menu := range menuTree {
-		// 菜单本身的授权
-		if menu.HasPermission {
-			*menuIDs = append(*menuIDs, menu.ID)
-		}
-
-		// 按钮级别授权与菜单是否勾选解耦：
-		// 只要按钮被勾选，就记录其权限ID，避免因页面未勾选而误清空已选按钮权限。
-		for _, auth := range menu.Meta.AuthList {
-			if auth.HasPermission {
-				*authIDs = append(*authIDs, auth.ID)
-			}
-		}
-
-		// 递归处理子菜单
-		if len(menu.Children) > 0 {
-			extractPermissions(menu.Children, menuIDs, authIDs)
-		}
-	}
 }

@@ -2,27 +2,24 @@ package menu
 
 import (
 	"encoding/json"
-	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
 	commonmenu "api-server/common/menu"
-	"api-server/db/pgdb/system"
+	menudomain "api-server/domain/admin/menu"
 )
 
 // GetMenuList 获取平台菜单定义（不带租户 hasPermission 标记）。
 // GET /api/v1/admin/platform/menu
 func GetMenuList(c *gin.Context) {
-	menus, allAuths, err := system.GetMenuData()
+	menuTree, err := menudomain.GetPlatformMenuTree()
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
 		return
 	}
-	menuTree := commonmenu.BuildMenuTree(menus, allAuths, true)
 	response.ReturnData(c, menuTree)
 }
 
@@ -48,23 +45,8 @@ func AddMenu(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	if params.ShowBadge == 0 {
-		params.ShowBadge = 2
-	}
-	var level uint = 1
-	if params.ParentID != 0 {
-		parentMenu := system.SystemMenu{Model: gorm.Model{ID: params.ParentID}}
-		if err := system.GetMenu(&parentMenu); err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
-			return
-		}
-		if parentMenu.Status != system.StatusEnabled {
-			response.ReturnError(c, response.DATA_LOSS, "父级菜单已禁用")
-			return
-		}
-		level = parentMenu.Level + 1
-	}
-	menu := system.SystemMenu{
+
+	menuEntity, err := menudomain.AddMenu(menudomain.AddMenuInput{
 		Path:          params.Path,
 		Name:          params.Name,
 		Component:     params.Component,
@@ -79,15 +61,14 @@ func AddMenu(c *gin.Context) {
 		KeepAlive:     params.KeepAlive,
 		IsFirstLevel:  params.IsFirstLevel,
 		Status:        params.Status,
-		Level:         level,
 		ParentID:      params.ParentID,
 		Sort:          params.Sort,
-	}
-	if err := system.AddMenu(&menu); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "添加菜单失败")
+	})
+	if err != nil {
+		ReturnDomainError(c, err, "添加菜单失败")
 		return
 	}
-	response.ReturnData(c, menu)
+	response.ReturnData(c, menuEntity)
 }
 
 // UpdateMenu 更新平台菜单定义
@@ -116,37 +97,9 @@ func UpdateMenu(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	if params.ShowBadge == 0 {
-		params.ShowBadge = 2
-	}
-	var level uint = 1
-	if params.ParentID != 0 {
-		parent := system.SystemMenu{Model: gorm.Model{ID: params.ParentID}}
-		if err := system.GetMenu(&parent); err != nil {
-			response.ReturnError(c, response.DATA_LOSS, "父级菜单不存在")
-			return
-		}
-		if parent.Status != system.StatusEnabled {
-			response.ReturnError(c, response.DATA_LOSS, "父级菜单已禁用")
-			return
-		}
-		level = parent.Level + 1
-	}
-	if params.Status == system.StatusDisabled {
-		children, _, err := system.FindMenuList(&system.SystemMenu{ParentID: params.ID}, -1, -1)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")
-			return
-		}
-		for _, child := range children {
-			if child.Status == system.StatusEnabled {
-				response.ReturnError(c, response.DATA_LOSS, "请先禁用子菜单")
-				return
-			}
-		}
-	}
-	menu := system.SystemMenu{
-		Model:         gorm.Model{ID: params.ID},
+
+	menuEntity, err := menudomain.UpdateMenu(menudomain.UpdateMenuInput{
+		ID:            params.ID,
 		Path:          params.Path,
 		Name:          params.Name,
 		Component:     params.Component,
@@ -161,15 +114,14 @@ func UpdateMenu(c *gin.Context) {
 		KeepAlive:     params.KeepAlive,
 		IsFirstLevel:  params.IsFirstLevel,
 		Status:        params.Status,
-		Level:         level,
 		ParentID:      params.ParentID,
 		Sort:          params.Sort,
-	}
-	if err := system.UpdateMenu(&menu); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新菜单失败")
+	})
+	if err != nil {
+		ReturnDomainError(c, err, "更新菜单失败")
 		return
 	}
-	response.ReturnData(c, menu)
+	response.ReturnData(c, menuEntity)
 }
 
 func DeleteMenu(c *gin.Context) {
@@ -179,29 +131,12 @@ func DeleteMenu(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	menu := system.SystemMenu{Model: gorm.Model{ID: params.ID}}
-	if err := system.GetMenu(&menu); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.ReturnError(c, response.DATA_LOSS, "菜单不存在")
-			return
-		}
-		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
+	menuEntity, err := menudomain.DeleteMenu(params.ID)
+	if err != nil {
+		ReturnDomainError(c, err, "删除菜单失败")
 		return
 	}
-	children, _, err := system.FindMenuList(&system.SystemMenu{ParentID: menu.ID}, -1, -1)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		response.ReturnError(c, response.DATA_LOSS, "查询子菜单失败")
-		return
-	}
-	if len(children) > 0 {
-		response.ReturnError(c, response.DATA_LOSS, "请先删除子菜单")
-		return
-	}
-	if err := system.DeleteMenu(&menu); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "删除菜单失败")
-		return
-	}
-	response.ReturnData(c, menu)
+	response.ReturnData(c, menuEntity)
 }
 
 func GetMenuAuthList(c *gin.Context) {
@@ -211,8 +146,7 @@ func GetMenuAuthList(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.SystemMenuAuth{MenuID: params.MenuID}
-	auths, err := system.FindMenuAuthList(&auth)
+	auths, err := menudomain.GetMenuAuthList(params.MenuID)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询菜单权限失败")
 		return
@@ -229,12 +163,13 @@ func AddMenuAuth(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.SystemMenuAuth{
+
+	auth, err := menudomain.AddMenuAuth(menudomain.AddMenuAuthInput{
 		MenuID: params.MenuID,
 		Mark:   params.Mark,
 		Title:  params.Title,
-	}
-	if err := system.AddMenuAuth(&auth); err != nil {
+	})
+	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加菜单权限失败")
 		return
 	}
@@ -251,13 +186,14 @@ func UpdateMenuAuth(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.SystemMenuAuth{
-		Model:  gorm.Model{ID: params.ID},
+
+	auth, err := menudomain.UpdateMenuAuth(menudomain.UpdateMenuAuthInput{
+		ID:     params.ID,
 		Title:  params.Title,
 		Mark:   params.Mark,
 		MenuID: params.MenuID,
-	}
-	if err := system.UpdateMenuAuth(&auth); err != nil {
+	})
+	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新菜单权限失败")
 		return
 	}
@@ -271,8 +207,8 @@ func DeleteMenuAuth(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	auth := system.SystemMenuAuth{Model: gorm.Model{ID: params.ID}}
-	if err := system.DeleteMenuAuth(&auth); err != nil {
+	auth, err := menudomain.DeleteMenuAuth(params.ID)
+	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "删除菜单权限失败")
 		return
 	}
@@ -292,22 +228,11 @@ func GetTenantMenu(c *gin.Context) {
 		response.ReturnError(c, response.INVALID_ARGUMENT, "tenant_id 参数无效")
 		return
 	}
-	menus, allAuths, err := system.GetMenuData()
+	tree, err := menudomain.GetTenantMenuTree(uint(tenantIDValue))
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
+		response.ReturnError(c, response.DATA_LOSS, "获取租户菜单范围失败")
 		return
 	}
-	scopeIDs, err := system.GetTenantMenuScopeIDs(uint(tenantIDValue))
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-		return
-	}
-	roleAuthIds, err := system.GetTenantAuthScopeIDs(uint(tenantIDValue))
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
-		return
-	}
-	tree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, scopeIDs, roleAuthIds, true)
 	response.ReturnData(c, tree)
 }
 
@@ -332,96 +257,10 @@ func UpdateTenantMenu(c *gin.Context) {
 		return
 	}
 	// 从全量树中直接提取被勾选的菜单与按钮权限
-	menuIDs := extractCheckedMenuIDs(menuData)
-	authIDs := extractCheckedAuthIDs(menuData)
-	// 与角色接口对齐：按钮权限可独立于菜单勾选存在（不强制派生或过滤）
-
-	if err := system.SaveTenantMenuScope(req.TenantID, menuIDs); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "保存菜单范围失败")
-		return
-	}
-	if err := system.SaveTenantAuthScope(req.TenantID, authIDs); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "保存按钮权限范围失败")
-		return
-	}
-	// 同步清理：移除该租户下角色中超出新范围的角色-菜单/角色-按钮关联
-	if err := system.PruneTenantRoleAssociations(req.TenantID, menuIDs, authIDs); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "清理租户角色权限失败")
-		return
-	}
-	menus, allAuths, err := system.GetMenuData()
+	tree, err := menudomain.UpdateTenantMenuScope(req.TenantID, menuData)
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询菜单失败")
+		response.ReturnError(c, response.DATA_LOSS, "更新租户菜单范围失败")
 		return
 	}
-	tree := commonmenu.BuildMenuTreeWithPermission(menus, allAuths, menuIDs, authIDs, true)
 	response.ReturnData(c, tree)
-}
-
-// 用于解析增量提交的结构（区分布尔字段是否出现）
-// 清理：不再使用增量补丁结构，回退为全量覆盖模式
-
-// extractCheckedMenuIDs 递归提取树中被勾选的菜单ID
-func extractCheckedMenuIDs(tree []commonmenu.MenuResponse) []uint {
-	var result []uint
-	var walk func(items []commonmenu.MenuResponse)
-	walk = func(items []commonmenu.MenuResponse) {
-		for _, m := range items {
-			if m.HasPermission {
-				result = append(result, m.ID)
-			}
-			if len(m.Children) > 0 {
-				walk(m.Children)
-			}
-		}
-	}
-	walk(tree)
-	return result
-}
-
-// extractCheckedAuthIDs 递归提取树中被勾选的按钮权限ID
-func extractCheckedAuthIDs(tree []commonmenu.MenuResponse) []uint {
-	var result []uint
-	var walk func(items []commonmenu.MenuResponse)
-	walk = func(items []commonmenu.MenuResponse) {
-		for _, m := range items {
-			if len(m.Meta.AuthList) > 0 {
-				for _, a := range m.Meta.AuthList {
-					if a.HasPermission {
-						result = append(result, a.ID)
-					}
-				}
-			}
-			if len(m.Children) > 0 {
-				walk(m.Children)
-			}
-		}
-	}
-	walk(tree)
-	return result
-}
-
-// filterAuthIDsByMenus 过滤按钮权限，仅保留属于提供菜单集合的权限
-func filterAuthIDsByMenus(authIDs []uint, menuIDs []uint, allAuths []system.SystemMenuAuth) []uint {
-	if len(authIDs) == 0 || len(menuIDs) == 0 {
-		return []uint{}
-	}
-	menuSet := make(map[uint]struct{}, len(menuIDs))
-	for _, mid := range menuIDs {
-		menuSet[mid] = struct{}{}
-	}
-	// 建立 authID -> menuID 映射
-	authToMenu := make(map[uint]uint, len(allAuths))
-	for _, a := range allAuths {
-		authToMenu[a.ID] = a.MenuID
-	}
-	out := make([]uint, 0, len(authIDs))
-	for _, aid := range authIDs {
-		if mid, ok := authToMenu[aid]; ok {
-			if _, allowed := menuSet[mid]; allowed {
-				out = append(out, aid)
-			}
-		}
-	}
-	return out
 }

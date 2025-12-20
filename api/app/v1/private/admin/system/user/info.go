@@ -2,11 +2,10 @@ package user
 
 import (
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/db/pgdb/system"
+	userdomain "api-server/domain/admin/user"
 )
 
 func UpdateUserInfo(c *gin.Context) {
@@ -24,16 +23,13 @@ func UpdateUserInfo(c *gin.Context) {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
 		return
 	}
-	u := system.SystemUser{
-		Model:    gorm.Model{ID: userID},
+	if err := userdomain.UpdateUserProfile(userdomain.UpdateProfileInput{
+		UserID:   userID,
+		Password: params.Password,
 		Username: params.Username,
 		Phone:    params.Phone,
 		Gender:   params.Gender,
-	}
-	if params.Password != "" {
-		u.Password = params.Password
-	}
-	if err := system.UpdateUser(&u); err != nil {
+	}); err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "更新用户失败")
 		return
 	}
@@ -46,11 +42,10 @@ func GetUserInfo(c *gin.Context) {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
 		return
 	}
-	user := system.SystemUser{Model: gorm.Model{ID: userID}}
-	if err := system.GetUser(&user); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
+	user, err := userdomain.GetUserProfile(userID)
+	if err != nil {
+		ReturnDomainError(c, err, "查询用户失败")
 		return
 	}
-	user.Password = "" // 不返回密码
 	response.ReturnData(c, user)
 }

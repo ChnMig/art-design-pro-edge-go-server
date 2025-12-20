@@ -1,0 +1,24 @@
+package tenant
+
+import (
+	"errors"
+
+	"api-server/api/response"
+	tenantdomain "api-server/domain/admin/tenant"
+	"api-server/util/log"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+)
+
+// ReturnDomainError 将 domain 层错误映射为统一的接口错误响应。
+func ReturnDomainError(c *gin.Context, err error, fallback string) {
+	log.WithRequest(c).Error("租户领域错误", zap.Error(err))
+
+	switch {
+	case errors.Is(err, tenantdomain.ErrTenantNotFound):
+		response.ReturnError(c, response.DATA_LOSS, "租户不存在")
+	default:
+		response.ReturnError(c, response.DATA_LOSS, fallback)
+	}
+}

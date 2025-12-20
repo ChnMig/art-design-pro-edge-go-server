@@ -2,14 +2,14 @@ package menu
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/common/menu"
-	"api-server/db/pgdb/system"
+	commonmenu "api-server/common/menu"
+	menudomain "api-server/domain/admin/menu"
 )
 
 // GetMenuListByRoleID 根据角色ID获取菜单列表
@@ -20,77 +20,16 @@ func GetMenuListByRoleID(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	isSuperAdmin := middleware.IsSuperAdmin(c)
-	currentTenantID := middleware.GetTenantID(c)
 
-	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
-	if err := system.GetRole(&roleEntity); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
-		return
-	}
-	if !isSuperAdmin {
-		if currentTenantID == 0 || roleEntity.TenantID != currentTenantID {
+	menuTree, err := menudomain.GetRoleMenuTree(params.RoleID, middleware.GetTenantID(c), middleware.IsSuperAdmin(c))
+	if err != nil {
+		if errors.Is(err, menudomain.ErrPermissionDenied) {
 			response.ReturnError(c, response.PERMISSION_DENIED, "无权查看该角色菜单")
 			return
 		}
-	}
-	// 查询菜单数据
-	allMenus, allAuths, roleMenuIds, roleAuthIds, err := system.GetMenuDataByRoleID(params.RoleID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "查询角色菜单失败")
+		ReturnDomainError(c, err, "查询角色菜单失败")
 		return
 	}
-	// 无论是否超级管理员，查询角色菜单时均按“租户菜单范围/按钮范围”限制显示，
-	// 以避免展示超出可分配范围的菜单造成混淆。
-	scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-		return
-	}
-	// 先按“菜单范围”过滤可见的菜单与其按钮定义
-	allMenus, allAuths = system.FilterMenusByIDs(allMenus, allAuths, scopeIDs)
-
-	// 再按“按钮权限范围”过滤按钮
-	authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
-		return
-	}
-	if len(authScopeIDs) > 0 {
-		allowedAuthSet := make(map[uint]struct{}, len(authScopeIDs))
-		for _, id := range authScopeIDs {
-			allowedAuthSet[id] = struct{}{}
-		}
-		filteredAuths := make([]system.SystemMenuAuth, 0, len(allAuths))
-		for _, a := range allAuths {
-			if _, ok := allowedAuthSet[a.ID]; ok {
-				filteredAuths = append(filteredAuths, a)
-			}
-		}
-		allAuths = filteredAuths
-	} else {
-		allAuths = []system.SystemMenuAuth{}
-	}
-
-	// 过滤角色当前拥有的菜单/按钮集合到允许集合内
-	if len(allMenus) == 0 {
-		roleMenuIds = []uint{}
-		roleAuthIds = []uint{}
-	} else {
-		allowedMenuIDs := make([]uint, 0, len(allMenus))
-		for _, m := range allMenus {
-			allowedMenuIDs = append(allowedMenuIDs, m.ID)
-		}
-		roleMenuIds = system.FilterUintIDs(roleMenuIds, allowedMenuIDs)
-
-		allowedAuthIDs := make([]uint, 0, len(allAuths))
-		for _, auth := range allAuths {
-			allowedAuthIDs = append(allowedAuthIDs, auth.ID)
-		}
-		roleAuthIds = system.FilterUintIDs(roleAuthIds, allowedAuthIDs)
-	}
-	// 构建带权限标记的菜单树
-	menuTree := menu.BuildMenuTreeWithPermission(allMenus, allAuths, roleMenuIds, roleAuthIds, true)
 	response.ReturnData(c, menuTree)
 }
 
@@ -102,125 +41,23 @@ func UpdateMenuListByRoleID(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	isSuperAdmin := middleware.IsSuperAdmin(c)
+
 	// 尝试将 params.MenuData 转成结构体
-	var menuData []menu.MenuResponse
+	var menuData []commonmenu.MenuResponse
 	err := json.Unmarshal([]byte(params.MenuData), &menuData)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "参数错误")
 		return
 	}
 
-	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
-	if err := system.GetRole(&roleEntity); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "角色不存在")
-		return
-	}
-	// 权限校验：非超管只能调整本租户角色
-	if !isSuperAdmin {
-		tenantID := middleware.GetTenantID(c)
-		if tenantID == 0 || tenantID != roleEntity.TenantID {
+	if err := menudomain.UpdateRoleMenu(params.RoleID, menuData, middleware.GetTenantID(c), middleware.IsSuperAdmin(c)); err != nil {
+		if errors.Is(err, menudomain.ErrPermissionDenied) {
 			response.ReturnError(c, response.PERMISSION_DENIED, "无权调整该角色菜单")
 			return
 		}
-	}
-	// 选择范围校验：无论是否超管，均需在角色所属租户范围内
-	scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "获取菜单范围失败")
-		return
-	}
-	if !validateMenuScope(menuData, scopeIDs) {
-		response.ReturnError(c, response.PERMISSION_DENIED, "菜单超出可分配范围")
-		return
-	}
-	// 按钮权限范围校验
-	authScopeIDs, err := system.GetTenantAuthScopeIDs(roleEntity.TenantID)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "获取按钮权限范围失败")
-		return
-	}
-	if !validateAuthScope(menuData, authScopeIDs) {
-		response.ReturnError(c, response.PERMISSION_DENIED, "按钮权限超出可分配范围")
-		return
-	}
-	// 保存角色菜单数据
-	err = menu.SaveRoleMenu(params.RoleID, menuData)
-	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "保存角色菜单失败")
+		ReturnDomainError(c, err, "保存角色菜单失败")
 		return
 	}
 
 	response.ReturnData(c, nil)
-}
-
-func validateMenuScope(menus []menu.MenuResponse, allowed []uint) bool {
-	if len(allowed) == 0 {
-		return len(menus) == 0
-	}
-	allowedSet := make(map[uint]struct{}, len(allowed))
-	for _, id := range allowed {
-		allowedSet[id] = struct{}{}
-	}
-	var walk func(items []menu.MenuResponse) bool
-	walk = func(items []menu.MenuResponse) bool {
-		for _, m := range items {
-			if _, ok := allowedSet[m.ID]; !ok {
-				return false
-			}
-			if len(m.Children) > 0 && !walk(m.Children) {
-				return false
-			}
-		}
-		return true
-	}
-	return walk(menus)
-}
-
-// validateAuthScope 校验所有被勾选的按钮权限是否均在允许集合中
-func validateAuthScope(menus []menu.MenuResponse, allowed []uint) bool {
-	// 未配置按钮范围表示不允许勾选任何按钮
-	if len(allowed) == 0 {
-		// 只要发现任意一个被勾选的按钮即不合法
-		var anyChecked bool
-		var walk func(items []menu.MenuResponse)
-		walk = func(items []menu.MenuResponse) {
-			for _, m := range items {
-				for _, a := range m.Meta.AuthList {
-					if a.HasPermission {
-						anyChecked = true
-						return
-					}
-				}
-				if len(m.Children) > 0 {
-					walk(m.Children)
-				}
-			}
-		}
-		walk(menus)
-		return !anyChecked
-	}
-	allowedSet := make(map[uint]struct{}, len(allowed))
-	for _, id := range allowed {
-		allowedSet[id] = struct{}{}
-	}
-	var okAll = true
-	var walk func(items []menu.MenuResponse)
-	walk = func(items []menu.MenuResponse) {
-		for _, m := range items {
-			for _, a := range m.Meta.AuthList {
-				if a.HasPermission {
-					if _, ok := allowedSet[a.ID]; !ok {
-						okAll = false
-						return
-					}
-				}
-			}
-			if len(m.Children) > 0 {
-				walk(m.Children)
-			}
-		}
-	}
-	walk(menus)
-	return okAll
 }

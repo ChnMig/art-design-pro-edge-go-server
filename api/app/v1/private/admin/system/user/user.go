@@ -1,15 +1,13 @@
 package user
 
 import (
-	"strings"
+	"errors"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/db/pgdb/system"
-	systemuser "api-server/db/rdb/systemUser"
+	userdomain "api-server/domain/admin/user"
 )
 
 func FindUserByCache(c *gin.Context) {
@@ -24,7 +22,7 @@ func FindUserByCache(c *gin.Context) {
 
 	// 如果提供了ID，则获取单个用户信息
 	if params.ID > 0 {
-		userInfo, err := systemuser.GetUserFromCache(params.ID)
+		userInfo, err := userdomain.GetUserFromCache(params.ID)
 		if err != nil {
 			response.ReturnError(c, response.DATA_LOSS, "获取用户缓存数据失败")
 			return
@@ -37,51 +35,15 @@ func FindUserByCache(c *gin.Context) {
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
 
-	// 获取所有用户列表
-	userList, err := systemuser.GetAllUsersFromCache()
+	userList, total, err := userdomain.ListUsersFromCache(userdomain.CacheFilter{
+		Username: params.Username,
+		Name:     params.Name,
+	}, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "获取用户缓存列表失败")
 		return
 	}
-
-	// 过滤结果
-	var filteredList []systemuser.UserCacheInfo
-	if params.Username != "" || params.Name != "" {
-		for _, user := range userList {
-			// 如果提供了用户名，且不匹配，则跳过
-			if params.Username != "" && !strings.Contains(user.Username, params.Username) {
-				continue
-			}
-
-			// 如果提供了名称，且不匹配，则跳过
-			if params.Name != "" && !strings.Contains(user.Name, params.Name) {
-				continue
-			}
-
-			// 所有条件都匹配，添加到结果列表
-			filteredList = append(filteredList, user)
-		}
-	} else {
-		filteredList = userList
-	}
-
-	// 计算总数
-	total := len(filteredList)
-
-	// 应用分页
-	start := (page - 1) * pageSize
-	end := start + pageSize
-	if start >= total {
-		// 如果起始位置超出了总数，返回空列表
-		response.ReturnDataWithTotal(c, total, []systemuser.UserCacheInfo{})
-		return
-	}
-	if end > total {
-		end = total
-	}
-
-	pagedList := filteredList[start:end]
-	response.ReturnDataWithTotal(c, total, pagedList)
+	response.ReturnDataWithTotal(c, total, userList)
 }
 
 func FindUser(c *gin.Context) {
@@ -105,15 +67,13 @@ func FindUser(c *gin.Context) {
 
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
-	u := system.SystemUser{
-		TenantID:     tenantID,
+	usersWithRelations, total, err := userdomain.FindUserList(tenantID, userdomain.FindUserQuery{
 		Username:     params.Username,
 		Name:         params.Name,
 		Phone:        params.Phone,
 		RoleID:       params.RoleID,
 		DepartmentID: params.DepartmentID,
-	}
-	usersWithRelations, total, err := system.FindUserList(&u, page, pageSize)
+	}, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询用户失败")
 		return
@@ -183,14 +143,7 @@ func AddUser(c *gin.Context) {
 		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
 		return
 	}
-	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
-	if err := system.GetRole(&roleEntity); err != nil || roleEntity.TenantID != tenantID {
-		response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
-		return
-	}
-
-	u := system.SystemUser{
-		TenantID:     tenantID,
+	if err := userdomain.AddUser(tenantID, userdomain.AddUserInput{
 		Name:         params.Name,
 		Username:     params.Username,
 		Account:      params.Account,
@@ -200,8 +153,11 @@ func AddUser(c *gin.Context) {
 		Status:       params.Status,
 		RoleID:       params.RoleID,
 		DepartmentID: params.DepartmentID,
-	}
-	if err := system.AddUser(&u); err != nil {
+	}); err != nil {
+		if errors.Is(err, userdomain.ErrRoleNotInTenant) {
+			response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
+			return
+		}
 		response.ReturnError(c, response.DATA_LOSS, "添加用户失败")
 		return
 	}
@@ -231,29 +187,22 @@ func UpdateUser(c *gin.Context) {
 		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
 		return
 	}
-
-	roleEntity := system.SystemRole{Model: gorm.Model{ID: params.RoleID}}
-	if err := system.GetRole(&roleEntity); err != nil || roleEntity.TenantID != tenantID {
-		response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
-		return
-	}
-
-	u := system.SystemUser{
-		Model:        gorm.Model{ID: params.ID},
-		TenantID:     tenantID,
+	if err := userdomain.UpdateUser(tenantID, userdomain.UpdateUserInput{
+		ID:           params.ID,
 		Name:         params.Name,
 		Username:     params.Username,
 		Account:      params.Account,
+		Password:     params.Password,
 		Phone:        params.Phone,
 		Gender:       params.Gender,
 		Status:       params.Status,
 		RoleID:       params.RoleID,
 		DepartmentID: params.DepartmentID,
-	}
-	if params.Password != "" {
-		u.Password = params.Password
-	}
-	if err := system.UpdateUser(&u); err != nil {
+	}); err != nil {
+		if errors.Is(err, userdomain.ErrRoleNotInTenant) {
+			response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
+			return
+		}
 		response.ReturnError(c, response.DATA_LOSS, "更新用户失败")
 		return
 	}
@@ -267,14 +216,11 @@ func DeleteUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	if params.ID == 1 {
-		response.ReturnError(c, response.DATA_LOSS, "不能删除超级管理员")
-		return
-	}
-	u := system.SystemUser{
-		Model: gorm.Model{ID: params.ID},
-	}
-	if err := system.DeleteUser(&u); err != nil {
+	if err := userdomain.DeleteUser(params.ID); err != nil {
+		if errors.Is(err, userdomain.ErrCannotDeleteSuperAdmin) {
+			response.ReturnError(c, response.DATA_LOSS, "不能删除超级管理员")
+			return
+		}
 		response.ReturnError(c, response.DATA_LOSS, "删除用户失败")
 		return
 	}

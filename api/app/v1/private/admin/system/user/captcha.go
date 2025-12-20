@@ -2,12 +2,11 @@ package user
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/mojocn/base64Captcha"
 	"go.uber.org/zap"
 
 	"api-server/api/middleware"
 	"api-server/api/response"
-	"api-server/db/rdb/captcha"
+	userdomain "api-server/domain/admin/user"
 )
 
 func GetCaptcha(c *gin.Context) {
@@ -18,16 +17,11 @@ func GetCaptcha(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	driver := base64Captcha.NewDriverDigit(params.Height, params.Width, 6, 0.2, 50)
-	client := base64Captcha.NewCaptcha(driver, captcha.GetRedisStore())
-	id, b64s, _, err := client.Generate()
+	result, err := userdomain.GenerateCaptcha(params.Width, params.Height)
 	if err != nil {
 		response.ReturnError(c, response.UNKNOWN, "验证码生成失败")
 		zap.L().Error("验证码生成失败", zap.Error(err))
 		return
 	}
-	response.ReturnData(c, gin.H{
-		"id":    id,
-		"image": b64s,
-	})
+	response.ReturnData(c, result)
 }
