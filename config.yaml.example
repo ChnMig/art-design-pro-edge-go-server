@@ -12,6 +12,13 @@ server:
   enable_rate_limit: false
   global_rate_limit: 100
   global_rate_burst: 200
+  # 可选 TLS 配置（二选一）：ACME 自动证书 或 本地证书文件
+  enable_acme: false
+  acme_domain: ""
+  acme_cache_dir: "acme-cert-cache"
+  enable_tls: false
+  tls_cert_file: ""
+  tls_key_file: ""
 
 jwt:
   key: "YOUR_SECRET_KEY_HERE"   # 请务必替换为至少32位的强密钥

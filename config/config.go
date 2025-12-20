@@ -46,6 +46,13 @@ var (
 	EnableRateLimit bool
 	GlobalRateLimit int
 	GlobalRateBurst int
+	// tls / acme
+	EnableACME   bool
+	ACMEDomain   string
+	ACMECacheDir string
+	EnableTLS    bool
+	TLSCertFile  string
+	TLSKeyFile   string
 	// redis
 	RedisHost     string
 	RedisPassword string
@@ -71,8 +78,3 @@ var (
 	CancelPageSize  = -1 // cancel page size
 	CancelPage      = -1 // cancel page
 )
-
-func init() {
-	pathtool.CreateDir(LogDir)
-	// 配置校验逻辑已移至 main.go，确保 zap logger 初始化后再校验
-}

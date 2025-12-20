@@ -15,27 +15,27 @@ func GetMenuAuth(auth *SystemMenuAuth) error {
 }
 
 func DeleteMenuAuth(menuAuth *SystemMenuAuth) error {
-    if err := pgdb.GetClient().Delete(menuAuth).Error; err != nil {
-        zap.L().Error("failed to delete menu Auth", zap.Error(err))
-        return err
-    }
-    return nil
+	if err := pgdb.GetClient().Delete(menuAuth).Error; err != nil {
+		zap.L().Error("failed to delete menu Auth", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func AddMenuAuth(menuAuth *SystemMenuAuth) error {
-    if err := pgdb.GetClient().Create(menuAuth).Error; err != nil {
-        zap.L().Error("failed to create menu Auth", zap.Error(err))
-        return err
-    }
-    return nil
+	if err := pgdb.GetClient().Create(menuAuth).Error; err != nil {
+		zap.L().Error("failed to create menu Auth", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func UpdateMenuAuth(menuAuth *SystemMenuAuth) error {
-    if err := pgdb.GetClient().Updates(menuAuth).Error; err != nil {
-        zap.L().Error("failed to update menu Auth", zap.Error(err))
-        return err
-    }
-    return nil
+	if err := pgdb.GetClient().Updates(menuAuth).Error; err != nil {
+		zap.L().Error("failed to update menu Auth", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func FindMenuAuthList(menuAuth *SystemMenuAuth) ([]SystemMenuAuth, error) {

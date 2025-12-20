@@ -17,8 +17,11 @@ import (
 	"api-server/cron"
 	"api-server/db/pgdb"
 	"api-server/db/pgdb/system"
+	"api-server/util/acme"
 	"api-server/util/log"
+	pathtool "api-server/util/path-tool"
 	runmodel "api-server/util/run-model"
+	"api-server/util/tlsfile"
 )
 
 var CLI struct {
@@ -67,6 +70,14 @@ func main() {
 		runmodel.Detection()
 	}
 
+	// 仅在生产模式创建日志目录，避免测试/子包初始化时散落空 log 目录
+	if runmodel.IsRelease() {
+		if err := pathtool.CreateDir(config.LogDir); err != nil {
+			fmt.Printf("创建日志目录失败: %v\n", err)
+			ctx.Exit(1)
+		}
+	}
+
 	log.GetLogger()
 	log.StartMonitor()
 	defer log.StopMonitor()
@@ -108,8 +119,28 @@ func main() {
 		MaxHeaderBytes: config.MaxHeaderBytes,
 	}
 
+	acmeCtx := acme.Setup(srv)
+	tlsFileCtx := tlsfile.Setup(srv)
+
+	if acmeCtx.Enabled && acmeCtx.HTTPServer != nil {
+		go func() {
+			zap.L().Info("ACME HTTP 挑战服务启动", zap.String("addr", acmeCtx.HTTPServer.Addr))
+			if err := acmeCtx.HTTPServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				zap.L().Error("ACME HTTP 挑战服务异常退出", zap.Error(err))
+			}
+		}()
+	}
+
 	go func() {
-		zap.L().Info("HTTP 服务启动中", zap.Int("port", config.ListenPort))
+		if acmeCtx.Enabled || tlsFileCtx.Enabled {
+			zap.L().Info("HTTPS 服务启动中", zap.String("addr", srv.Addr))
+			if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				zap.L().Fatal("HTTPS 服务启动失败", zap.Error(err))
+			}
+			return
+		}
+
+		zap.L().Info("HTTP 服务启动中", zap.String("addr", srv.Addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			zap.L().Fatal("HTTP 服务启动失败", zap.Error(err))
 		}
@@ -125,6 +156,12 @@ func main() {
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		zap.L().Error("HTTP 服务强制退出", zap.Error(err))
+	}
+
+	if acmeCtx.Enabled && acmeCtx.HTTPServer != nil {
+		if err := acmeCtx.HTTPServer.Shutdown(shutdownCtx); err != nil {
+			zap.L().Error("ACME HTTP 挑战服务关闭失败", zap.Error(err))
+		}
 	}
 
 	middleware.CleanupAllLimiters()

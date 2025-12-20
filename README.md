@@ -42,7 +42,13 @@ docker-compose -f docker/docker-compose.yml up -d
 
 > 务必修改配置文件, 尤其是密码相关
 
-修改 `./config.yaml` 中的配置
+复制配置示例并修改：
+
+```bash
+cp config.yaml.example config.yaml
+```
+
+然后修改 `./config.yaml` 中的配置（JWT/Redis/Postgres/Admin 等敏感项务必替换）。
 
 ## 执行数据库初始化
 

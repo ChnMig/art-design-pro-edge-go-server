@@ -170,13 +170,13 @@ func buildMenuChildren(parent *MenuResponse, allMenus []system.SystemMenu, allPe
 	// 对子菜单进行排序
 	sortMenus(childMenus)
 
-    // 处理排序后的子菜单
-    for _, menu := range childMenus {
-        child := convertMenuToResponse(menu)
-        // 递归处理这个子菜单的子菜单（在递归函数开头会为当前 child 填充权限列表）
-        buildMenuChildren(&child, allMenus, allPermissions, all)
-        parent.Children = append(parent.Children, child)
-    }
+	// 处理排序后的子菜单
+	for _, menu := range childMenus {
+		child := convertMenuToResponse(menu)
+		// 递归处理这个子菜单的子菜单（在递归函数开头会为当前 child 填充权限列表）
+		buildMenuChildren(&child, allMenus, allPermissions, all)
+		parent.Children = append(parent.Children, child)
+	}
 }
 
 // 递归构建带权限标记的菜单子项
@@ -208,13 +208,13 @@ func buildMenuChildrenWithPermission(parent *MenuResponse, allMenus []system.Sys
 	// 对子菜单进行排序
 	sortMenus(childMenus)
 
-    // 处理排序后的子菜单
-    for _, menu := range childMenus {
-        child := convertMenuToResponseWithPermission(menu, roleMenuIds)
-        // 递归处理这个子菜单的子菜单（在递归函数开头会为当前 child 填充权限列表并标记 HasPermission）
-        buildMenuChildrenWithPermission(&child, allMenus, allPermissions, roleMenuIds, roleAuthIds, all)
-        parent.Children = append(parent.Children, child)
-    }
+	// 处理排序后的子菜单
+	for _, menu := range childMenus {
+		child := convertMenuToResponseWithPermission(menu, roleMenuIds)
+		// 递归处理这个子菜单的子菜单（在递归函数开头会为当前 child 填充权限列表并标记 HasPermission）
+		buildMenuChildrenWithPermission(&child, allMenus, allPermissions, roleMenuIds, roleAuthIds, all)
+		parent.Children = append(parent.Children, child)
+	}
 }
 
 // 对菜单切片按 Sort 从小到大排序，Sort 为 0 则按 ID 从小到大排序（0 视为最大值）
@@ -313,23 +313,23 @@ func SaveRoleMenu(roleID uint, menuTree []MenuResponse) error {
 
 // 递归提取有权限的菜单ID和权限ID
 func extractPermissions(menuTree []MenuResponse, menuIDs *[]uint, authIDs *[]uint) {
-    for _, menu := range menuTree {
-        // 菜单本身的授权
-        if menu.HasPermission {
-            *menuIDs = append(*menuIDs, menu.ID)
-        }
+	for _, menu := range menuTree {
+		// 菜单本身的授权
+		if menu.HasPermission {
+			*menuIDs = append(*menuIDs, menu.ID)
+		}
 
-        // 按钮级别授权与菜单是否勾选解耦：
-        // 只要按钮被勾选，就记录其权限ID，避免因页面未勾选而误清空已选按钮权限。
-        for _, auth := range menu.Meta.AuthList {
-            if auth.HasPermission {
-                *authIDs = append(*authIDs, auth.ID)
-            }
-        }
+		// 按钮级别授权与菜单是否勾选解耦：
+		// 只要按钮被勾选，就记录其权限ID，避免因页面未勾选而误清空已选按钮权限。
+		for _, auth := range menu.Meta.AuthList {
+			if auth.HasPermission {
+				*authIDs = append(*authIDs, auth.ID)
+			}
+		}
 
-        // 递归处理子菜单
-        if len(menu.Children) > 0 {
-            extractPermissions(menu.Children, menuIDs, authIDs)
-        }
-    }
+		// 递归处理子菜单
+		if len(menu.Children) > 0 {
+			extractPermissions(menu.Children, menuIDs, authIDs)
+		}
+	}
 }

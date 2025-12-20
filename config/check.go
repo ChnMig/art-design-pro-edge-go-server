@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"go.uber.org/zap"
 )
 
@@ -49,5 +51,21 @@ func CheckConfig(
 	}
 	if PWDSalt == "" {
 		zap.L().Fatal("PWDSalt 配置缺失")
+	}
+
+	if EnableACME {
+		if strings.TrimSpace(ACMEDomain) == "" {
+			zap.L().Fatal("已启用 ACME，但未配置 server.acme_domain，请在 config.yaml 中设置为公网可访问的域名")
+		}
+	}
+
+	if EnableTLS {
+		if strings.TrimSpace(TLSCertFile) == "" || strings.TrimSpace(TLSKeyFile) == "" {
+			zap.L().Fatal("已启用 TLS 证书文件模式，但未正确配置 server.tls_cert_file 或 server.tls_key_file，请在 config.yaml 中设置")
+		}
+	}
+
+	if EnableACME && EnableTLS {
+		zap.L().Fatal("配置错误：ACME 自动 TLS 与本地证书文件 TLS 模式不能同时启用，请二选一")
 	}
 }

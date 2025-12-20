@@ -12,7 +12,7 @@ import (
 // TokenVerify 多租户JWT认证中间件
 func TokenVerify(c *gin.Context) {
 	c.FormFile("file") // 防止文件未发送完成就返回错误, 导致前端504而不是正确响应
-	
+
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")

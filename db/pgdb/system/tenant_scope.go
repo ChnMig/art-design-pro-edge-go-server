@@ -1,12 +1,12 @@
 package system
 
 import (
-    "fmt"
+	"fmt"
 
-    "go.uber.org/zap"
-    "gorm.io/gorm"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 
-    "api-server/db/pgdb"
+	"api-server/db/pgdb"
 )
 
 func GetTenantMenuScopeIDs(tenantID uint) ([]uint, error) {
@@ -63,72 +63,72 @@ func SaveTenantMenuScope(tenantID uint, menuIDs []uint) error {
 // PruneTenantRoleAssociations 当平台调整租户的菜单/按钮范围后，
 // 自动清理该租户下所有角色中超出范围的角色-菜单/角色-按钮关联。
 func PruneTenantRoleAssociations(tenantID uint, allowedMenuIDs []uint, allowedAuthIDs []uint) error {
-    if tenantID == 0 {
-        return fmt.Errorf("tenant id is required")
-    }
-    return pgdb.GetClient().Transaction(func(tx *gorm.DB) error {
-        // 查找该租户下所有角色ID
-        var roleIDs []uint
-        if err := tx.Model(&SystemRole{}).Where("tenant_id = ?", tenantID).Pluck("id", &roleIDs).Error; err != nil {
-            zap.L().Error("failed to list tenant roles", zap.Uint("tenantID", tenantID), zap.Error(err))
-            return err
-        }
-        if len(roleIDs) == 0 {
-            return nil
-        }
+	if tenantID == 0 {
+		return fmt.Errorf("tenant id is required")
+	}
+	return pgdb.GetClient().Transaction(func(tx *gorm.DB) error {
+		// 查找该租户下所有角色ID
+		var roleIDs []uint
+		if err := tx.Model(&SystemRole{}).Where("tenant_id = ?", tenantID).Pluck("id", &roleIDs).Error; err != nil {
+			zap.L().Error("failed to list tenant roles", zap.Uint("tenantID", tenantID), zap.Error(err))
+			return err
+		}
+		if len(roleIDs) == 0 {
+			return nil
+		}
 
-        // 1) 角色-菜单：删除超出 allowedMenuIDs 的关联
-        if len(allowedMenuIDs) > 0 {
-            if err := tx.Exec(
-                "DELETE FROM system_roles__system_menus WHERE system_role_id IN ? AND system_menu_id NOT IN ?",
-                roleIDs, allowedMenuIDs,
-            ).Error; err != nil {
-                zap.L().Error("failed to prune role-menu associations", zap.Uint("tenantID", tenantID), zap.Error(err))
-                return err
-            }
-        } else {
-            // 未配置菜单范围，清空所有角色-菜单关联
-            if err := tx.Exec(
-                "DELETE FROM system_roles__system_menus WHERE system_role_id IN ?",
-                roleIDs,
-            ).Error; err != nil {
-                zap.L().Error("failed to clear role-menu associations", zap.Uint("tenantID", tenantID), zap.Error(err))
-                return err
-            }
-        }
+		// 1) 角色-菜单：删除超出 allowedMenuIDs 的关联
+		if len(allowedMenuIDs) > 0 {
+			if err := tx.Exec(
+				"DELETE FROM system_roles__system_menus WHERE system_role_id IN ? AND system_menu_id NOT IN ?",
+				roleIDs, allowedMenuIDs,
+			).Error; err != nil {
+				zap.L().Error("failed to prune role-menu associations", zap.Uint("tenantID", tenantID), zap.Error(err))
+				return err
+			}
+		} else {
+			// 未配置菜单范围，清空所有角色-菜单关联
+			if err := tx.Exec(
+				"DELETE FROM system_roles__system_menus WHERE system_role_id IN ?",
+				roleIDs,
+			).Error; err != nil {
+				zap.L().Error("failed to clear role-menu associations", zap.Uint("tenantID", tenantID), zap.Error(err))
+				return err
+			}
+		}
 
-        // 2) 角色-按钮：删除超出 allowedAuthIDs 的关联
-        if len(allowedAuthIDs) > 0 {
-            if err := tx.Exec(
-                "DELETE FROM system_roles__system_auths WHERE system_role_id IN ? AND system_menu_auth_id NOT IN ?",
-                roleIDs, allowedAuthIDs,
-            ).Error; err != nil {
-                zap.L().Error("failed to prune role-auth associations", zap.Uint("tenantID", tenantID), zap.Error(err))
-                return err
-            }
-        } else {
-            // 未配置按钮范围，清空所有角色-按钮关联
-            if err := tx.Exec(
-                "DELETE FROM system_roles__system_auths WHERE system_role_id IN ?",
-                roleIDs,
-            ).Error; err != nil {
-                zap.L().Error("failed to clear role-auth associations", zap.Uint("tenantID", tenantID), zap.Error(err))
-                return err
-            }
-        }
+		// 2) 角色-按钮：删除超出 allowedAuthIDs 的关联
+		if len(allowedAuthIDs) > 0 {
+			if err := tx.Exec(
+				"DELETE FROM system_roles__system_auths WHERE system_role_id IN ? AND system_menu_auth_id NOT IN ?",
+				roleIDs, allowedAuthIDs,
+			).Error; err != nil {
+				zap.L().Error("failed to prune role-auth associations", zap.Uint("tenantID", tenantID), zap.Error(err))
+				return err
+			}
+		} else {
+			// 未配置按钮范围，清空所有角色-按钮关联
+			if err := tx.Exec(
+				"DELETE FROM system_roles__system_auths WHERE system_role_id IN ?",
+				roleIDs,
+			).Error; err != nil {
+				zap.L().Error("failed to clear role-auth associations", zap.Uint("tenantID", tenantID), zap.Error(err))
+				return err
+			}
+		}
 
-        // 3) 保护性清理：若某些按钮所属菜单不在 allowedMenuIDs 内，一并移除按钮关联
-        if len(allowedMenuIDs) > 0 {
-            if err := tx.Exec(
-                "DELETE FROM system_roles__system_auths ra USING system_menu_auths a "+
-                    "WHERE ra.system_menu_auth_id = a.id AND ra.system_role_id IN ? AND a.menu_id NOT IN ?",
-                roleIDs, allowedMenuIDs,
-            ).Error; err != nil {
-                zap.L().Error("failed to prune role-auth by disallowed menus", zap.Uint("tenantID", tenantID), zap.Error(err))
-                return err
-            }
-        }
+		// 3) 保护性清理：若某些按钮所属菜单不在 allowedMenuIDs 内，一并移除按钮关联
+		if len(allowedMenuIDs) > 0 {
+			if err := tx.Exec(
+				"DELETE FROM system_roles__system_auths ra USING system_menu_auths a "+
+					"WHERE ra.system_menu_auth_id = a.id AND ra.system_role_id IN ? AND a.menu_id NOT IN ?",
+				roleIDs, allowedMenuIDs,
+			).Error; err != nil {
+				zap.L().Error("failed to prune role-auth by disallowed menus", zap.Uint("tenantID", tenantID), zap.Error(err))
+				return err
+			}
+		}
 
-        return nil
-    })
+		return nil
+	})
 }

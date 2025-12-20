@@ -17,9 +17,16 @@ func GetPage(c *gin.Context) int {
 }
 
 func GetPageSize(c *gin.Context) int {
-	ps, err := strconv.Atoi(c.Query("pageSize"))
-	if err != nil {
-		return config.DefaultPageSize
+	keys := []string{"page_size", "pageSize"}
+	for _, key := range keys {
+		raw := c.Query(key)
+		if raw == "" {
+			continue
+		}
+		ps, err := strconv.Atoi(raw)
+		if err == nil {
+			return ps
+		}
 	}
-	return ps
+	return config.DefaultPageSize
 }

@@ -128,12 +128,12 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 		Joins("left join system_roles on system_users.role_id = system_roles.id").
 		Joins("left join system_departments on system_users.department_id = system_departments.id").
 		Where("system_users.deleted_at IS NULL")
-	
+
 	// 租户过滤（必须）
 	if user.TenantID != 0 {
 		baseQuery = baseQuery.Where("system_users.tenant_id = ?", user.TenantID)
 	}
-	
+
 	// 使用模糊查询
 	if user.Username != "" {
 		baseQuery = baseQuery.Where("system_users.username LIKE ?", "%"+user.Username+"%")

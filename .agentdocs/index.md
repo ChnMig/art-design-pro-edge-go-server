@@ -11,6 +11,7 @@
 
 ## 历史任务文档
 - `workflow/done/251109-sync-go-template.md`：记录已完成的 go-template(http-services) 框架对齐过程及结论。
+- `workflow/done/251220-sync-go-template.md`：记录本次模板依赖/日志/TLS/health 对齐与验证结果。
 
 ## 全局重要记忆
 - Go 代码在提交前必须通过 `gofmt` 与 `go test ./...`，禁止跳过必要的本地校验。
