@@ -12,6 +12,7 @@ server:
   enable_rate_limit: false
   global_rate_limit: 100
   global_rate_burst: 200
+  pid_file: "api-server.pid"     # pid 文件路径（支持相对路径，相对程序所在目录）；服务退出时会自动删除
   # 可选 TLS 配置（二选一）：ACME 自动证书 或 本地证书文件
   enable_acme: false
   acme_domain: ""

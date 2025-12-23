@@ -46,6 +46,7 @@ var (
 	EnableRateLimit bool
 	GlobalRateLimit int
 	GlobalRateBurst int
+	PidFile         string // pid 文件路径（支持相对路径，相对 AbsPath）
 	// tls / acme
 	EnableACME   bool
 	ACMEDomain   string

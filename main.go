@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"api-server/util/acme"
 	"api-server/util/log"
 	pathtool "api-server/util/path-tool"
+	"api-server/util/pidfile"
 	runmodel "api-server/util/run-model"
 	"api-server/util/tlsfile"
 )
@@ -80,7 +82,6 @@ func main() {
 
 	log.GetLogger()
 	log.StartMonitor()
-	defer log.StopMonitor()
 
 	config.WatchConfig(func() {
 		zap.L().Info("配置重载成功",
@@ -101,10 +102,12 @@ func main() {
 	)
 
 	if CLI.Migrate {
+		exitCode := 0
 		if err := migrate(); err != nil {
-			ctx.Exit(1)
+			exitCode = 1
 		}
-		ctx.Exit(0)
+		log.StopMonitor()
+		ctx.Exit(exitCode)
 	}
 
 	cron.InitCronJobs()
@@ -122,6 +125,28 @@ func main() {
 	acmeCtx := acme.Setup(srv)
 	tlsFileCtx := tlsfile.Setup(srv)
 
+	// 监听停止信号（尽早注册，避免启动阶段收到信号时错过清理流程）
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+
+	pidFilePath := config.PidFile
+	// 写入 pid 文件（存在则覆盖，确保每次启动都会刷新）
+	if pidFilePath != "" {
+		pid := os.Getpid()
+		if err := pidfile.Write(pidFilePath, pid); err != nil {
+			zap.L().Error("写入 pid 文件失败",
+				zap.String("pid_file", pidFilePath),
+				zap.Error(err),
+			)
+			log.StopMonitor()
+			ctx.Exit(1)
+		}
+		zap.L().Info("PID 文件已写入",
+			zap.String("pid_file", pidFilePath),
+			zap.Int("pid", pid),
+		)
+	}
+
 	if acmeCtx.Enabled && acmeCtx.HTTPServer != nil {
 		go func() {
 			zap.L().Info("ACME HTTP 挑战服务启动", zap.String("addr", acmeCtx.HTTPServer.Addr))
@@ -131,40 +156,62 @@ func main() {
 		}()
 	}
 
+	serverErrCh := make(chan error, 1)
 	go func() {
+		var err error
 		if acmeCtx.Enabled || tlsFileCtx.Enabled {
 			zap.L().Info("HTTPS 服务启动中", zap.String("addr", srv.Addr))
-			if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-				zap.L().Fatal("HTTPS 服务启动失败", zap.Error(err))
-			}
-			return
+			err = srv.ListenAndServeTLS("", "")
+		} else {
+			zap.L().Info("HTTP 服务启动中", zap.String("addr", srv.Addr))
+			err = srv.ListenAndServe()
 		}
 
-		zap.L().Info("HTTP 服务启动中", zap.String("addr", srv.Addr))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			zap.L().Fatal("HTTP 服务启动失败", zap.Error(err))
+		if err != nil && err != http.ErrServerClosed {
+			serverErrCh <- err
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
-	sig := <-quit
-	zap.L().Info("接收到停止信号，开始优雅退出", zap.String("signal", sig.String()))
+	exitCode := 0
+	select {
+	case sig := <-quit:
+		zap.L().Info("接收到停止信号，开始优雅退出", zap.String("signal", sig.String()))
+	case err := <-serverErrCh:
+		exitCode = 1
+		zap.L().Error("HTTP 服务异常退出，开始执行清理与退出",
+			zap.Error(err),
+		)
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
-	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		zap.L().Error("HTTP 服务强制退出", zap.Error(err))
+		if !errors.Is(err, http.ErrServerClosed) {
+			zap.L().Error("HTTP 服务强制退出", zap.Error(err))
+		}
 	}
 
 	if acmeCtx.Enabled && acmeCtx.HTTPServer != nil {
 		if err := acmeCtx.HTTPServer.Shutdown(shutdownCtx); err != nil {
-			zap.L().Error("ACME HTTP 挑战服务关闭失败", zap.Error(err))
+			if !errors.Is(err, http.ErrServerClosed) {
+				zap.L().Error("ACME HTTP 挑战服务关闭失败", zap.Error(err))
+			}
 		}
 	}
 
 	middleware.CleanupAllLimiters()
+
+	log.StopMonitor()
+
+	// 删除 pid 文件（文件不存在视为成功）
+	if err := pidfile.Remove(pidFilePath); err != nil {
+		zap.L().Warn("删除 pid 文件失败",
+			zap.String("pid_file", pidFilePath),
+			zap.Error(err),
+		)
+	}
+
+	cancel()
 	zap.L().Info("服务退出完成")
-	ctx.Exit(0)
+	ctx.Exit(exitCode)
 }
