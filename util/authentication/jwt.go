@@ -11,13 +11,15 @@ import (
 )
 
 var (
-	defaultIssuer   = "server"
+	defaultIssuer   = "http-services"
 	defaultSubject  = "token"
 	defaultAudience = "client"
 )
 
-type MyCustomClaims struct {
-	Data string `json:"data"`
+// MapClaims 灵活的 Claims，使用 map 存储自定义数据
+// 适用于不同项目有不同数据结构的场景
+type MapClaims struct {
+	Data map[string]interface{} `json:"data"` // 自定义数据，完全灵活
 	jwt.RegisteredClaims
 }
 
@@ -37,7 +39,7 @@ func PrepareRegisteredClaims(rc *jwt.RegisteredClaims) {
 		rc.Audience = jwt.ClaimStrings{defaultAudience}
 	}
 	if rc.ID == "" {
-		rc.ID = id.IssueMd5ID()
+		rc.ID = id.GenerateID()
 	}
 	if rc.IssuedAt == nil {
 		rc.IssuedAt = jwt.NewNumericDate(now)
@@ -66,22 +68,32 @@ func ParseHS256(tokenString string, claims jwt.Claims) (*jwt.Token, error) {
 	})
 }
 
-// JWTIssue issue jwt
-func JWTIssue(data string) (string, error) {
-	claims := MyCustomClaims{Data: data}
+// JWTIssue 签发 JWT Token，使用 map 存储数据
+// 参数 data 可以是任何 map[string]interface{}，完全灵活
+// 使用示例：
+//
+//	data := map[string]interface{}{
+//	    "user_id": "123",
+//	    "username": "john",
+//	    "role": "admin",
+//	    "permissions": []string{"read", "write"},
+//	}
+//	token, err := JWTIssue(data)
+func JWTIssue(data map[string]interface{}) (string, error) {
+	claims := MapClaims{Data: data}
 	PrepareRegisteredClaims(&claims.RegisteredClaims)
 	return SignHS256(&claims)
 }
 
-// JWTDecrypt string token to data
-func JWTDecrypt(tokenString string) (string, error) {
-	claims := &MyCustomClaims{}
+// JWTDecrypt 解析 JWT Token，返回 map 数据
+func JWTDecrypt(tokenString string) (map[string]interface{}, error) {
+	claims := &MapClaims{}
 	token, err := ParseHS256(tokenString, claims)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if !token.Valid {
-		return "", fmt.Errorf("invalid token")
+		return nil, fmt.Errorf("invalid token")
 	}
 	return claims.Data, nil
 }
