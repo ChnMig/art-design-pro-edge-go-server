@@ -76,6 +76,7 @@ var (
 var (
 	DefaultPageSize = 20 // default page size
 	DefaultPage     = 1  // default page
+	MaxPageSize     = 100
 	CancelPageSize  = -1 // cancel page size
 	CancelPage      = -1 // cancel page
 )

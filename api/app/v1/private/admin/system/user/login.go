@@ -100,7 +100,12 @@ func FindLoginLogList(c *gin.Context) {
 	// 获取分页参数
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
-	logs, total, err := userdomain.FindLoginLogList(userdomain.FindLoginLogQuery{
+	tenant, ok := middleware.GetCurrentTenant(c)
+	if !ok || tenant.Code == "" {
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+		return
+	}
+	logs, total, err := userdomain.FindLoginLogList(tenant.Code, userdomain.FindLoginLogQuery{
 		IP:       params.IP,
 		Username: params.Username,
 	}, page, pageSize)

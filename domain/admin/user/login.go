@@ -54,10 +54,14 @@ type FindLoginLogQuery struct {
 	Username string
 }
 
-func FindLoginLogList(query FindLoginLogQuery, page, pageSize int) ([]system.SystemUserLoginLog, int64, error) {
+func FindLoginLogList(tenantCode string, query FindLoginLogQuery, page, pageSize int) ([]system.SystemUserLoginLog, int64, error) {
+	if tenantCode == "" {
+		return nil, 0, ErrInvalidTenantContext
+	}
 	filter := system.SystemUserLoginLog{
-		IP:       query.IP,
-		UserName: query.Username,
+		TenantCode: tenantCode,
+		IP:         query.IP,
+		UserName:   query.Username,
 	}
 	return system.FindLoginLogList(&filter, page, pageSize)
 }

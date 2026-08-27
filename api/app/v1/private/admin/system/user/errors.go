@@ -20,10 +20,13 @@ func ReturnDomainError(c *gin.Context, err error, fallback string) {
 		response.ReturnError(c, response.DATA_LOSS, "用户不存在")
 	case errors.Is(err, userdomain.ErrRoleNotInTenant):
 		response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
+	case errors.Is(err, userdomain.ErrDepartmentNotInTenant):
+		response.ReturnError(c, response.PERMISSION_DENIED, "部门不存在或不属于当前租户")
+	case errors.Is(err, userdomain.ErrUserNotInTenant):
+		response.ReturnError(c, response.NOT_FOUND, "用户不存在或不属于当前租户")
 	case errors.Is(err, userdomain.ErrCannotDeleteSuperAdmin):
 		response.ReturnError(c, response.DATA_LOSS, "不能删除超级管理员")
 	default:
 		response.ReturnError(c, response.DATA_LOSS, fallback)
 	}
 }
-

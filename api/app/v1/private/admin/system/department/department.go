@@ -17,10 +17,16 @@ func AddDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+		return
+	}
 	department, err := departmentdomain.AddDepartment(departmentdomain.AddInput{
-		Name:   params.Name,
-		Status: uint(params.Status),
-		Sort:   uint(params.Sort),
+		TenantID: tenantID,
+		Name:     params.Name,
+		Status:   uint(params.Status),
+		Sort:     uint(params.Sort),
 	})
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "添加部门失败")
@@ -39,14 +45,20 @@ func UpdateDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+		return
+	}
 	department, err := departmentdomain.UpdateDepartment(departmentdomain.UpdateInput{
-		ID:     params.ID,
-		Name:   params.Name,
-		Status: uint(params.Status),
-		Sort:   uint(params.Sort),
+		TenantID: tenantID,
+		ID:       params.ID,
+		Name:     params.Name,
+		Status:   uint(params.Status),
+		Sort:     uint(params.Sort),
 	})
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新部门失败")
+		ReturnDomainError(c, err, "更新部门失败")
 		return
 	}
 	response.ReturnData(c, department)
@@ -64,11 +76,17 @@ func GetDepartmentList(c *gin.Context) {
 	// 获取分页参数
 	page := middleware.GetPage(c)
 	pageSize := middleware.GetPageSize(c)
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+		return
+	}
 
 	// 调用带分页的查询函数
 	departments, total, err := departmentdomain.FindDepartmentList(departmentdomain.FindListQuery{
-		Name:   params.Name,
-		Status: params.Status,
+		TenantID: tenantID,
+		Name:     params.Name,
+		Status:   params.Status,
 	}, page, pageSize)
 	if err != nil {
 		response.ReturnError(c, response.DATA_LOSS, "查询部门失败")
@@ -86,7 +104,12 @@ func DeleteDepartment(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	department, err := departmentdomain.DeleteDepartment(params.ID)
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+		return
+	}
+	department, err := departmentdomain.DeleteDepartment(tenantID, params.ID)
 	if err != nil {
 		ReturnDomainError(c, err, "删除部门失败")
 		return

@@ -41,9 +41,11 @@ type AddUserInput struct {
 }
 
 func AddUser(tenantID uint, input AddUserInput) error {
-	roleEntity := system.SystemRole{Model: gorm.Model{ID: input.RoleID}}
-	if err := system.GetRole(&roleEntity); err != nil || roleEntity.TenantID != tenantID {
-		return ErrRoleNotInTenant
+	if tenantID == 0 {
+		return ErrInvalidTenantContext
+	}
+	if err := validateTenantAssignments(tenantID, input.RoleID, input.DepartmentID); err != nil {
+		return err
 	}
 
 	u := system.SystemUser{
@@ -75,9 +77,11 @@ type UpdateUserInput struct {
 }
 
 func UpdateUser(tenantID uint, input UpdateUserInput) error {
-	roleEntity := system.SystemRole{Model: gorm.Model{ID: input.RoleID}}
-	if err := system.GetRole(&roleEntity); err != nil || roleEntity.TenantID != tenantID {
-		return ErrRoleNotInTenant
+	if tenantID == 0 {
+		return ErrInvalidTenantContext
+	}
+	if err := validateTenantAssignments(tenantID, input.RoleID, input.DepartmentID); err != nil {
+		return err
 	}
 
 	u := system.SystemUser{
@@ -95,17 +99,53 @@ func UpdateUser(tenantID uint, input UpdateUserInput) error {
 	if input.Password != "" {
 		u.Password = input.Password
 	}
-	return system.UpdateUser(&u)
+	fields := []string{"name", "username", "account", "phone", "gender", "status", "role_id", "department_id"}
+	if input.Password != "" {
+		fields = append(fields, "password")
+	}
+	if err := system.UpdateUser(&u, fields...); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrUserNotInTenant
+		}
+		return err
+	}
+	return nil
 }
 
-func DeleteUser(id uint) error {
+func validateTenantAssignments(tenantID, roleID, departmentID uint) error {
+	roleEntity := system.SystemRole{Model: gorm.Model{ID: roleID}, TenantID: tenantID}
+	if err := system.GetRole(&roleEntity); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrRoleNotInTenant
+		}
+		return err
+	}
+
+	departmentEntity := system.SystemDepartment{Model: gorm.Model{ID: departmentID}, TenantID: tenantID}
+	if err := system.GetDepartment(&departmentEntity); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrDepartmentNotInTenant
+		}
+		return err
+	}
+	return nil
+}
+
+func DeleteUser(tenantID, id uint) error {
+	if tenantID == 0 {
+		return ErrInvalidTenantContext
+	}
 	if id == 1 {
 		return ErrCannotDeleteSuperAdmin
 	}
 	u := system.SystemUser{
-		Model: gorm.Model{ID: id},
+		Model:    gorm.Model{ID: id},
+		TenantID: tenantID,
 	}
 	if err := system.DeleteUser(&u); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrUserNotInTenant
+		}
 		return err
 	}
 	return nil
@@ -114,4 +154,3 @@ func DeleteUser(id uint) error {
 func IsRoleNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
-

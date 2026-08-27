@@ -3,15 +3,20 @@ package user
 import (
 	"strings"
 
+	"api-server/config"
 	systemuser "api-server/db/rdb/systemUser"
 )
 
 type CacheFilter struct {
+	TenantID uint
 	Username string
 	Name     string
 }
 
-func GetUserFromCache(id uint) (systemuser.UserCacheInfo, error) {
+func GetUserFromCache(tenantID, id uint) (systemuser.UserCacheInfo, error) {
+	if tenantID == 0 {
+		return systemuser.UserCacheInfo{}, ErrInvalidTenantContext
+	}
 	item, err := systemuser.GetUserFromCache(id)
 	if err != nil {
 		return systemuser.UserCacheInfo{}, err
@@ -19,44 +24,82 @@ func GetUserFromCache(id uint) (systemuser.UserCacheInfo, error) {
 	if item == nil {
 		return systemuser.UserCacheInfo{}, nil
 	}
+	if item.TenantID == 0 {
+		return systemuser.UserCacheInfo{}, ErrUnsafeCacheData
+	}
+	if item.TenantID != tenantID {
+		return systemuser.UserCacheInfo{}, ErrUserNotInTenant
+	}
 	return *item, nil
 }
 
 func ListUsersFromCache(filter CacheFilter, page, pageSize int) ([]systemuser.UserCacheInfo, int, error) {
+	if filter.TenantID == 0 {
+		return nil, 0, ErrInvalidTenantContext
+	}
 	userList, err := systemuser.GetAllUsersFromCache()
 	if err != nil {
 		return nil, 0, err
 	}
 
-	var filteredList []systemuser.UserCacheInfo
-	if filter.Username != "" || filter.Name != "" {
-		filteredList = make([]systemuser.UserCacheInfo, 0, len(userList))
-		for _, user := range userList {
-			if filter.Username != "" && !strings.Contains(user.Username, filter.Username) {
-				continue
-			}
-			if filter.Name != "" && !strings.Contains(user.Name, filter.Name) {
-				continue
-			}
-			filteredList = append(filteredList, user)
-		}
-	} else {
-		filteredList = userList
+	filteredList, err := filterCachedUsers(userList, filter)
+	if err != nil {
+		return nil, 0, err
 	}
+	return paginateCachedUsers(filteredList, page, pageSize), len(filteredList), nil
+}
 
+func filterCachedUsers(userList []systemuser.UserCacheInfo, filter CacheFilter) ([]systemuser.UserCacheInfo, error) {
+	if filter.TenantID == 0 {
+		return nil, ErrInvalidTenantContext
+	}
+	filteredList := make([]systemuser.UserCacheInfo, 0, len(userList))
+	for _, user := range userList {
+		if user.TenantID == 0 {
+			return nil, ErrUnsafeCacheData
+		}
+		if user.TenantID != filter.TenantID {
+			continue
+		}
+		if filter.Username != "" && !strings.Contains(user.Username, filter.Username) {
+			continue
+		}
+		if filter.Name != "" && !strings.Contains(user.Name, filter.Name) {
+			continue
+		}
+		filteredList = append(filteredList, user)
+	}
+	return filteredList, nil
+}
+
+func paginateCachedUsers(filteredList []systemuser.UserCacheInfo, page, pageSize int) []systemuser.UserCacheInfo {
 	total := len(filteredList)
 	if total == 0 {
-		return []systemuser.UserCacheInfo{}, 0, nil
+		return []systemuser.UserCacheInfo{}
 	}
 
-	start := (page - 1) * pageSize
-	if start >= total {
-		return []systemuser.UserCacheInfo{}, total, nil
+	page, pageSize = normalizeCachePagination(page, pageSize)
+	lastPage := (total-1)/pageSize + 1
+	if page > lastPage {
+		return []systemuser.UserCacheInfo{}
 	}
+	start := (page - 1) * pageSize
 	end := start + pageSize
 	if end > total {
 		end = total
 	}
 
-	return filteredList[start:end], total, nil
+	return filteredList[start:end]
+}
+
+func normalizeCachePagination(page, pageSize int) (int, int) {
+	if page < 1 {
+		page = config.DefaultPage
+	}
+	if pageSize < 1 {
+		pageSize = config.DefaultPageSize
+	} else if pageSize > config.MaxPageSize {
+		pageSize = config.MaxPageSize
+	}
+	return page, pageSize
 }

@@ -2,6 +2,7 @@ package system
 
 import (
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"api-server/config"
 	"api-server/db/pgdb"
@@ -11,17 +12,12 @@ import (
 func FindDepartmentList(department *SystemDepartment, page, pageSize int) ([]SystemDepartment, int64, error) {
 	var departments []SystemDepartment
 	var total int64
-	db := pgdb.GetClient()
-
-	// 构建基础查询
-	query := db.Model(&SystemDepartment{})
-
-	// 应用过滤条件
-	if department.Name != "" {
-		query = query.Where("name LIKE ?", "%"+department.Name+"%")
+	if department.TenantID == 0 {
+		return nil, 0, gorm.ErrInvalidData
 	}
-	if department.Status != 0 {
-		query = query.Where("status = ?", department.Status)
+	query, err := buildDepartmentListQuery(pgdb.GetClient(), department)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	// 获取符合条件的总记录数
@@ -53,8 +49,25 @@ func FindDepartmentList(department *SystemDepartment, page, pageSize int) ([]Sys
 	return departments, total, nil
 }
 
+func buildDepartmentListQuery(db *gorm.DB, department *SystemDepartment) (*gorm.DB, error) {
+	if department.TenantID == 0 {
+		return nil, gorm.ErrInvalidData
+	}
+	query := db.Model(&SystemDepartment{}).Where("tenant_id = ?", department.TenantID)
+	if department.Name != "" {
+		query = query.Where("name LIKE ?", "%"+department.Name+"%")
+	}
+	if department.Status != 0 {
+		query = query.Where("status = ?", department.Status)
+	}
+	return query, nil
+}
+
 // GetDepartment 查询单个部门
 func GetDepartment(department *SystemDepartment) error {
+	if department.ID == 0 || department.TenantID == 0 {
+		return gorm.ErrInvalidData
+	}
 	if err := pgdb.GetClient().Where(department).First(department).Error; err != nil {
 		zap.L().Error("failed to get department", zap.Error(err))
 		return err
@@ -63,7 +76,10 @@ func GetDepartment(department *SystemDepartment) error {
 }
 
 func AddDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Create(&department).Error; err != nil {
+	if department.TenantID == 0 {
+		return gorm.ErrInvalidData
+	}
+	if err := pgdb.GetClient().Create(department).Error; err != nil {
 		zap.L().Error("failed to create department", zap.Error(err))
 		return err
 	}
@@ -71,24 +87,54 @@ func AddDepartment(department *SystemDepartment) error {
 }
 
 func UpdateDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Updates(&department).Error; err != nil {
-		zap.L().Error("failed to update department", zap.Error(err))
-		return err
+	if department.ID == 0 || department.TenantID == 0 {
+		return gorm.ErrInvalidData
+	}
+	result := scopedDepartmentUpdate(pgdb.GetClient(), department)
+	if result.Error != nil {
+		zap.L().Error("failed to update department", zap.Error(result.Error))
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func scopedDepartmentUpdate(db *gorm.DB, department *SystemDepartment) *gorm.DB {
+	return db.Model(&SystemDepartment{}).
+		Where("id = ? AND tenant_id = ?", department.ID, department.TenantID).
+		Select("name", "status", "sort").
+		Updates(department)
 }
 
 func DeleteDepartment(department *SystemDepartment) error {
-	if err := pgdb.GetClient().Delete(&department).Error; err != nil {
-		zap.L().Error("failed to delete department", zap.Error(err))
-		return err
+	if department.ID == 0 || department.TenantID == 0 {
+		return gorm.ErrInvalidData
+	}
+	result := scopedDepartmentDelete(pgdb.GetClient(), department)
+	if result.Error != nil {
+		zap.L().Error("failed to delete department", zap.Error(result.Error))
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }
 
+func scopedDepartmentDelete(db *gorm.DB, department *SystemDepartment) *gorm.DB {
+	return db.Where("id = ? AND tenant_id = ?", department.ID, department.TenantID).Delete(&SystemDepartment{})
+}
+
 // CountUsersByDepartmentID 统计指定部门下的用户数量
-func CountUsersByDepartmentID(departmentID uint, count *int64) error {
-	if err := pgdb.GetClient().Model(&SystemUser{}).Where("department_id = ?", departmentID).Count(count).Error; err != nil {
+func CountUsersByDepartmentID(tenantID, departmentID uint, count *int64) error {
+	if tenantID == 0 || departmentID == 0 {
+		return gorm.ErrInvalidData
+	}
+	if err := pgdb.GetClient().Model(&SystemUser{}).
+		Where("tenant_id = ? AND department_id = ?", tenantID, departmentID).
+		Count(count).Error; err != nil {
 		zap.L().Error("failed to count users by department id", zap.Error(err))
 		return err
 	}

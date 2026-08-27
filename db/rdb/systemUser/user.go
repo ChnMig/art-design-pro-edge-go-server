@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	// UserInfoKey 用户信息缓存键前缀
-	UserInfoKey = "system:user:info:"
-	// UserListKey 用户列表缓存键
-	UserListKey = "system:user:list"
+	// UserInfoKey 用户信息缓存键前缀。v2 缓存包含租户归属，避免读取旧结构。
+	UserInfoKey = "system:user:v2:info:"
+	// UserListKey 用户列表缓存键。v2 缓存包含租户归属，避免读取旧结构。
+	UserListKey = "system:user:v2:list"
 	// UserCacheExpiration 用户缓存过期时间（12小时）
 	UserCacheExpiration = 12 * time.Hour
 )
@@ -26,6 +26,7 @@ const (
 // UserCacheInfo 用户缓存信息
 type UserCacheInfo struct {
 	ID       uint   `json:"id"`
+	TenantID uint   `json:"tenant_id"`
 	Username string `json:"username"` // 昵称
 	Name     string `json:"name"`     // 姓名
 	RoleID   uint   `json:"role_id"`
@@ -66,6 +67,7 @@ func CacheAllUsers() error {
 		// 创建用户缓存对象
 		userCache := UserCacheInfo{
 			ID:       user.ID,
+			TenantID: user.TenantID,
 			Username: user.Username,
 			Name:     user.Name,
 			RoleID:   user.RoleID,
@@ -186,6 +188,7 @@ func cacheUserByID(userID uint) (*UserCacheInfo, error) {
 	// 创建用户缓存对象
 	userCache := UserCacheInfo{
 		ID:       user.ID,
+		TenantID: user.TenantID,
 		Username: user.Username,
 		Name:     user.Name,
 		RoleID:   user.RoleID,

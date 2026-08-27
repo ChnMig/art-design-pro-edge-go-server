@@ -19,11 +19,13 @@ func UpdateUserInfo(c *gin.Context) {
 		return
 	}
 	userID := middleware.GetCurrentUserID(c)
-	if userID == 0 {
+	tenantID := middleware.GetTenantID(c)
+	if userID == 0 || tenantID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
 		return
 	}
 	if err := userdomain.UpdateUserProfile(userdomain.UpdateProfileInput{
+		TenantID: tenantID,
 		UserID:   userID,
 		Password: params.Password,
 		Username: params.Username,
@@ -38,11 +40,12 @@ func UpdateUserInfo(c *gin.Context) {
 
 func GetUserInfo(c *gin.Context) {
 	userID := middleware.GetCurrentUserID(c)
-	if userID == 0 {
+	tenantID := middleware.GetTenantID(c)
+	if userID == 0 || tenantID == 0 {
 		response.ReturnError(c, response.UNAUTHENTICATED, "未携带 token")
 		return
 	}
-	user, err := userdomain.GetUserProfile(userID)
+	user, err := userdomain.GetUserProfile(tenantID, userID)
 	if err != nil {
 		ReturnDomainError(c, err, "查询用户失败")
 		return

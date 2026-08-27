@@ -82,7 +82,7 @@ Authorization: Bearer {your_jwt_token}
 
 支持分页的接口通用参数：
 - `page` - 页码，从1开始，默认1
-- `pageSize` - 每页数量，默认20
+- `pageSize` / `page_size` - 每页数量，默认20，最大100；零、负数或非法值按默认值处理
 
 ### 多租户支持
 
@@ -111,8 +111,8 @@ Authorization: Bearer {your_jwt_token}
 **请求路径：** `/api/v1/private/admin/system/user/login/captcha`
 
 **请求参数：**
-- `width` (必填) - 图片宽度
-- `height` (必填) - 图片高度
+- `width` (必填) - 图片宽度，允许范围 80-600 像素
+- `height` (必填) - 图片高度，允许范围 40-200 像素
 
 **响应示例：**
 ```json
@@ -1061,7 +1061,8 @@ Authorization: Bearer {your_jwt_token}
 ### 2. JWT 认证中间件
 - 验证 Authorization Header
 - 解析 JWT Token（HS256）
-- 设置用户上下文信息（`tenant_id`、`user_id`、`account`）
+- 根据令牌中的用户与租户标识复核数据库记录，用户或租户不存在、被禁用、归属变化或账号变化时拒绝请求
+- 仅将复核后的用户上下文信息（`tenant_id`、`user_id`、`account`）写入请求上下文
 - Token Claims 示例：
   ```json
   {
@@ -1082,6 +1083,8 @@ Authorization: Bearer {your_jwt_token}
 - 验证用户是否具有超级管理员权限
 - 用于租户管理等高级功能
 
+系统管理中的登录日志、角色菜单、部门、角色和用户管理接口还会验证租户管理员权限；个人资料和个人菜单接口只要求有效登录。
+
 ### 4. 限流中间件
 - 登录接口限流保护（基于IP）
 - 防止暴力破解攻击
@@ -1093,7 +1096,7 @@ Authorization: Bearer {your_jwt_token}
 
 ### 5. 分页中间件
 - 统一处理分页参数
-- 默认页码和页面大小设置
+- 页码必须大于等于1，每页数量限制为1-100
 
 ---
 

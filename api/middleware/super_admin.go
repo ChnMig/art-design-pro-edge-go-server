@@ -10,32 +10,20 @@ import (
 // SuperAdminVerify 超级管理员权限验证中间件
 // 只有用户ID为1的超级管理员才能执行租户管理操作
 func SuperAdminVerify(c *gin.Context) {
-	// 获取当前用户ID
-	userID := GetCurrentUserID(c)
-	if userID == 0 {
+	user, ok := GetCurrentUser(c)
+	tenant, tenantOK := GetCurrentTenant(c)
+	tenantID := GetTenantID(c)
+	if !ok || !tenantOK || user.ID == 0 || tenantID == 0 ||
+		user.TenantID != tenantID || tenant.ID != tenantID ||
+		user.Status != system.StatusEnabled || tenant.Status != system.StatusEnabled {
 		response.ReturnError(c, response.UNAUTHENTICATED, "用户认证失败")
 		c.Abort()
 		return
 	}
 
 	// 检查是否为超级管理员（用户ID为1）
-	if userID != 1 {
+	if user.ID != 1 {
 		response.ReturnError(c, response.PERMISSION_DENIED, "权限不足，只有超级管理员可以管理租户")
-		c.Abort()
-		return
-	}
-
-	// 验证用户存在且状态正常
-	user := system.SystemUser{}
-	user.ID = userID
-	if err := system.GetUser(&user); err != nil {
-		response.ReturnError(c, response.UNAUTHENTICATED, "用户不存在")
-		c.Abort()
-		return
-	}
-
-	if user.Status != system.StatusEnabled {
-		response.ReturnError(c, response.UNAUTHENTICATED, "用户已被禁用")
 		c.Abort()
 		return
 	}
@@ -45,41 +33,28 @@ func SuperAdminVerify(c *gin.Context) {
 
 // IsSuperAdmin 判断当前请求是否为平台超级管理员
 func IsSuperAdmin(c *gin.Context) bool {
-	return GetCurrentUserID(c) == 1
+	user, ok := GetCurrentUser(c)
+	return ok && user.ID == 1 && user.Status == system.StatusEnabled
 }
 
 // TenantAdminVerify 租户管理员权限验证中间件
 // 允许超级管理员或租户管理员执行特定操作
 func TenantAdminVerify(c *gin.Context) {
-	// 获取当前用户ID和租户ID
-	userID := GetCurrentUserID(c)
+	user, ok := GetCurrentUser(c)
+	tenant, tenantOK := GetCurrentTenant(c)
 	tenantID := GetTenantID(c)
 
-	if userID == 0 || tenantID == 0 {
+	if !ok || !tenantOK || user.ID == 0 || tenantID == 0 ||
+		user.TenantID != tenantID || tenant.ID != tenantID ||
+		user.Status != system.StatusEnabled || tenant.Status != system.StatusEnabled {
 		response.ReturnError(c, response.UNAUTHENTICATED, "用户认证失败")
 		c.Abort()
 		return
 	}
 
 	// 超级管理员（用户ID为1）可以访问任何租户数据
-	if userID == 1 {
+	if user.ID == 1 {
 		c.Next()
-		return
-	}
-
-	// 验证用户存在且状态正常
-	user := system.SystemUser{}
-	user.ID = userID
-	user.TenantID = tenantID
-	if err := system.GetUser(&user); err != nil {
-		response.ReturnError(c, response.UNAUTHENTICATED, "用户不存在或不属于指定租户")
-		c.Abort()
-		return
-	}
-
-	if user.Status != system.StatusEnabled {
-		response.ReturnError(c, response.UNAUTHENTICATED, "用户已被禁用")
-		c.Abort()
 		return
 	}
 

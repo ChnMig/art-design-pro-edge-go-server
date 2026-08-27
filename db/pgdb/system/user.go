@@ -79,19 +79,16 @@ func FindLoginLogList(loginLog *SystemUserLoginLog, page, pageSize int) ([]Syste
 	var total int64
 	db := pgdb.GetClient()
 
-	// 构建基础查询
-	baseQuery := db.Model(&SystemUserLoginLog{}).Where("deleted_at IS NULL")
-
-	// 使用模糊查询
-	if loginLog.UserName != "" {
-		baseQuery = baseQuery.Where("user_name LIKE ?", "%"+loginLog.UserName+"%")
-	}
-	if loginLog.IP != "" {
-		baseQuery = baseQuery.Where("ip LIKE ?", "%"+loginLog.IP+"%")
+	baseQuery, err := buildLoginLogQuery(db, loginLog)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	// 获取符合条件的总记录数
-	baseQuery.Count(&total)
+	if err := baseQuery.Count(&total).Error; err != nil {
+		zap.L().Error("failed to count login logs", zap.Error(err))
+		return nil, 0, err
+	}
 
 	// 判断是否需要分页
 	if page == config.CancelPage && pageSize == config.CancelPageSize {
@@ -111,6 +108,22 @@ func FindLoginLogList(loginLog *SystemUserLoginLog, page, pageSize int) ([]Syste
 	return loginLogs, total, nil
 }
 
+func buildLoginLogQuery(db *gorm.DB, loginLog *SystemUserLoginLog) (*gorm.DB, error) {
+	if loginLog.TenantCode == "" {
+		return nil, gorm.ErrInvalidData
+	}
+	query := db.Model(&SystemUserLoginLog{}).
+		Where("deleted_at IS NULL").
+		Where("tenant_code = ?", loginLog.TenantCode)
+	if loginLog.UserName != "" {
+		query = query.Where("user_name LIKE ?", "%"+loginLog.UserName+"%")
+	}
+	if loginLog.IP != "" {
+		query = query.Where("ip LIKE ?", "%"+loginLog.IP+"%")
+	}
+	return query, nil
+}
+
 // UserWithRelations 包含用户及其关联的角色和部门信息
 type UserWithRelations struct {
 	SystemUser     `json:"User"`
@@ -122,36 +135,18 @@ type UserWithRelations struct {
 func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, int64, error) {
 	var usersWithRelations []UserWithRelations
 	var total int64
-	db := pgdb.GetClient()
-	// 构建基础查询
-	baseQuery := db.Table("system_users").
-		Joins("left join system_roles on system_users.role_id = system_roles.id").
-		Joins("left join system_departments on system_users.department_id = system_departments.id").
-		Where("system_users.deleted_at IS NULL")
-
-	// 租户过滤（必须）
-	if user.TenantID != 0 {
-		baseQuery = baseQuery.Where("system_users.tenant_id = ?", user.TenantID)
+	if user.TenantID == 0 {
+		return nil, 0, gorm.ErrInvalidData
 	}
-
-	// 使用模糊查询
-	if user.Username != "" {
-		baseQuery = baseQuery.Where("system_users.username LIKE ?", "%"+user.Username+"%")
-	}
-	if user.Name != "" {
-		baseQuery = baseQuery.Where("system_users.name LIKE ?", "%"+user.Name+"%")
-	}
-	if user.Phone != "" {
-		baseQuery = baseQuery.Where("system_users.phone LIKE ?", "%"+user.Phone+"%")
-	}
-	if user.RoleID != 0 {
-		baseQuery = baseQuery.Where("system_users.role_id = ?", user.RoleID)
-	}
-	if user.DepartmentID != 0 {
-		baseQuery = baseQuery.Where("system_users.department_id = ?", user.DepartmentID)
+	baseQuery, err := buildUserListQuery(pgdb.GetClient(), user)
+	if err != nil {
+		return nil, 0, err
 	}
 	// 获取符合条件的总记录数
-	baseQuery.Count(&total)
+	if err := baseQuery.Count(&total).Error; err != nil {
+		zap.L().Error("failed to count user list", zap.Error(err))
+		return nil, 0, err
+	}
 
 	// 准备查询对象，添加选择字段和排序
 	query := baseQuery.Select("system_users.*, system_roles.name as role_name, system_roles.desc as role_desc, system_departments.name as department_name")
@@ -172,6 +167,33 @@ func FindUserList(user *SystemUser, page, pageSize int) ([]UserWithRelations, in
 	}
 
 	return usersWithRelations, total, nil
+}
+
+func buildUserListQuery(db *gorm.DB, user *SystemUser) (*gorm.DB, error) {
+	if user.TenantID == 0 {
+		return nil, gorm.ErrInvalidData
+	}
+	query := db.Table("system_users").
+		Joins("left join system_roles on system_users.role_id = system_roles.id AND system_users.tenant_id = system_roles.tenant_id").
+		Joins("left join system_departments on system_users.department_id = system_departments.id AND system_users.tenant_id = system_departments.tenant_id").
+		Where("system_users.deleted_at IS NULL").
+		Where("system_users.tenant_id = ?", user.TenantID)
+	if user.Username != "" {
+		query = query.Where("system_users.username LIKE ?", "%"+user.Username+"%")
+	}
+	if user.Name != "" {
+		query = query.Where("system_users.name LIKE ?", "%"+user.Name+"%")
+	}
+	if user.Phone != "" {
+		query = query.Where("system_users.phone LIKE ?", "%"+user.Phone+"%")
+	}
+	if user.RoleID != 0 {
+		query = query.Where("system_users.role_id = ?", user.RoleID)
+	}
+	if user.DepartmentID != 0 {
+		query = query.Where("system_users.department_id = ?", user.DepartmentID)
+	}
+	return query, nil
 }
 
 func AddUser(user *SystemUser) error {
@@ -199,7 +221,11 @@ func GetUser(user *SystemUser) error {
 	return nil
 }
 
-func UpdateUser(user *SystemUser) error {
+func UpdateUser(user *SystemUser, fields ...string) error {
+	if user.ID == 0 || user.TenantID == 0 || len(fields) == 0 {
+		return gorm.ErrInvalidData
+	}
+
 	// 如果更新密码，使用bcrypt加密
 	if user.Password != "" {
 		hashedPassword, err := HashPassword(user.Password)
@@ -210,19 +236,41 @@ func UpdateUser(user *SystemUser) error {
 		user.Password = hashedPassword
 	}
 
-	if err := pgdb.GetClient().Updates(user).Error; err != nil {
-		zap.L().Error("failed to update user", zap.Error(err))
-		return err
+	result := scopedUserUpdate(pgdb.GetClient(), user, fields)
+	if result.Error != nil {
+		zap.L().Error("failed to update user", zap.Error(result.Error))
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }
 
+func scopedUserUpdate(db *gorm.DB, user *SystemUser, fields []string) *gorm.DB {
+	return db.Model(&SystemUser{}).
+		Where("id = ? AND tenant_id = ?", user.ID, user.TenantID).
+		Select(fields).
+		Updates(user)
+}
+
 func DeleteUser(user *SystemUser) error {
-	if err := pgdb.GetClient().Delete(user).Error; err != nil {
-		zap.L().Error("failed to delete user", zap.Error(err))
-		return err
+	if user.ID == 0 || user.TenantID == 0 {
+		return gorm.ErrInvalidData
+	}
+	result := scopedUserDelete(pgdb.GetClient(), user)
+	if result.Error != nil {
+		zap.L().Error("failed to delete user", zap.Error(result.Error))
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func scopedUserDelete(db *gorm.DB, user *SystemUser) *gorm.DB {
+	return db.Where("id = ? AND tenant_id = ?", user.ID, user.TenantID).Delete(&SystemUser{})
 }
 
 // FindAllUsers 查询所有用户

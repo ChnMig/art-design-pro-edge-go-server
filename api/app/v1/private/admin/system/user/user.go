@@ -19,11 +19,20 @@ func FindUserByCache(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+		return
+	}
 
 	// 如果提供了ID，则获取单个用户信息
 	if params.ID > 0 {
-		userInfo, err := userdomain.GetUserFromCache(params.ID)
+		userInfo, err := userdomain.GetUserFromCache(tenantID, params.ID)
 		if err != nil {
+			if errors.Is(err, userdomain.ErrUserNotInTenant) {
+				ReturnDomainError(c, err, "获取用户缓存数据失败")
+				return
+			}
 			response.ReturnError(c, response.DATA_LOSS, "获取用户缓存数据失败")
 			return
 		}
@@ -36,6 +45,7 @@ func FindUserByCache(c *gin.Context) {
 	pageSize := middleware.GetPageSize(c)
 
 	userList, total, err := userdomain.ListUsersFromCache(userdomain.CacheFilter{
+		TenantID: tenantID,
 		Username: params.Username,
 		Name:     params.Name,
 	}, page, pageSize)
@@ -61,7 +71,7 @@ func FindUser(c *gin.Context) {
 	// 获取当前租户ID
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == 0 {
-		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
 		return
 	}
 
@@ -140,7 +150,7 @@ func AddUser(c *gin.Context) {
 	// 获取当前租户ID
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == 0 {
-		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
 		return
 	}
 	if err := userdomain.AddUser(tenantID, userdomain.AddUserInput{
@@ -154,8 +164,8 @@ func AddUser(c *gin.Context) {
 		RoleID:       params.RoleID,
 		DepartmentID: params.DepartmentID,
 	}); err != nil {
-		if errors.Is(err, userdomain.ErrRoleNotInTenant) {
-			response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
+		if errors.Is(err, userdomain.ErrRoleNotInTenant) || errors.Is(err, userdomain.ErrDepartmentNotInTenant) {
+			ReturnDomainError(c, err, "添加用户失败")
 			return
 		}
 		response.ReturnError(c, response.DATA_LOSS, "添加用户失败")
@@ -184,7 +194,7 @@ func UpdateUser(c *gin.Context) {
 	// 获取当前租户ID
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == 0 {
-		response.ReturnError(c, response.UNAUTHENTICATED, "Invalid tenant context")
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
 		return
 	}
 	if err := userdomain.UpdateUser(tenantID, userdomain.UpdateUserInput{
@@ -199,8 +209,10 @@ func UpdateUser(c *gin.Context) {
 		RoleID:       params.RoleID,
 		DepartmentID: params.DepartmentID,
 	}); err != nil {
-		if errors.Is(err, userdomain.ErrRoleNotInTenant) {
-			response.ReturnError(c, response.PERMISSION_DENIED, "角色不存在或不属于当前租户")
+		if errors.Is(err, userdomain.ErrRoleNotInTenant) ||
+			errors.Is(err, userdomain.ErrDepartmentNotInTenant) ||
+			errors.Is(err, userdomain.ErrUserNotInTenant) {
+			ReturnDomainError(c, err, "更新用户失败")
 			return
 		}
 		response.ReturnError(c, response.DATA_LOSS, "更新用户失败")
@@ -216,9 +228,18 @@ func DeleteUser(c *gin.Context) {
 	if !middleware.CheckParam(params, c) {
 		return
 	}
-	if err := userdomain.DeleteUser(params.ID); err != nil {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == 0 {
+		response.ReturnError(c, response.UNAUTHENTICATED, "租户信息缺失")
+		return
+	}
+	if err := userdomain.DeleteUser(tenantID, params.ID); err != nil {
 		if errors.Is(err, userdomain.ErrCannotDeleteSuperAdmin) {
 			response.ReturnError(c, response.DATA_LOSS, "不能删除超级管理员")
+			return
+		}
+		if errors.Is(err, userdomain.ErrUserNotInTenant) {
+			ReturnDomainError(c, err, "删除用户失败")
 			return
 		}
 		response.ReturnError(c, response.DATA_LOSS, "删除用户失败")
