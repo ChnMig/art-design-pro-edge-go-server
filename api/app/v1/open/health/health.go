@@ -1,6 +1,8 @@
 package health
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -9,16 +11,18 @@ import (
 	"api-server/util/log"
 )
 
+var getStatus = domain.GetStatus
+
 // Status 返回服务健康状态
 func Status(c *gin.Context) {
 	// 默认使用带 trace_id 等上下文信息的 logger
 	l := log.FromContext(c)
 	l.Debug("健康检查开始")
 
-	status, err := domain.GetStatus()
+	status, err := getStatus()
 	if err != nil {
 		log.WithRequest(c).Error("健康检查失败", zap.Error(err))
-		ReturnDomainError(c, err)
+		response.ReturnErrorWithHTTPStatus(c, http.StatusServiceUnavailable, response.UNAVAILABLE, "服务依赖未就绪")
 		return
 	}
 

@@ -163,6 +163,11 @@ func ReturnDataWithTotal(c *gin.Context, count int, result interface{}) {
 
 // ResponseError 错误响应
 func ReturnError(c *gin.Context, data responseData, description string) {
+	ReturnErrorWithHTTPStatus(c, http.StatusOK, data, description)
+}
+
+// ReturnErrorWithHTTPStatus 同时返回真实 HTTP 状态码和统一业务错误体。
+func ReturnErrorWithHTTPStatus(c *gin.Context, httpStatus int, data responseData, description string) {
 	data.Timestamp = time.Now().Unix()
 	data.TraceID = getTraceID(c)
 	data.Message = func() string {
@@ -171,7 +176,7 @@ func ReturnError(c *gin.Context, data responseData, description string) {
 		}
 		return description
 	}()
-	c.JSON(http.StatusOK, data)
+	c.JSON(httpStatus, data)
 	// Return directly
 	c.Abort()
 }

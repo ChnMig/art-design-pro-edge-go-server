@@ -27,3 +27,11 @@ func InitCronJobs() {
 
 	zap.L().Info("定时任务调度器已启动")
 }
+
+// Shutdown 停止调度器并等待正在执行的任务退出。
+func Shutdown() error {
+	if scheduler == nil {
+		return nil
+	}
+	return scheduler.Shutdown()
+}

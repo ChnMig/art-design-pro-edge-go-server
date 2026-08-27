@@ -7,9 +7,11 @@
 ## 当前约定
 1. 通过 `viper` 读取 `config.yaml`，并支持 `HTTP_SERVICES_<SECTION>_<KEY>` 形式的环境变量覆盖。
 2. `config.LoadConfig` 负责设置默认值、读取文件、应用配置，并暴露给其它模块的全局变量（JWT、Redis、Postgres、限流、租户、PID 文件、TLS/ACME 等）。
-3. 变更配置后可调用 `config.WatchConfig` 自动热加载，回调中仅允许执行轻量级逻辑（日志、缓存配置值等），重型操作需另行协调。
+3. 配置只在进程启动时加载并校验，修改后必须重启。禁止重新引入直接写全局变量的配置热加载；数据库、Redis、监听端口、TLS（传输层安全协议）、限流器等运行时对象必须与配置保持同一生命周期。
 4. `config.CheckConfig` 必须在 `zap` logger 初始化后执行，确保关键项（JWT、数据库、Redis、初始用户等）已就绪，缺失会触发 `Fatal`。
 5. TLS 启用约定：`server.enable_acme` 与 `server.enable_tls` 互斥；启用 ACME 时必须配置 `server.acme_domain`；启用本地证书模式时必须配置 `server.tls_cert_file/server.tls_key_file`。
 6. PID 文件约定：`server.pid_file` 默认 `api-server.pid`，支持相对路径（相对 `config.AbsPath`）；服务启动后写入当前进程 PID，服务退出时自动删除；如不需要可配置为空字符串禁用。
 7. 数据库 DSN、Redis 地址等敏感数据仅存于本地 `config.yaml`（已被 `.gitignore` 忽略），仓库仅提交 `config.yaml.example` 作为字段示例。
 8. 文档及代码中面向用户的注释保持中文表达，必要的英文术语首次出现时附带中文说明。
+9. `.env` 文件不会由程序自动读取；环境变量必须由进程管理器或启动脚本导出，名称统一使用 `HTTP_SERVICES_<SECTION>_<KEY>`。
+10. `server.trusted_proxies` 仅填写实际反向代理的 IP 或 CIDR（无类别域间路由），直连部署保持为空，避免伪造客户端地址。

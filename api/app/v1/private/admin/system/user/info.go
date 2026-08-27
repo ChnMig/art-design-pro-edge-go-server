@@ -10,7 +10,7 @@ import (
 
 func UpdateUserInfo(c *gin.Context) {
 	params := &struct {
-		Password string `json:"password" form:"password"`
+		Password string `json:"password" form:"password" binding:"omitempty,min=8,max=72"`
 		Username string `json:"username" form:"username" binding:"required"`
 		Phone    string `json:"phone" form:"phone" binding:"required"`
 		Gender   uint   `json:"gender" form:"gender" binding:"required"`
@@ -32,7 +32,7 @@ func UpdateUserInfo(c *gin.Context) {
 		Phone:    params.Phone,
 		Gender:   params.Gender,
 	}); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新用户失败")
+		ReturnDomainError(c, err, "更新用户失败")
 		return
 	}
 	response.ReturnData(c, "更新用户成功")

@@ -136,7 +136,7 @@ func AddUser(c *gin.Context) {
 		Name         string `json:"name" form:"name" binding:"required"`         // 姓名
 		Username     string `json:"username" form:"username" binding:"required"` // 昵称
 		Account      string `json:"account" form:"account" binding:"required"`   // 登录账号
-		Password     string `json:"password" form:"password" binding:"required"`
+		Password     string `json:"password" form:"password" binding:"required,min=8,max=72"`
 		Phone        string `json:"phone" form:"phone" binding:"required"`
 		Gender       uint   `json:"gender" form:"gender" binding:"required"`
 		Status       uint   `json:"status" form:"status" binding:"required"`
@@ -168,6 +168,10 @@ func AddUser(c *gin.Context) {
 			ReturnDomainError(c, err, "添加用户失败")
 			return
 		}
+		if errors.Is(err, userdomain.ErrInvalidUserInput) {
+			ReturnDomainError(c, err, "添加用户失败")
+			return
+		}
 		response.ReturnError(c, response.DATA_LOSS, "添加用户失败")
 		return
 	}
@@ -180,7 +184,7 @@ func UpdateUser(c *gin.Context) {
 		Name         string `json:"name" form:"name" binding:"required"`         // 姓名
 		Username     string `json:"username" form:"username" binding:"required"` // 昵称
 		Account      string `json:"account" form:"account" binding:"required"`   // 登录账号
-		Password     string `json:"password" form:"password"`
+		Password     string `json:"password" form:"password" binding:"omitempty,min=8,max=72"`
 		Phone        string `json:"phone" form:"phone" binding:"required"`
 		Gender       uint   `json:"gender" form:"gender" binding:"required"`
 		Status       uint   `json:"status" form:"status" binding:"required"`
@@ -211,7 +215,9 @@ func UpdateUser(c *gin.Context) {
 	}); err != nil {
 		if errors.Is(err, userdomain.ErrRoleNotInTenant) ||
 			errors.Is(err, userdomain.ErrDepartmentNotInTenant) ||
-			errors.Is(err, userdomain.ErrUserNotInTenant) {
+			errors.Is(err, userdomain.ErrUserNotInTenant) ||
+			errors.Is(err, userdomain.ErrCannotModifySuperAdmin) ||
+			errors.Is(err, userdomain.ErrInvalidUserInput) {
 			ReturnDomainError(c, err, "更新用户失败")
 			return
 		}

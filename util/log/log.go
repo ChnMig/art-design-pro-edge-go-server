@@ -1,6 +1,7 @@
 package log
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
@@ -24,6 +25,73 @@ var (
 // BoundParamsKey 用于在 gin.Context 中存放已绑定的业务参数。
 // 目前由 middleware.CheckParam 写入，WithRequest 读取，仅用于日志记录。
 const BoundParamsKey = "__bound_params__"
+
+const redactedValue = "[已脱敏]"
+
+func isSensitiveKey(key string) bool {
+	normalized := strings.ToLower(strings.NewReplacer("_", "", "-", "", ".", "").Replace(key))
+	sensitiveNames := []string{
+		"password", "passwd", "pwd", "token", "authorization", "secret", "apikey", "accesskey",
+		"privatekey", "captcha", "cookie", "sessionid", "clientsecret",
+	}
+	for _, name := range sensitiveNames {
+		if strings.Contains(normalized, name) {
+			return true
+		}
+	}
+	return false
+}
+
+func redactMap(value map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{}, len(value))
+	for key, item := range value {
+		if isSensitiveKey(key) {
+			result[key] = redactedValue
+			continue
+		}
+		result[key] = redactJSONValue(item)
+	}
+	return result
+}
+
+func redactJSONValue(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		return redactMap(typed)
+	case []interface{}:
+		result := make([]interface{}, len(typed))
+		for i, item := range typed {
+			result[i] = redactJSONValue(item)
+		}
+		return result
+	default:
+		return value
+	}
+}
+
+func redactBoundParams(value interface{}) interface{} {
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return "[参数已省略]"
+	}
+	var decoded interface{}
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		return "[参数已省略]"
+	}
+	return redactJSONValue(decoded)
+}
+
+func redactStringValues(values map[string][]string) map[string][]string {
+	result := make(map[string][]string, len(values))
+	for key, items := range values {
+		if isSensitiveKey(key) {
+			result[key] = []string{redactedValue}
+			continue
+		}
+		result[key] = append([]string(nil), items...)
+	}
+	return result
+}
 
 func createDevLogger() *zap.Logger {
 	encoder := zap.NewDevelopmentEncoderConfig()
@@ -167,17 +235,17 @@ func WithRequest(c *gin.Context) *zap.Logger {
 
 	if c.Request.URL != nil {
 		fields = append(fields, zap.String("path", c.Request.URL.Path))
-		if rawQuery := c.Request.URL.RawQuery; rawQuery != "" {
-			fields = append(fields, zap.String("query", rawQuery))
+		if query := c.Request.URL.Query(); len(query) > 0 {
+			fields = append(fields, zap.Any("query", redactStringValues(query)))
 		}
 	}
 
 	if c.Request.Method == http.MethodPost || c.Request.Method == http.MethodPut || c.Request.Method == http.MethodPatch {
 		if len(c.Request.PostForm) > 0 {
-			fields = append(fields, zap.Any("form", c.Request.PostForm))
+			fields = append(fields, zap.Any("form", redactStringValues(c.Request.PostForm)))
 		}
 		if c.Request.MultipartForm != nil && len(c.Request.MultipartForm.Value) > 0 {
-			fields = append(fields, zap.Any("multipart_form", c.Request.MultipartForm.Value))
+			fields = append(fields, zap.Any("multipart_form", redactStringValues(c.Request.MultipartForm.Value)))
 		}
 	}
 
@@ -190,7 +258,7 @@ func WithRequest(c *gin.Context) *zap.Logger {
 	}
 
 	if bound, exists := c.Get(BoundParamsKey); exists && bound != nil {
-		fields = append(fields, zap.Any("params", bound))
+		fields = append(fields, zap.Any("params", redactBoundParams(bound)))
 	}
 
 	return base.With(fields...)

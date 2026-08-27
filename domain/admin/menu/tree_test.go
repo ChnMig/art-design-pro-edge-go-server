@@ -1,6 +1,7 @@
 package menu
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -57,6 +58,20 @@ func TestExtractCheckedAuthIDs(t *testing.T) {
 	want := []uint{11, 21}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("extractCheckedAuthIDs() = %v, want %v", got, want)
+	}
+}
+
+func TestValidateCheckedAuthMenus(t *testing.T) {
+	tree := []commonmenu.MenuResponse{{
+		ID: 1, HasPermission: false,
+		Meta: commonmenu.MenuMeta{AuthList: []commonmenu.MenuAuthResp{{ID: 11, HasPermission: true}}},
+	}}
+	if validateCheckedAuthMenus(tree) {
+		t.Fatal("未勾选菜单时不应允许单独勾选按钮权限")
+	}
+	tree[0].HasPermission = true
+	if !validateCheckedAuthMenus(tree) {
+		t.Fatal("菜单与按钮同时勾选时应通过校验")
 	}
 }
 
@@ -165,3 +180,21 @@ func TestFilterAuthsByScope(t *testing.T) {
 	}
 }
 
+func TestValidateMenuParentChainRejectsDescendant(t *testing.T) {
+	menus := map[uint]system.SystemMenu{
+		1: {Model: gorm.Model{ID: 1}},
+		2: {Model: gorm.Model{ID: 2}, ParentID: 1},
+		3: {Model: gorm.Model{ID: 3}, ParentID: 2},
+	}
+	load := func(menu *system.SystemMenu) error {
+		loaded, ok := menus[menu.ID]
+		if !ok {
+			return gorm.ErrRecordNotFound
+		}
+		*menu = loaded
+		return nil
+	}
+	if err := validateMenuParentChain(1, menus[3], load); !errors.Is(err, ErrMenuCycle) {
+		t.Fatalf("validateMenuParentChain() error = %v, want ErrMenuCycle", err)
+	}
+}

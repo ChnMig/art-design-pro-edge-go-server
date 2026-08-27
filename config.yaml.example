@@ -5,6 +5,7 @@ server:
   port: 8080
   max_body_size: "10MB"
   max_header_bytes: 1048576
+  trusted_proxies: []             # 反向代理的 IP/CIDR；直连部署保持为空
   shutdown_timeout: "10s"
   read_timeout: "30s"
   write_timeout: "30s"
@@ -22,7 +23,7 @@ server:
   tls_key_file: ""
 
 jwt:
-  key: "YOUR_SECRET_KEY_HERE"   # 请务必替换为至少32位的强密钥
+  key: ""                       # 必填，请生成至少32字符的随机密钥
   expiration: "12h"
 
 log:
@@ -32,20 +33,20 @@ log:
 
 redis:
   host: "127.0.0.1:6379"
-  password: "your-redis-password"
+  password: ""                    # 必填，不提交真实密码
 
 postgres:
   host: "127.0.0.1"
   user: "postgres"
-  password: "your-postgres-password"
+  password: ""                    # 必填，不提交真实密码
   dbname: "server"
   port: 5432
   sslmode: "disable"
   timezone: "Asia/Shanghai"
 
 admin:
-  password: "change-me"
-  salt: "your-password-salt"
+  password: ""                    # 必填，长度 8-72 字节
+  salt: ""                        # 必填，使用随机值
 
 rate_limit:
   login_rate_per_minute: 30

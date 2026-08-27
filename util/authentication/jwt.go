@@ -61,11 +61,14 @@ func SignHS256(claims jwt.Claims) (string, error) {
 // ParseHS256 使用 HS256 验证并解析 token，结果写入传入的 claims
 func ParseHS256(tokenString string, claims jwt.Claims) (*jwt.Token, error) {
 	return jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
 		return []byte(config.JWTKey), nil
-	})
+	},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuer(defaultIssuer),
+		jwt.WithAudience(defaultAudience),
+		jwt.WithSubject(defaultSubject),
+		jwt.WithExpirationRequired(),
+	)
 }
 
 // JWTIssue 签发 JWT Token，使用 map 存储数据

@@ -75,6 +75,9 @@ func UpdateRoleMenu(roleID uint, menuData []commonmenu.MenuResponse, actorTenant
 			return ErrPermissionDenied
 		}
 	}
+	if !validateCheckedAuthMenus(menuData) {
+		return ErrAuthWithoutMenu
+	}
 
 	scopeIDs, err := system.GetTenantMenuScopeIDs(roleEntity.TenantID)
 	if err != nil {
@@ -97,4 +100,3 @@ func UpdateRoleMenu(roleID uint, menuData []commonmenu.MenuResponse, actorTenant
 
 	return system.SaveRoleMenuAssociations(roleID, menuIDs, authIDs)
 }
-

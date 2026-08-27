@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -18,7 +19,17 @@ import (
 // Context 描述基于本地证书文件的 TLS 运行时信息。
 // Enabled 为 true 表示当前进程启用了证书文件 TLS 模式。
 type Context struct {
-	Enabled bool
+	Enabled  bool
+	stop     chan struct{}
+	stopOnce sync.Once
+}
+
+// Close 停止证书文件监听。
+func (c *Context) Close() {
+	if c == nil || c.stop == nil {
+		return
+	}
+	c.stopOnce.Do(func() { close(c.stop) })
 }
 
 var currentCert atomic.Value // *tls.Certificate
@@ -56,6 +67,7 @@ func getCurrentCertificate() *tls.Certificate {
 func Setup(server *http.Server) *Context {
 	ctx := &Context{
 		Enabled: false,
+		stop:    make(chan struct{}),
 	}
 
 	if !config.EnableTLS {
@@ -78,6 +90,8 @@ func Setup(server *http.Server) *Context {
 	if !filepath.IsAbs(keyPath) {
 		keyPath = filepath.Join(config.AbsPath, keyPath)
 	}
+	certPath = filepath.Clean(certPath)
+	keyPath = filepath.Clean(keyPath)
 
 	_ = pathtool.CreateDir(filepath.Dir(certPath))
 	_ = pathtool.CreateDir(filepath.Dir(keyPath))
@@ -91,10 +105,11 @@ func Setup(server *http.Server) *Context {
 	}
 
 	server.TLSConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			cert := getCurrentCertificate()
 			if cert == nil {
-				return nil, fmt.Errorf("no TLS certificate loaded")
+				return nil, fmt.Errorf("未加载 TLS 证书")
 			}
 			return cert, nil
 		},
@@ -110,11 +125,11 @@ func Setup(server *http.Server) *Context {
 		return ctx
 	}
 
-	paths := []string{certPath, keyPath}
-	for _, p := range paths {
-		if err := watcher.Add(p); err != nil {
-			zap.L().Error("监听 TLS 证书文件失败",
-				zap.String("path", p),
+	watchDirs := map[string]struct{}{filepath.Dir(certPath): {}, filepath.Dir(keyPath): {}}
+	for dir := range watchDirs {
+		if err := watcher.Add(dir); err != nil {
+			zap.L().Error("监听 TLS 证书目录失败",
+				zap.String("path", dir),
 				zap.Error(err),
 			)
 		}
@@ -127,6 +142,10 @@ func Setup(server *http.Server) *Context {
 			case event, ok := <-watcher.Events:
 				if !ok {
 					return
+				}
+				eventPath, pathErr := filepath.Abs(event.Name)
+				if pathErr != nil || (eventPath != certPath && eventPath != keyPath) {
+					continue
 				}
 				if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Rename) {
 					time.Sleep(200 * time.Millisecond)
@@ -148,6 +167,8 @@ func Setup(server *http.Server) *Context {
 					return
 				}
 				zap.L().Error("TLS 证书文件监听错误", zap.Error(err))
+			case <-ctx.stop:
+				return
 			}
 		}
 	}()

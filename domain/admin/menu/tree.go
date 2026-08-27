@@ -43,6 +43,22 @@ func extractCheckedAuthIDs(tree []commonmenu.MenuResponse) []uint {
 	return result
 }
 
+func validateCheckedAuthMenus(tree []commonmenu.MenuResponse) bool {
+	for _, menu := range tree {
+		if !menu.HasPermission {
+			for _, auth := range menu.Meta.AuthList {
+				if auth.HasPermission {
+					return false
+				}
+			}
+		}
+		if !validateCheckedAuthMenus(menu.Children) {
+			return false
+		}
+	}
+	return true
+}
+
 func validateMenuScope(menus []commonmenu.MenuResponse, allowed []uint) bool {
 	if len(allowed) == 0 {
 		return len(menus) == 0
@@ -128,4 +144,3 @@ func filterAuthsByScope(allAuths []system.SystemMenuAuth, allowedAuthIDs []uint)
 	}
 	return filtered
 }
-

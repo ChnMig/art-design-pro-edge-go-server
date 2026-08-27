@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"api-server/db/pgdb/system"
+	systemuser "api-server/db/rdb/systemUser"
 
 	"gorm.io/gorm"
 )
@@ -18,6 +19,9 @@ type UpdateProfileInput struct {
 }
 
 func UpdateUserProfile(input UpdateProfileInput) error {
+	if input.Password != "" && (len(input.Password) < 8 || len(input.Password) > 72) {
+		return ErrInvalidUserInput
+	}
 	u := system.SystemUser{
 		Model:    gorm.Model{ID: input.UserID},
 		TenantID: input.TenantID,
@@ -36,6 +40,7 @@ func UpdateUserProfile(input UpdateProfileInput) error {
 		}
 		return err
 	}
+	_ = systemuser.InvalidateUserCache(input.UserID)
 	return nil
 }
 

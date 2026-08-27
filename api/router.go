@@ -30,7 +30,9 @@ func InitApi() *gin.Engine {
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
-	router.SetTrustedProxies(nil)
+	if err := router.SetTrustedProxies(config.TrustedProxies); err != nil {
+		zap.L().Fatal("受信任代理配置无效", zap.Error(err))
+	}
 
 	if config.EnableRateLimit {
 		router.Use(middleware.IPRateLimit(config.GlobalRateLimit, config.GlobalRateBurst))

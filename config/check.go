@@ -34,7 +34,7 @@ func CheckConfig(
 			zap.String("suggestion", "请使用至少32字符的强密钥"),
 		)
 	}
-	if JWTExpiration == 0 {
+	if JWTExpiration <= 0 {
 		zap.L().Fatal("JWTExpiration 配置缺失，请在 config.yaml 中设置 jwt.expiration")
 	}
 	if RedisHost == "" {
@@ -46,8 +46,8 @@ func CheckConfig(
 	if PgsqlDSN == "" {
 		zap.L().Fatal("PgsqlDSN 配置缺失")
 	}
-	if AdminPassword == "" {
-		zap.L().Fatal("AdminPassword 配置缺失")
+	if len(AdminPassword) < 8 || len(AdminPassword) > 72 {
+		zap.L().Fatal("AdminPassword 长度必须为 8 到 72 字节")
 	}
 	if PWDSalt == "" {
 		zap.L().Fatal("PWDSalt 配置缺失")

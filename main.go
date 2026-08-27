@@ -18,6 +18,7 @@ import (
 	"api-server/cron"
 	"api-server/db/pgdb"
 	"api-server/db/pgdb/system"
+	"api-server/db/rdb"
 	"api-server/util/acme"
 	"api-server/util/log"
 	pathtool "api-server/util/path-tool"
@@ -83,14 +84,6 @@ func main() {
 	log.GetLogger()
 	log.StartMonitor()
 
-	config.WatchConfig(func() {
-		zap.L().Info("配置重载成功",
-			zap.Int("port", config.ListenPort),
-			zap.Duration("jwt_expiration", config.JWTExpiration),
-			zap.Bool("global_rate_limit", config.EnableRateLimit),
-		)
-	})
-
 	config.CheckConfig(
 		config.JWTKey,
 		int64(config.JWTExpiration),
@@ -105,6 +98,9 @@ func main() {
 		exitCode := 0
 		if err := migrate(); err != nil {
 			exitCode = 1
+		}
+		if err := pgdb.CloseClient(); err != nil {
+			zap.L().Warn("关闭 PostgreSQL 连接失败", zap.Error(err))
 		}
 		log.StopMonitor()
 		ctx.Exit(exitCode)
@@ -128,6 +124,7 @@ func main() {
 	// 监听停止信号（尽早注册，避免启动阶段收到信号时错过清理流程）
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	defer signal.Stop(quit)
 
 	pidFilePath := config.PidFile
 	// 写入 pid 文件（存在则覆盖，确保每次启动都会刷新）
@@ -197,6 +194,17 @@ func main() {
 				zap.L().Error("ACME HTTP 挑战服务关闭失败", zap.Error(err))
 			}
 		}
+	}
+
+	if err := cron.Shutdown(); err != nil {
+		zap.L().Warn("停止定时任务失败", zap.Error(err))
+	}
+	tlsFileCtx.Close()
+	if err := pgdb.CloseClient(); err != nil {
+		zap.L().Warn("关闭 PostgreSQL 连接失败", zap.Error(err))
+	}
+	if err := rdb.CloseClient(); err != nil {
+		zap.L().Warn("关闭 Redis 连接失败", zap.Error(err))
 	}
 
 	middleware.CleanupAllLimiters()

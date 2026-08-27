@@ -12,12 +12,10 @@ func CorssDomainHandler() gin.HandlerFunc {
 		method := c.Request.Method               // method
 		origin := c.Request.Header.Get("Origin") // header
 		if origin != "" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			c.Header("Access-Control-Allow-Origin", "*")  // This is to allow access to all domains
-			c.Header("Access-Control-Allow-Methods", "*") // All cross-domain request methods supported by the server, in order to avoid multiple'pre-check' requests for browsing requests
-			//  header
-			c.Header("Access-Control-Allow-Headers", "*")
-			c.Header("Access-Control-Expose-Headers", "*")
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "Authorization,Content-Type,X-Request-ID")
+			c.Header("Access-Control-Expose-Headers", "X-Request-ID")
 			c.Header("Access-Control-Max-Age", "172800")
 			c.Header("Access-Control-Allow-Credentials", "false")
 			c.Set("content-type", "application/json")
@@ -25,7 +23,9 @@ func CorssDomainHandler() gin.HandlerFunc {
 
 		// Release all OPTIONS methods
 		if method == "OPTIONS" {
-			c.JSON(http.StatusOK, "Options Request!")
+			c.Status(http.StatusNoContent)
+			c.Abort()
+			return
 		}
 		// Processing request
 		c.Next()

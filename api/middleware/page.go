@@ -13,6 +13,9 @@ func GetPage(c *gin.Context) int {
 	if err != nil || p < 1 {
 		return config.DefaultPage
 	}
+	if p > config.MaxPage {
+		return config.MaxPage
+	}
 	return p
 }
 

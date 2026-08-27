@@ -43,6 +43,7 @@ var (
 	WriteTimeout    time.Duration
 	IdleTimeout     time.Duration
 	MaxHeaderBytes  int
+	TrustedProxies  []string
 	EnableRateLimit bool
 	GlobalRateLimit int
 	GlobalRateBurst int
@@ -77,6 +78,7 @@ var (
 	DefaultPageSize = 20 // default page size
 	DefaultPage     = 1  // default page
 	MaxPageSize     = 100
+	MaxPage         = 10000
 	CancelPageSize  = -1 // cancel page size
 	CancelPage      = -1 // cancel page
 )

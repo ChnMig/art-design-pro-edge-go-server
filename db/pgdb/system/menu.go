@@ -20,7 +20,7 @@ func GetUserMenuData(userID uint) ([]SystemMenu, []SystemMenuAuth, error) {
 	var role SystemRole
 	if err := pgdb.GetClient().Preload("SystemMenus").
 		Preload("SystemMenuAuths").
-		Where("id = ?", user.RoleID).
+		Where("id = ? AND tenant_id = ? AND status = ?", user.RoleID, user.TenantID, StatusEnabled).
 		First(&role).Error; err != nil {
 		zap.L().Error("failed to get role", zap.Error(err))
 		return nil, nil, err
@@ -89,17 +89,55 @@ func AddMenu(menu *SystemMenu) error {
 
 // 删除一个菜单
 func DeleteMenu(menu *SystemMenu) error {
-	if err := pgdb.GetClient().Delete(menu).Error; err != nil {
-		zap.L().Error("failed to delete menu", zap.Error(err))
-		return err
+	if menu.ID == 0 {
+		return gorm.ErrInvalidData
 	}
-	return nil
+	return pgdb.GetClient().Transaction(func(tx *gorm.DB) error {
+		var authIDs []uint
+		if err := tx.Model(&SystemMenuAuth{}).Where("menu_id = ?", menu.ID).Pluck("id", &authIDs).Error; err != nil {
+			return err
+		}
+		if len(authIDs) > 0 {
+			if err := tx.Exec("DELETE FROM system_roles__system_auths WHERE system_menu_auth_id IN ?", authIDs).Error; err != nil {
+				return err
+			}
+			if err := tx.Unscoped().Where("auth_id IN ?", authIDs).Delete(&SystemTenantAuthScope{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("id IN ?", authIDs).Delete(&SystemMenuAuth{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Exec("DELETE FROM system_roles__system_menus WHERE system_menu_id = ?", menu.ID).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("menu_id = ?", menu.ID).Delete(&SystemTenantMenuScope{}).Error; err != nil {
+			return err
+		}
+		result := tx.Where("id = ?", menu.ID).Delete(&SystemMenu{})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
 }
 
 func UpdateMenu(menu *SystemMenu) error {
-	if err := pgdb.GetClient().Omit("created_at").Save(menu).Error; err != nil {
-		zap.L().Error("failed to update menu", zap.Error(err))
-		return err
+	if menu.ID == 0 {
+		return gorm.ErrInvalidData
+	}
+	result := pgdb.GetClient().Model(&SystemMenu{}).Where("id = ?", menu.ID).
+		Select("path", "name", "component", "title", "icon", "show_badge", "show_text_badge", "is_hide", "is_hide_tab", "link", "is_iframe", "keep_alive", "is_first_level", "status", "level", "parent_id", "sort").
+		Updates(menu)
+	if result.Error != nil {
+		zap.L().Error("failed to update menu", zap.Error(result.Error))
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }

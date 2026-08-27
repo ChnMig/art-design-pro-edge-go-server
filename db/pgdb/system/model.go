@@ -33,6 +33,7 @@ type SystemRole struct {
 	Name            string           `json:"name,omitempty"`
 	Desc            string           `json:"desc,omitempty"`
 	Status          uint             `json:"status,omitempty"`                                             // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
+	IsTenantAdmin   bool             `json:"is_tenant_admin" gorm:"not null;default:false;index"`          // 是否为当前租户的管理员角色
 	SystemMenus     []SystemMenu     `json:"menus,omitempty" gorm:"many2many:system_roles__system_menus;"` // 多对多关联菜单表
 	SystemUsers     []SystemUser     `json:"users,omitempty" gorm:"foreignKey:RoleID"`
 	SystemMenuAuths []SystemMenuAuth `json:"menu_auths,omitempty" gorm:"many2many:system_roles__system_auths;"` // 多对多关联菜单按钮权限表
@@ -65,7 +66,7 @@ type SystemMenu struct {
 // MenuPermission 菜单按钮权限表
 type SystemMenuAuth struct {
 	gorm.Model
-	MenuID      uint         `json:"menu_id,omitempty"`
+	MenuID      uint         `json:"menu_id,omitempty" gorm:"not null;index"`
 	Mark        string       `json:"mark,omitempty"` // 标识
 	Title       string       `json:"title,omitempty"`
 	SystemRoles []SystemRole `json:"roles,omitempty" gorm:"many2many:system_roles__system_auths;"` // 多对多关联角色表
@@ -80,7 +81,7 @@ type SystemUser struct {
 	Name         string `json:"name,omitempty"`                                          // 姓名
 	Username     string `json:"username,omitempty"`                                      // 昵称
 	Account      string `json:"account,omitempty" gorm:"uniqueIndex:idx_tenant_account"` // 登录账号，同租户内唯一
-	Password     string `json:"password,omitempty"`
+	Password     string `json:"-"`
 	Phone        string `json:"phone,omitempty"`
 	Gender       uint   `json:"gender,omitempty"` // 性别(1:男 2:女)
 	Status       uint   `json:"status,omitempty"` // 状态(StatusEnabled: 启用, StatusDisabled: 禁用)
@@ -90,7 +91,7 @@ type SystemUserLoginLog struct {
 	gorm.Model
 	TenantCode  string `json:"tenant_code,omitempty"` // 企业编号
 	UserName    string `json:"user_name,omitempty"`   // 登录账号
-	Password    string `json:"password,omitempty"`    // 注意：此字段应为空，不记录实际密码
+	Password    string `json:"-"`                     // 注意：此字段应为空，不记录实际密码
 	IP          string `json:"ip,omitempty"`
 	LoginStatus string `json:"login_status,omitempty"` // 登录状态：success, failed
 }
@@ -98,13 +99,13 @@ type SystemUserLoginLog struct {
 // SystemTenantMenuScope 定义每个租户可用的最大菜单范围
 type SystemTenantMenuScope struct {
 	gorm.Model
-	TenantID uint `json:"tenant_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
-	MenuID   uint `json:"menu_id,omitempty" gorm:"not null;index:idx_tenant_menu,uniqueIndex:idx_tenant_menu"`
+	TenantID uint `json:"tenant_id,omitempty" gorm:"not null;uniqueIndex:idx_tenant_menu_unique"`
+	MenuID   uint `json:"menu_id,omitempty" gorm:"not null;uniqueIndex:idx_tenant_menu_unique"`
 }
 
 // SystemTenantAuthScope 定义每个租户可用的按钮权限范围
 type SystemTenantAuthScope struct {
 	gorm.Model
-	TenantID uint `json:"tenant_id,omitempty" gorm:"not null;index:idx_tenant_auth,uniqueIndex:idx_tenant_auth"`
-	AuthID   uint `json:"auth_id,omitempty" gorm:"not null;index:idx_tenant_auth,uniqueIndex:idx_tenant_auth"`
+	TenantID uint `json:"tenant_id,omitempty" gorm:"not null;uniqueIndex:idx_tenant_auth_unique"`
+	AuthID   uint `json:"auth_id,omitempty" gorm:"not null;uniqueIndex:idx_tenant_auth_unique"`
 }

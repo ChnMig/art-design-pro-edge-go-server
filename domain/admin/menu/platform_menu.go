@@ -37,6 +37,9 @@ type AddMenuInput struct {
 }
 
 func AddMenu(input AddMenuInput) (system.SystemMenu, error) {
+	if input.Status != system.StatusEnabled && input.Status != system.StatusDisabled {
+		return system.SystemMenu{}, ErrInvalidMenuStatus
+	}
 	if input.ShowBadge == 0 {
 		input.ShowBadge = 2
 	}
@@ -102,12 +105,26 @@ type UpdateMenuInput struct {
 }
 
 func UpdateMenu(input UpdateMenuInput) (system.SystemMenu, error) {
+	if input.Status != system.StatusEnabled && input.Status != system.StatusDisabled {
+		return system.SystemMenu{}, ErrInvalidMenuStatus
+	}
 	if input.ShowBadge == 0 {
 		input.ShowBadge = 2
 	}
 
+	existing := system.SystemMenu{Model: gorm.Model{ID: input.ID}}
+	if err := system.GetMenu(&existing); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return system.SystemMenu{}, ErrMenuNotFound
+		}
+		return system.SystemMenu{}, err
+	}
+
 	var level uint = 1
 	if input.ParentID != 0 {
+		if input.ParentID == input.ID {
+			return system.SystemMenu{}, ErrMenuCycle
+		}
 		parent := system.SystemMenu{Model: gorm.Model{ID: input.ParentID}}
 		if err := system.GetMenu(&parent); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -117,6 +134,9 @@ func UpdateMenu(input UpdateMenuInput) (system.SystemMenu, error) {
 		}
 		if parent.Status != system.StatusEnabled {
 			return system.SystemMenu{}, ErrParentMenuDisabled
+		}
+		if err := validateMenuParentChain(input.ID, parent, system.GetMenu); err != nil {
+			return system.SystemMenu{}, err
 		}
 		level = parent.Level + 1
 	}
@@ -159,6 +179,33 @@ func UpdateMenu(input UpdateMenuInput) (system.SystemMenu, error) {
 	return menu, nil
 }
 
+type menuLoader func(menu *system.SystemMenu) error
+
+func validateMenuParentChain(targetID uint, parent system.SystemMenu, load menuLoader) error {
+	visited := make(map[uint]struct{})
+	current := parent
+	for current.ID != 0 {
+		if current.ID == targetID {
+			return ErrMenuCycle
+		}
+		if _, found := visited[current.ID]; found {
+			return ErrMenuCycle
+		}
+		visited[current.ID] = struct{}{}
+		if current.ParentID == 0 {
+			return nil
+		}
+		current = system.SystemMenu{Model: gorm.Model{ID: current.ParentID}}
+		if err := load(&current); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrParentMenuNotFound
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 func DeleteMenu(id uint) (system.SystemMenu, error) {
 	menu := system.SystemMenu{Model: gorm.Model{ID: id}}
 	if err := system.GetMenu(&menu); err != nil {
@@ -194,6 +241,13 @@ type AddMenuAuthInput struct {
 }
 
 func AddMenuAuth(input AddMenuAuthInput) (system.SystemMenuAuth, error) {
+	menu := system.SystemMenu{Model: gorm.Model{ID: input.MenuID}}
+	if err := system.GetMenu(&menu); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return system.SystemMenuAuth{}, ErrMenuNotFound
+		}
+		return system.SystemMenuAuth{}, err
+	}
 	auth := system.SystemMenuAuth{
 		MenuID: input.MenuID,
 		Mark:   input.Mark,
@@ -213,6 +267,23 @@ type UpdateMenuAuthInput struct {
 }
 
 func UpdateMenuAuth(input UpdateMenuAuthInput) (system.SystemMenuAuth, error) {
+	existing := system.SystemMenuAuth{Model: gorm.Model{ID: input.ID}}
+	if err := system.GetMenuAuth(&existing); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return system.SystemMenuAuth{}, ErrMenuAuthNotFound
+		}
+		return system.SystemMenuAuth{}, err
+	}
+	if existing.MenuID != input.MenuID {
+		return system.SystemMenuAuth{}, ErrMenuAuthMenuImmutable
+	}
+	menu := system.SystemMenu{Model: gorm.Model{ID: input.MenuID}}
+	if err := system.GetMenu(&menu); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return system.SystemMenuAuth{}, ErrMenuNotFound
+		}
+		return system.SystemMenuAuth{}, err
+	}
 	auth := system.SystemMenuAuth{
 		Model:  gorm.Model{ID: input.ID},
 		Title:  input.Title,
@@ -227,6 +298,12 @@ func UpdateMenuAuth(input UpdateMenuAuthInput) (system.SystemMenuAuth, error) {
 
 func DeleteMenuAuth(id uint) (system.SystemMenuAuth, error) {
 	auth := system.SystemMenuAuth{Model: gorm.Model{ID: id}}
+	if err := system.GetMenuAuth(&auth); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return system.SystemMenuAuth{}, ErrMenuAuthNotFound
+		}
+		return system.SystemMenuAuth{}, err
+	}
 	if err := system.DeleteMenuAuth(&auth); err != nil {
 		return system.SystemMenuAuth{}, err
 	}
@@ -250,16 +327,13 @@ func GetTenantMenuTree(tenantID uint) ([]commonmenu.MenuResponse, error) {
 }
 
 func UpdateTenantMenuScope(tenantID uint, menuData []commonmenu.MenuResponse) ([]commonmenu.MenuResponse, error) {
+	if !validateCheckedAuthMenus(menuData) {
+		return nil, ErrAuthWithoutMenu
+	}
 	menuIDs := extractCheckedMenuIDs(menuData)
 	authIDs := extractCheckedAuthIDs(menuData)
 
-	if err := system.SaveTenantMenuScope(tenantID, menuIDs); err != nil {
-		return nil, err
-	}
-	if err := system.SaveTenantAuthScope(tenantID, authIDs); err != nil {
-		return nil, err
-	}
-	if err := system.PruneTenantRoleAssociations(tenantID, menuIDs, authIDs); err != nil {
+	if err := system.SaveTenantPermissionScope(tenantID, menuIDs, authIDs); err != nil {
 		return nil, err
 	}
 
@@ -269,4 +343,3 @@ func UpdateTenantMenuScope(tenantID uint, menuData []commonmenu.MenuResponse) ([
 	}
 	return commonmenu.BuildMenuTreeWithPermission(menus, allAuths, menuIDs, authIDs, true), nil
 }
-

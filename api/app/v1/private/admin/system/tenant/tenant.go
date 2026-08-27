@@ -38,27 +38,33 @@ func FindTenant(c *gin.Context) {
 // AddTenant 添加租户
 func AddTenant(c *gin.Context) {
 	params := &struct {
-		Code    string `json:"code" form:"code" binding:"required"`
-		Name    string `json:"name" form:"name" binding:"required"`
-		Contact string `json:"contact" form:"contact"`
-		Phone   string `json:"phone" form:"phone"`
-		Email   string `json:"email" form:"email"`
-		Status  uint   `json:"status" form:"status" binding:"required"`
+		Code          string `json:"code" form:"code" binding:"required"`
+		Name          string `json:"name" form:"name" binding:"required"`
+		Contact       string `json:"contact" form:"contact"`
+		Phone         string `json:"phone" form:"phone"`
+		Email         string `json:"email" form:"email"`
+		Status        uint   `json:"status" form:"status" binding:"required"`
+		AdminName     string `json:"admin_name" form:"admin_name" binding:"required"`
+		AdminAccount  string `json:"admin_account" form:"admin_account" binding:"required,min=3,max=64"`
+		AdminPassword string `json:"admin_password" form:"admin_password" binding:"required,min=8,max=72"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
 	}
 
 	_, err := tenantdomain.AddTenant(tenantdomain.AddTenantInput{
-		Code:    params.Code,
-		Name:    params.Name,
-		Contact: params.Contact,
-		Phone:   params.Phone,
-		Email:   params.Email,
-		Status:  params.Status,
+		Code:          params.Code,
+		Name:          params.Name,
+		Contact:       params.Contact,
+		Phone:         params.Phone,
+		Email:         params.Email,
+		Status:        params.Status,
+		AdminName:     params.AdminName,
+		AdminAccount:  params.AdminAccount,
+		AdminPassword: params.AdminPassword,
 	})
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "添加租户失败")
+		ReturnDomainError(c, err, "添加租户失败")
 		return
 	}
 
@@ -89,7 +95,7 @@ func UpdateTenant(c *gin.Context) {
 		Email:   params.Email,
 		Status:  params.Status,
 	}); err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新租户失败")
+		ReturnDomainError(c, err, "更新租户失败")
 		return
 	}
 

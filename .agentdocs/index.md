@@ -6,6 +6,7 @@
 ## 后端文档
 - `backend/config.md`：记录配置加载架构、Viper/环境变量约定及安全校验要求，修改 `config` 包或 `config.yaml` 前必读。
 - `backend/admin-layering.md`：记录 admin 模块的 api/domain 分层规范、错误映射与测试约定，修改 `admin` 接口前必读。
+- `backend/admin-security.md`：记录平台根身份、租户管理员角色、事务化开户及权限范围的安全边界。
 
 ## 当前任务文档
 - 暂无

@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -49,6 +48,7 @@ func setDefaults() {
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("server.max_body_size", "10MB")
 	v.SetDefault("server.max_header_bytes", 1<<20)
+	v.SetDefault("server.trusted_proxies", []string{})
 	v.SetDefault("server.shutdown_timeout", "10s")
 	v.SetDefault("server.read_timeout", "30s")
 	v.SetDefault("server.write_timeout", "30s")
@@ -112,6 +112,7 @@ func applyConfig() error {
 	MaxBodySize = size
 
 	MaxHeaderBytes = v.GetInt("server.max_header_bytes")
+	TrustedProxies = normalizeStringList(v.GetStringSlice("server.trusted_proxies"))
 	ShutdownTimeout = v.GetDuration("server.shutdown_timeout")
 	ReadTimeout = v.GetDuration("server.read_timeout")
 	WriteTimeout = v.GetDuration("server.write_timeout")
@@ -182,6 +183,9 @@ func applyConfig() error {
 
 	// tenant
 	TenantMinQueryLength = v.GetInt("tenant.min_query_length")
+	if TenantMinQueryLength < 3 {
+		TenantMinQueryLength = 3
+	}
 	DefaultTenantCode = v.GetString("tenant.default_code")
 	if DefaultTenantCode == "" {
 		DefaultTenantCode = "platform"
@@ -190,30 +194,17 @@ func applyConfig() error {
 	return nil
 }
 
-// WatchConfig 监听配置变化
-func WatchConfig(onChange func()) {
-	if v == nil {
-		return
+func normalizeStringList(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		for _, item := range strings.FieldsFunc(value, func(r rune) bool { return r == ',' || r == ';' }) {
+			item = strings.TrimSpace(item)
+			if item != "" {
+				result = append(result, item)
+			}
+		}
 	}
-	v.WatchConfig()
-	v.OnConfigChange(func(e fsnotify.Event) {
-		zap.L().Info("配置文件发生变化，重新加载",
-			zap.String("file", e.Name),
-			zap.String("op", e.Op.String()),
-		)
-
-		// 重新应用配置
-		if err := applyConfig(); err != nil {
-			zap.L().Error("配置热加载失败", zap.Error(err))
-			return
-		}
-
-		if onChange != nil {
-			onChange()
-		}
-
-		zap.L().Info("配置热加载完成")
-	})
+	return result
 }
 
 // GetViper 返回 viper 实例

@@ -23,7 +23,7 @@ func SearchTenantCodeForLogin(c *gin.Context) {
 	result, err := userdomain.SuggestTenantForLogin(params.Code, 10)
 	if err != nil {
 		if errors.Is(err, userdomain.ErrTenantQueryTooShort) {
-			response.ReturnError(c, response.INVALID_ARGUMENT, "输入长度过短")
+			response.ReturnError(c, response.INVALID_ARGUMENT, "输入过短或仅包含通配符")
 			return
 		}
 		zap.L().Error("查询租户编码建议失败", zap.Error(err))

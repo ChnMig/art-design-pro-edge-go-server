@@ -12,6 +12,8 @@ import (
 // - 菜单（SystemMenus）与按钮权限（SystemMenuAuths）独立保存；
 // - 由上层（domain/api）负责完成“可分配范围”校验与 ID 提取。
 func SaveRoleMenuAssociations(roleID uint, menuIDs []uint, authIDs []uint) error {
+	menuIDs = uniqueUintIDs(menuIDs)
+	authIDs = uniqueUintIDs(authIDs)
 	return pgdb.GetClient().Transaction(func(tx *gorm.DB) error {
 		var role SystemRole
 		if err := tx.First(&role, roleID).Error; err != nil {
@@ -29,6 +31,9 @@ func SaveRoleMenuAssociations(roleID uint, menuIDs []uint, authIDs []uint) error
 				zap.L().Error("failed to find menus", zap.Uint("role_id", roleID), zap.Uints("menu_ids", menuIDs), zap.Error(err))
 				return err
 			}
+			if len(menus) != len(menuIDs) {
+				return gorm.ErrInvalidData
+			}
 			if err := tx.Model(&role).Association("SystemMenus").Append(&menus); err != nil {
 				zap.L().Error("failed to append menus to role", zap.Uint("role_id", roleID), zap.Error(err))
 				return err
@@ -40,10 +45,16 @@ func SaveRoleMenuAssociations(roleID uint, menuIDs []uint, authIDs []uint) error
 			return err
 		}
 		if len(authIDs) > 0 {
+			if len(menuIDs) == 0 {
+				return gorm.ErrInvalidData
+			}
 			var auths []SystemMenuAuth
-			if err := tx.Where("id IN ?", authIDs).Find(&auths).Error; err != nil {
+			if err := tx.Where("id IN ? AND menu_id IN ?", authIDs, menuIDs).Find(&auths).Error; err != nil {
 				zap.L().Error("failed to find menu auths", zap.Uint("role_id", roleID), zap.Uints("auth_ids", authIDs), zap.Error(err))
 				return err
+			}
+			if len(auths) != len(authIDs) {
+				return gorm.ErrInvalidData
 			}
 			if err := tx.Model(&role).Association("SystemMenuAuths").Append(&auths); err != nil {
 				zap.L().Error("failed to append auths to role", zap.Uint("role_id", roleID), zap.Error(err))
@@ -54,4 +65,3 @@ func SaveRoleMenuAssociations(roleID uint, menuIDs []uint, authIDs []uint) error
 		return nil
 	})
 }
-

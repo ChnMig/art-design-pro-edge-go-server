@@ -12,34 +12,67 @@ import (
 
 var (
 	client   *redis.Client
-	initOnce sync.Once
+	clientMu sync.Mutex
 )
 
 func GetClient() *redis.Client {
-	initOnce.Do(func() {
-		if err := Init(); err != nil {
-			zap.L().Fatal("redis init failed", zap.Error(err))
-		}
-	})
+	db, err := getOrInitClient(context.Background())
+	if err != nil {
+		zap.L().Fatal("redis init failed", zap.Error(err))
+	}
+	return db
+}
+
+// GetInitializedClient 返回已初始化的客户端；未初始化时返回 nil，且不会触发连接。
+func GetInitializedClient() *redis.Client {
+	clientMu.Lock()
+	defer clientMu.Unlock()
 	return client
+}
+
+// Ping 使用调用方上下文检查 Redis，初始化失败时返回错误而不是终止进程。
+func Ping(ctx context.Context) error {
+	db, err := getOrInitClient(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Ping(ctx).Err()
 }
 
 // Init 初始化 Redis 客户端连接池
 func Init() error {
-	client = redis.NewClient(&redis.Options{
+	_, err := getOrInitClient(context.Background())
+	return err
+}
+
+func getOrInitClient(ctx context.Context) (*redis.Client, error) {
+	clientMu.Lock()
+	defer clientMu.Unlock()
+	if client != nil {
+		return client, nil
+	}
+	db := redis.NewClient(&redis.Options{
 		Addr:         config.RedisHost,
 		Password:     config.RedisPassword,
 		PoolSize:     100,
 		MinIdleConns: 50,
 	})
-	if err := client.Ping(context.Background()).Err(); err != nil {
+	if err := db.Ping(ctx).Err(); err != nil {
+		_ = db.Close()
 		zap.L().Error("redis连接失败", zap.Error(err))
-		return err
+		return nil, err
 	}
-	return nil
+	client = db
+	return client, nil
 }
 
-func CloseClient() {
-	client.Close()
+func CloseClient() error {
+	clientMu.Lock()
+	defer clientMu.Unlock()
+	if client == nil {
+		return nil
+	}
+	err := client.Close()
 	client = nil
+	return err
 }

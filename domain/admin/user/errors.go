@@ -21,8 +21,12 @@ var (
 	ErrUnsafeCacheData = errors.New("unsafe cache data")
 	// ErrCannotDeleteSuperAdmin 不能删除超级管理员
 	ErrCannotDeleteSuperAdmin = errors.New("cannot delete super admin")
+	// ErrCannotModifySuperAdmin 非平台超级管理员不能修改平台根用户
+	ErrCannotModifySuperAdmin = errors.New("cannot modify super admin")
 	// ErrTenantQueryTooShort 登录页租户搜索输入过短
 	ErrTenantQueryTooShort = errors.New("tenant query too short")
 	// ErrInvalidCaptchaSize 验证码图片尺寸超出允许范围
 	ErrInvalidCaptchaSize = errors.New("invalid captcha size")
+	// ErrInvalidUserInput 用户状态或密码不符合安全要求
+	ErrInvalidUserInput = errors.New("invalid user input")
 )

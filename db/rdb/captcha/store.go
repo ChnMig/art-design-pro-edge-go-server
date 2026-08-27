@@ -3,11 +3,13 @@ package captcha
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"api-server/db/rdb"
 
 	"github.com/mojocn/base64Captcha"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -23,12 +25,40 @@ type redisStore struct {
 	prefixKey  string
 }
 
-var store base64Captcha.Store
+var verifyScript = redis.NewScript(`
+local value = redis.call("GET", KEYS[1])
+if not value then
+  return 0
+end
+if value ~= ARGV[1] then
+  return 0
+end
+if ARGV[2] == "1" then
+  redis.call("DEL", KEYS[1])
+end
+return 1
+`)
+
+var getScript = redis.NewScript(`
+local value = redis.call("GET", KEYS[1])
+if not value then
+  return false
+end
+if ARGV[1] == "1" then
+  redis.call("DEL", KEYS[1])
+end
+return value
+`)
+
+var (
+	store     base64Captcha.Store
+	storeOnce sync.Once
+)
 
 func GetRedisStore() base64Captcha.Store {
-	if store == nil {
+	storeOnce.Do(func() {
 		store = newRedisStore(DefaultRedisExpiration, DefaultRedisPrefixKey)
-	}
+	})
 	return store
 }
 
@@ -50,20 +80,30 @@ func newRedisStore(expiration time.Duration, prefixKey string) base64Captcha.Sto
 func (s *redisStore) Set(id string, value string) error {
 	c := rdb.GetClient()
 	k := fmt.Sprintf("%s-%s", s.prefixKey, id)
-	_, err := c.SetNX(context.Background(), k, value, s.expiration).Result()
+	created, err := c.SetNX(context.Background(), k, value, s.expiration).Result()
 	if err != nil {
 		zap.L().Error("redis set key", zap.Error(err))
+		return err
 	}
-	return err
+	if !created {
+		return fmt.Errorf("captcha id already exists")
+	}
+	return nil
 }
 
 // get
 func (s *redisStore) Get(id string, clear bool) string {
 	c := rdb.GetClient()
 	k := fmt.Sprintf("%s-%s", s.prefixKey, id)
-	v, err := c.Get(context.Background(), k).Result()
+	clearValue := "0"
+	if clear {
+		clearValue = "1"
+	}
+	v, err := getScript.Run(context.Background(), c, []string{k}, clearValue).Text()
 	if err != nil {
-		zap.L().Error("redis get key", zap.Error(err))
+		if err != redis.Nil {
+			zap.L().Error("redis get key", zap.Error(err))
+		}
 		return ""
 	}
 	return v
@@ -73,20 +113,14 @@ func (s *redisStore) Get(id string, clear bool) string {
 func (s *redisStore) Verify(id, answer string, clear bool) bool {
 	c := rdb.GetClient()
 	k := fmt.Sprintf("%s-%s", s.prefixKey, id)
-	v, err := c.Get(context.Background(), k).Result()
+	clearValue := "0"
+	if clear {
+		clearValue = "1"
+	}
+	verified, err := verifyScript.Run(context.Background(), c, []string{k}, answer, clearValue).Int()
 	if err != nil {
 		zap.L().Error("redis verify key", zap.Error(err))
 		return false
 	}
-	if v == answer {
-		if clear {
-			_, err = c.Del(context.Background(), k).Result()
-			if err != nil {
-				zap.L().Error("redis verify del key", zap.Error(err))
-				return false
-			}
-		}
-		return true
-	}
-	return false
+	return verified == 1
 }

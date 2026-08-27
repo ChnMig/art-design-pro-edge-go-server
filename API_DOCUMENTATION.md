@@ -81,7 +81,7 @@ Authorization: Bearer {your_jwt_token}
 ### 分页参数
 
 支持分页的接口通用参数：
-- `page` - 页码，从1开始，默认1
+- `page` - 页码，从1开始，默认1，最大10000
 - `pageSize` / `page_size` - 每页数量，默认20，最大100；零、负数或非法值按默认值处理
 
 ### 多租户支持
@@ -94,7 +94,7 @@ Authorization: Bearer {your_jwt_token}
 
 - **请求方式：** `GET`
 - **请求路径：** `/api/v1/open/health`
-- **说明：** 返回服务当前运行状态、就绪情况以及运行时长，无需鉴权。
+- **说明：** 检查 PostgreSQL 与 Redis 的实际连通性，并返回运行状态、就绪情况及运行时长，无需鉴权；任一依赖不可用时返回 HTTP 503。
 
 ---
 
@@ -141,7 +141,7 @@ Authorization: Bearer {your_jwt_token}
 {
   "tenant_code": "platform",
   "account": "admin",
-  "password": "123456",
+  "password": "StrongPass123!",
   "captcha": "1234",
   "captcha_id": "Nz0z0L7c5t9GxOXLiVWV"
 }
@@ -178,16 +178,16 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-#### 1.3 租户编码模糊查询
+#### 1.3 租户编码前缀查询
 
-**接口描述：** 登录页用，根据用户输入模糊查询租户编码，返回最多 10 条。
+**接口描述：** 登录页用，根据用户输入按字面量执行租户编码前缀查询，返回最多 10 条。
 
 **请求方式：** `GET`
 
 **请求路径：** `/api/v1/private/admin/system/user/login/tenant`
 
 **请求参数：**
-- `code` (必填) - 用户输入的租户编码片段，长度必须大于或等于系统配置的最小长度（默认 3）。
+- `code` (必填) - 用户输入的租户编码前缀，长度必须大于或等于系统配置的最小长度（最低为 3）；`%`、`_` 等字符不会被当作 SQL 通配符，纯通配符输入会被拒绝。
 
 **响应示例：**
 ```json
@@ -260,7 +260,7 @@ Authorization: Bearer {your_jwt_token}
 - `username` - 用户昵称，支持修改
 - `phone` - 手机号
 - `gender` - 性别 (1 男 / 2 女)
-- `password` - 可选，提供则更新密码
+- `password` - 可选，提供则更新密码，长度为8-72字节
 
 **响应示例：**
 ```json
@@ -382,7 +382,7 @@ Authorization: Bearer {your_jwt_token}
   "name": "新用户",
   "username": "newuser",
   "account": "newuser",
-  "password": "123456",
+  "password": "StrongPass123!",
   "phone": "13800138001",
   "gender": 1,
   "status": 1,
@@ -402,7 +402,7 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
-> 说明：`role_id` 必须为当前租户已创建的角色。
+> 说明：密码长度为8-72字节；`role_id` 与 `department_id` 必须属于当前租户且处于启用状态。
 
 #### 2.6 更新用户
 
@@ -417,18 +417,20 @@ Authorization: Bearer {your_jwt_token}
 **请求参数：**
 ```json
 {
-  "id": 1,
+  "id": 2,
   "name": "更新后姓名",
-  "username": "admin",
-  "account": "admin",
+  "username": "newuser",
+  "account": "newuser",
   "phone": "13800138000",
   "gender": 1,
   "status": 1,
-  "role_id": 1,
+  "role_id": 2,
   "department_id": 1,
-  "password": "可选"
+  "password": "可选；提供时长度为8-72字节"
 }
 ```
+
+> 平台根用户（ID 1）不能通过用户管理接口更新；其本人只能通过当前用户资料接口修改密码和个人资料。
 
 **响应示例：**
 ```json
@@ -756,8 +758,8 @@ Authorization: Bearer {your_jwt_token}
 #### 6.1 平台角色管理（超级管理员）
 
 - **获取角色列表：** `GET /api/v1/private/admin/platform/role`，需要查询参数 `tenant_id` 指定目标租户。
-- **创建角色：** `POST /api/v1/private/admin/platform/role`，请求体需包含 `tenant_id`、`name`、`status`、`desc`。
-- **更新角色：** `PUT /api/v1/private/admin/platform/role`，可调整角色名称、描述、状态以及归属租户。
+- **创建角色：** `POST /api/v1/private/admin/platform/role`，请求体需包含 `tenant_id`、`name`、`status`，`desc` 可选；仅平台接口可通过 `is_tenant_admin: true` 创建租户管理员角色。
+- **更新角色：** `PUT /api/v1/private/admin/platform/role`，可调整角色名称、描述、状态及 `is_tenant_admin`，但角色创建后不能迁移到其他租户。
 - **删除角色：** `DELETE /api/v1/private/admin/platform/role`。
 
 > 说明：平台管理员创建或修改的角色仅对指定租户生效，可用于初始化或协助运营处理。
@@ -774,6 +776,7 @@ Authorization: Bearer {your_jwt_token}
       "name": "超级管理员",
       "desc": "拥有所有权限",
       "status": 1,
+      "is_tenant_admin": true,
       "created_at": 1640995200
     }
   ],
@@ -816,6 +819,8 @@ Authorization: Bearer {your_jwt_token}
 ```
 
 > 提示：用户管理中的角色选择列表仅包含本租户创建的角色。
+
+> 角色仍被用户使用时不能禁用或删除；带 `is_tenant_admin` 标志的管理员角色不能删除。
 
 ### 7. 租户管理 **(超级管理员权限)**
 
@@ -863,7 +868,7 @@ Authorization: Bearer {your_jwt_token}
 
 #### 7.2 新增租户
 
-**接口描述：** 创建新租户
+**接口描述：** 原子创建新租户、默认部门、租户管理员角色、首个管理员账号和初始菜单/按钮权限范围
 
 **请求方式：** `POST`
 
@@ -879,7 +884,10 @@ Authorization: Bearer {your_jwt_token}
   "contact": "联系人",
   "phone": "联系电话",
   "email": "邮箱",
-  "status": 1
+  "status": 1,
+  "admin_name": "管理员姓名",
+  "admin_account": "tenant_admin",
+  "admin_password": "至少8位且不超过72字节的密码"
 }
 ```
 
@@ -907,7 +915,7 @@ Authorization: Bearer {your_jwt_token}
 **请求参数：**
 ```json
 {
-  "id": 1,
+  "id": 2,
   "code": "tenant_code",
   "name": "租户名称更新",
   "contact": "联系人",
@@ -928,6 +936,8 @@ Authorization: Bearer {your_jwt_token}
 }
 ```
 
+> 默认平台租户（ID 1）的编码不能修改，且不能被禁用。
+
 #### 7.4 删除租户
 
 **接口描述：** 删除租户
@@ -941,7 +951,7 @@ Authorization: Bearer {your_jwt_token}
 **请求参数：**
 ```json
 {
-  "id": 1
+  "id": 2
 }
 ```
 
@@ -955,6 +965,8 @@ Authorization: Bearer {your_jwt_token}
   "timestamp": 1641002400
 }
 ```
+
+> 默认平台租户（ID 1）不能删除；删除其他租户时会在同一事务中清理其用户、角色、部门、权限范围和角色关联。
 
 ### 8. 登录日志
 
@@ -1070,7 +1082,7 @@ Authorization: Bearer {your_jwt_token}
     "tenant_id": 1,
     "account": "admin",
     "exp": 1710000000,
-    "iss": "server",
+    "iss": "http-services",
     "sub": "token",
     "aud": ["client"],
     "nbf": 1709000000,
@@ -1096,7 +1108,7 @@ Authorization: Bearer {your_jwt_token}
 
 ### 5. 分页中间件
 - 统一处理分页参数
-- 页码必须大于等于1，每页数量限制为1-100
+- 页码范围为1-10000，每页数量限制为1-100
 
 ---
 
@@ -1140,6 +1152,7 @@ type SystemRole struct {
     Name     string `json:"name"`
     Desc     string `json:"desc"`
     Status   uint   `json:"status"`
+    IsTenantAdmin bool `json:"is_tenant_admin"`
 }
 ```
 
@@ -1179,8 +1192,11 @@ type SystemMenu struct {
 ### 配置文件
 配置文件位置：`./config.yaml`
 
+配置仅在启动时读取并完成安全校验，修改后必须重启服务；程序不会自动读取 `.env` 文件。
+
 **主要配置项：**
 - `server.port` - 服务端口（默认 8080）
+- `server.trusted_proxies` - 受信任反向代理的 IP/CIDR，直连部署保持为空
 - `jwt.key` - JWT 密钥（必须修改）
 - `jwt.expiration` - Token 过期时间（如 `12h`）
 - `redis.host` - Redis 地址
@@ -1211,7 +1227,9 @@ nohup ./server &
 ### Docker 部署
 ```bash
 # 启动配套服务（PostgreSQL + Redis）
-docker-compose -f docker/docker-compose.yml up -d
+cp .env.example .env
+# 修改密码后执行；数据库端口默认仅绑定本机
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 ```
 
 ---
@@ -1225,6 +1243,7 @@ docker-compose -f docker/docker-compose.yml up -d
 5. **启用日志审计**
 6. **配置 Redis 密码认证**
 7. **使用强密码策略**
+8. **请求错误日志会递归脱敏密码、令牌、Authorization（授权）头、密钥和验证码字段**
 
 ---
 
@@ -1241,21 +1260,25 @@ docker-compose -f docker/docker-compose.yml up -d
 - ✅ 请求限流保护
 - ✅ 统一错误处理
 - ✅ API 响应格式统一
+- ✅ 租户管理员角色由显式标志授权，后端不依赖固定角色 ID
+- ✅ 新租户事务化开户与依赖就绪检查
 
 ### 近期行为调整（重要）
 - GET 菜单类接口（用户菜单、角色菜单）统一按“租户菜单范围/按钮范围”过滤，包含超级管理员；
 - 更新角色菜单权限时，提交的数据统一按“角色所属租户”的范围进行校验，包含超级管理员；
-- 超级管理员仍可跨租户查看/更新角色，但选择与展示均受目标租户范围约束。
+- 超级管理员仍可跨租户查看/更新角色，但选择与展示均受目标租户范围约束；角色归属租户创建后不可修改；
+- 租户菜单范围、按钮范围及角色越权关联清理在同一事务中提交；
+- JSON Web Token（JWT）仅接受 HS256，并强制校验签发者、受众、主题和过期时间。
 
 ### 待开发功能
-- ⏳ API 层权限管制完善
+- ⏳ 业务接口细粒度权限扩展
 - ⏳ 单元测试覆盖
 - ⏳ 持续的代码优化
 - ⏳ 更多业务功能扩展
 
 ---
 
-*文档最后更新时间：2025年*
+*文档最后更新时间：2026年8月*
 #### 3.5 获取指定租户的菜单范围（带权限标记）
 
 - **请求方式：** `GET`
@@ -1279,6 +1302,8 @@ docker-compose -f docker/docker-compose.yml up -d
 ```
 
 当 `menu_data` 中某节点 `hasPermission` 为 `true` 时，该菜单会被加入该租户的范围。同时会保存被勾选的按钮权限为“租户按钮权限范围”；未勾选的按钮不会被派生为选中，即使其所属菜单被选中。
+
+按钮权限不能脱离所属菜单单独勾选，否则请求会被拒绝；菜单范围、按钮范围和角色关联清理在同一个数据库事务中提交。
 
 > 同步清理规则：
 > - 平台更新租户“菜单范围/按钮范围”成功后，系统会自动清理该租户下所有角色中超出新范围的关联：

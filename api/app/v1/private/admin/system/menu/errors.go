@@ -24,8 +24,9 @@ func ReturnDomainError(c *gin.Context, err error, fallback string) {
 		response.ReturnError(c, response.PERMISSION_DENIED, "菜单超出可分配范围")
 	case errors.Is(err, menudomain.ErrAuthOutOfScope):
 		response.ReturnError(c, response.PERMISSION_DENIED, "按钮权限超出可分配范围")
+	case errors.Is(err, menudomain.ErrAuthWithoutMenu):
+		response.ReturnError(c, response.INVALID_ARGUMENT, "按钮权限必须与所属菜单一起授权")
 	default:
 		response.ReturnError(c, response.DATA_LOSS, fallback)
 	}
 }
-

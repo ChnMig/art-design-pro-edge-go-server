@@ -87,6 +87,7 @@ func TestSetup_Disabled(t *testing.T) {
 	srv := &http.Server{}
 
 	ctx := Setup(srv)
+	t.Cleanup(ctx.Close)
 	if ctx == nil {
 		t.Fatalf("Setup() 返回 nil")
 	}
@@ -120,6 +121,7 @@ func TestSetup_Enabled(t *testing.T) {
 	}
 
 	ctx := Setup(srv)
+	t.Cleanup(ctx.Close)
 	if ctx == nil {
 		t.Fatalf("Setup() 返回 nil")
 	}
@@ -160,6 +162,7 @@ func TestSetup_ReloadOnFileChange(t *testing.T) {
 	}
 
 	ctx := Setup(srv)
+	t.Cleanup(ctx.Close)
 	if ctx == nil {
 		t.Fatalf("Setup() 返回 nil")
 	}

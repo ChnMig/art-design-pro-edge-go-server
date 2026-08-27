@@ -60,6 +60,7 @@ func CacheAllUsers() error {
 
 	// 使用管道批量操作，提高效率
 	pipe := client.Pipeline()
+	activeKeys := make(map[string]struct{}, len(users))
 
 	// 缓存用户列表
 	var userList []UserCacheInfo
@@ -83,7 +84,20 @@ func CacheAllUsers() error {
 			zap.L().Error("序列化用户信息失败", zap.Error(err))
 			continue
 		}
-		pipe.Set(ctx, UserInfoKey+strconv.FormatUint(uint64(user.ID), 10), userJSON, UserCacheExpiration)
+		key := UserInfoKey + strconv.FormatUint(uint64(user.ID), 10)
+		activeKeys[key] = struct{}{}
+		pipe.Set(ctx, key, userJSON, UserCacheExpiration)
+	}
+
+	// 删除数据库中已不存在用户的单条缓存，避免软删除后继续命中旧数据。
+	iterator := client.Scan(ctx, 0, UserInfoKey+"*", 0).Iterator()
+	for iterator.Next(ctx) {
+		if _, active := activeKeys[iterator.Val()]; !active {
+			pipe.Del(ctx, iterator.Val())
+		}
+	}
+	if err := iterator.Err(); err != nil {
+		return err
 	}
 
 	// 缓存完整用户列表
@@ -102,6 +116,46 @@ func CacheAllUsers() error {
 	}
 
 	zap.L().Info("已成功缓存所有用户信息到Redis", zap.Int("用户数量", len(users)))
+	return nil
+}
+
+// InvalidateUserCache 使指定用户和全量列表缓存立即失效。
+func InvalidateUserCache(userID uint) error {
+	client := rdb.GetInitializedClient()
+	if client == nil {
+		return nil
+	}
+	keys := []string{UserListKey}
+	if userID != 0 {
+		keys = append(keys, UserInfoKey+strconv.FormatUint(uint64(userID), 10))
+	}
+	if err := client.Del(context.Background(), keys...).Err(); err != nil {
+		zap.L().Error("用户缓存失效失败", zap.Uint("user_id", userID), zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// InvalidateAllUserCaches 删除所有用户缓存，用于角色名称等批量影响场景。
+func InvalidateAllUserCaches() error {
+	client := rdb.GetInitializedClient()
+	if client == nil {
+		return nil
+	}
+	ctx := context.Background()
+	keys := []string{UserListKey}
+	iterator := client.Scan(ctx, 0, UserInfoKey+"*", 0).Iterator()
+	for iterator.Next(ctx) {
+		keys = append(keys, iterator.Val())
+	}
+	if err := iterator.Err(); err != nil {
+		zap.L().Error("扫描用户缓存失败", zap.Error(err))
+		return err
+	}
+	if err := client.Del(ctx, keys...).Err(); err != nil {
+		zap.L().Error("清理全部用户缓存失败", zap.Error(err))
+		return err
+	}
 	return nil
 }
 

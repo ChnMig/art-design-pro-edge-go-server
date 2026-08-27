@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"api-server/db/pgdb/system"
+	systemuser "api-server/db/rdb/systemUser"
 
 	"gorm.io/gorm"
 )
@@ -44,6 +45,10 @@ func AddUser(tenantID uint, input AddUserInput) error {
 	if tenantID == 0 {
 		return ErrInvalidTenantContext
 	}
+	if len(input.Password) < 8 || len(input.Password) > 72 ||
+		(input.Status != system.StatusEnabled && input.Status != system.StatusDisabled) {
+		return ErrInvalidUserInput
+	}
 	if err := validateTenantAssignments(tenantID, input.RoleID, input.DepartmentID); err != nil {
 		return err
 	}
@@ -60,7 +65,11 @@ func AddUser(tenantID uint, input AddUserInput) error {
 		RoleID:       input.RoleID,
 		DepartmentID: input.DepartmentID,
 	}
-	return system.AddUser(&u)
+	if err := system.AddUser(&u); err != nil {
+		return err
+	}
+	_ = systemuser.InvalidateUserCache(0)
+	return nil
 }
 
 type UpdateUserInput struct {
@@ -79,6 +88,13 @@ type UpdateUserInput struct {
 func UpdateUser(tenantID uint, input UpdateUserInput) error {
 	if tenantID == 0 {
 		return ErrInvalidTenantContext
+	}
+	if input.ID == 1 && tenantID == system.DefaultTenantID {
+		return ErrCannotModifySuperAdmin
+	}
+	if (input.Password != "" && (len(input.Password) < 8 || len(input.Password) > 72)) ||
+		(input.Status != system.StatusEnabled && input.Status != system.StatusDisabled) {
+		return ErrInvalidUserInput
 	}
 	if err := validateTenantAssignments(tenantID, input.RoleID, input.DepartmentID); err != nil {
 		return err
@@ -109,6 +125,7 @@ func UpdateUser(tenantID uint, input UpdateUserInput) error {
 		}
 		return err
 	}
+	_ = systemuser.InvalidateUserCache(input.ID)
 	return nil
 }
 
@@ -120,6 +137,9 @@ func validateTenantAssignments(tenantID, roleID, departmentID uint) error {
 		}
 		return err
 	}
+	if roleEntity.Status != system.StatusEnabled {
+		return ErrRoleNotInTenant
+	}
 
 	departmentEntity := system.SystemDepartment{Model: gorm.Model{ID: departmentID}, TenantID: tenantID}
 	if err := system.GetDepartment(&departmentEntity); err != nil {
@@ -127,6 +147,9 @@ func validateTenantAssignments(tenantID, roleID, departmentID uint) error {
 			return ErrDepartmentNotInTenant
 		}
 		return err
+	}
+	if departmentEntity.Status != system.StatusEnabled {
+		return ErrDepartmentNotInTenant
 	}
 	return nil
 }
@@ -148,6 +171,7 @@ func DeleteUser(tenantID, id uint) error {
 		}
 		return err
 	}
+	_ = systemuser.InvalidateUserCache(id)
 	return nil
 }
 

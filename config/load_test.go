@@ -122,3 +122,13 @@ func TestGetViper(t *testing.T) {
 		t.Fatalf("GetViper() did not return the expected viper instance")
 	}
 }
+
+func TestTenantMinimumQueryLengthCannotBeWeakened(t *testing.T) {
+	t.Setenv("HTTP_SERVICES_TENANT_MIN_QUERY_LENGTH", "1")
+	if err := LoadConfig(); err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	if TenantMinQueryLength != 3 {
+		t.Fatalf("TenantMinQueryLength = %d, want 3", TenantMinQueryLength)
+	}
+}

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"strings"
 	"unicode/utf8"
 
 	"api-server/config"
@@ -73,7 +74,15 @@ type TenantSuggestion struct {
 }
 
 func SuggestTenantForLogin(code string, limit int) ([]TenantSuggestion, error) {
-	if utf8.RuneCountInString(code) < config.TenantMinQueryLength {
+	code = strings.TrimSpace(code)
+	minLength := config.TenantMinQueryLength
+	if minLength < 1 {
+		minLength = 3
+	}
+	if utf8.RuneCountInString(code) < minLength {
+		return nil, ErrTenantQueryTooShort
+	}
+	if strings.Trim(code, "%_\\ ") == "" {
 		return nil, ErrTenantQueryTooShort
 	}
 

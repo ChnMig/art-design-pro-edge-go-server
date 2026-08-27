@@ -85,7 +85,7 @@ func AddRole(c *gin.Context) {
 		Desc:     params.Desc,
 	})
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "添加角色失败")
+		ReturnDomainError(c, err, "添加角色失败")
 		return
 	}
 	response.ReturnData(c, role)
@@ -133,7 +133,7 @@ func UpdateRole(c *gin.Context) {
 		Desc:     params.Desc,
 	})
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新角色失败")
+		ReturnDomainError(c, err, "更新角色失败")
 		return
 	}
 	response.ReturnData(c, updatedRole)

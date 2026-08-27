@@ -9,9 +9,20 @@ import (
 )
 
 func UpdateRole(role *SystemRole) error {
-	if err := pgdb.GetClient().Updates(&role).Error; err != nil {
+	if role.ID == 0 || role.TenantID == 0 {
+		return gorm.ErrInvalidData
+	}
+	result := pgdb.GetClient().Model(&SystemRole{}).
+		Where("id = ? AND tenant_id = ?", role.ID, role.TenantID).
+		Select("name", "desc", "status", "is_tenant_admin").
+		Updates(role)
+	if result.Error != nil {
+		err := result.Error
 		zap.L().Error("failed to update role", zap.Error(err))
 		return err
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }
@@ -25,11 +36,26 @@ func AddRole(role *SystemRole) error {
 }
 
 func DeleteRole(role *SystemRole) error {
-	if err := pgdb.GetClient().Delete(&role).Error; err != nil {
-		zap.L().Error("failed to delete role", zap.Error(err))
-		return err
+	if role.ID == 0 || role.TenantID == 0 {
+		return gorm.ErrInvalidData
 	}
-	return nil
+	return pgdb.GetClient().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("DELETE FROM system_roles__system_menus WHERE system_role_id = ?", role.ID).Error; err != nil {
+			return err
+		}
+		if err := tx.Exec("DELETE FROM system_roles__system_auths WHERE system_role_id = ?", role.ID).Error; err != nil {
+			return err
+		}
+		result := tx.Where("id = ? AND tenant_id = ?", role.ID, role.TenantID).Delete(&SystemRole{})
+		if result.Error != nil {
+			zap.L().Error("failed to delete role", zap.Error(result.Error))
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
 }
 
 // GetRole 获取单个角色信息
@@ -39,6 +65,21 @@ func GetRole(role *SystemRole) error {
 		return err
 	}
 	return nil
+}
+
+// CountUsersByRoleID 统计租户内仍在使用指定角色的用户数量。
+func CountUsersByRoleID(tenantID, roleID uint) (int64, error) {
+	if tenantID == 0 || roleID == 0 {
+		return 0, gorm.ErrInvalidData
+	}
+	var count int64
+	if err := pgdb.GetClient().Model(&SystemUser{}).
+		Where("tenant_id = ? AND role_id = ?", tenantID, roleID).
+		Count(&count).Error; err != nil {
+		zap.L().Error("failed to count users by role", zap.Error(err))
+		return 0, err
+	}
+	return count, nil
 }
 
 // FindAllRoles 查询所有角色

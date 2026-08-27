@@ -24,6 +24,7 @@ func TestGetPageRejectsNonPositiveValues(t *testing.T) {
 		want     int
 	}{
 		{name: "正常页码", rawQuery: "page=3", want: 3},
+		{name: "超过上限", rawQuery: "page=99999999", want: config.MaxPage},
 		{name: "零", rawQuery: "page=0", want: config.DefaultPage},
 		{name: "负数", rawQuery: "page=-1", want: config.DefaultPage},
 		{name: "非数字", rawQuery: "page=abc", want: config.DefaultPage},

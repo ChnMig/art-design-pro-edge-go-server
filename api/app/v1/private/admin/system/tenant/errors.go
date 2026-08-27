@@ -18,6 +18,10 @@ func ReturnDomainError(c *gin.Context, err error, fallback string) {
 	switch {
 	case errors.Is(err, tenantdomain.ErrTenantNotFound):
 		response.ReturnError(c, response.DATA_LOSS, "租户不存在")
+	case errors.Is(err, tenantdomain.ErrDefaultTenantProtected):
+		response.ReturnError(c, response.FAILED_PRECONDITION, "默认平台租户编码不能修改，且不能删除或禁用")
+	case errors.Is(err, tenantdomain.ErrInvalidTenantInput):
+		response.ReturnError(c, response.INVALID_ARGUMENT, "租户参数不符合安全要求")
 	default:
 		response.ReturnError(c, response.DATA_LOSS, fallback)
 	}

@@ -156,9 +156,9 @@ func GetMenuAuthList(c *gin.Context) {
 
 func AddMenuAuth(c *gin.Context) {
 	params := &struct {
-		MenuID uint   `json:"menu_id"`
-		Mark   string `json:"mark"`
-		Title  string `json:"title"`
+		MenuID uint   `json:"menu_id" binding:"required"`
+		Mark   string `json:"mark" binding:"required"`
+		Title  string `json:"title" binding:"required"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -170,7 +170,7 @@ func AddMenuAuth(c *gin.Context) {
 		Title:  params.Title,
 	})
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "添加菜单权限失败")
+		ReturnDomainError(c, err, "添加菜单权限失败")
 		return
 	}
 	response.ReturnData(c, auth)
@@ -178,10 +178,10 @@ func AddMenuAuth(c *gin.Context) {
 
 func UpdateMenuAuth(c *gin.Context) {
 	params := &struct {
-		ID     uint   `json:"id"`
-		Title  string `json:"title"`
-		Mark   string `json:"mark"`
-		MenuID uint   `json:"menu_id"`
+		ID     uint   `json:"id" binding:"required"`
+		Title  string `json:"title" binding:"required"`
+		Mark   string `json:"mark" binding:"required"`
+		MenuID uint   `json:"menu_id" binding:"required"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
@@ -194,7 +194,7 @@ func UpdateMenuAuth(c *gin.Context) {
 		MenuID: params.MenuID,
 	})
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新菜单权限失败")
+		ReturnDomainError(c, err, "更新菜单权限失败")
 		return
 	}
 	response.ReturnData(c, auth)
@@ -209,7 +209,7 @@ func DeleteMenuAuth(c *gin.Context) {
 	}
 	auth, err := menudomain.DeleteMenuAuth(params.ID)
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "删除菜单权限失败")
+		ReturnDomainError(c, err, "删除菜单权限失败")
 		return
 	}
 	response.ReturnData(c, auth)
@@ -259,7 +259,7 @@ func UpdateTenantMenu(c *gin.Context) {
 	// 从全量树中直接提取被勾选的菜单与按钮权限
 	tree, err := menudomain.UpdateTenantMenuScope(req.TenantID, menuData)
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "更新租户菜单范围失败")
+		ReturnDomainError(c, err, "更新租户菜单范围失败")
 		return
 	}
 	response.ReturnData(c, tree)

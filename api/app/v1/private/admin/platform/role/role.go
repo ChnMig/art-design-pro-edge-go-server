@@ -47,22 +47,24 @@ func GetRoleList(c *gin.Context) {
 
 func AddRole(c *gin.Context) {
 	params := &struct {
-		TenantID uint   `json:"tenant_id" binding:"required"`
-		Name     string `json:"name" form:"name" binding:"required"`
-		Status   int    `json:"status" form:"status" binding:"required"`
-		Desc     string `json:"desc" form:"desc"`
+		TenantID      uint   `json:"tenant_id" binding:"required"`
+		Name          string `json:"name" form:"name" binding:"required"`
+		Status        int    `json:"status" form:"status" binding:"required"`
+		Desc          string `json:"desc" form:"desc"`
+		IsTenantAdmin bool   `json:"is_tenant_admin" form:"is_tenant_admin"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
 	}
 	role, err := roledomain.AddRole(roledomain.AddInput{
-		TenantID: params.TenantID,
-		Name:     params.Name,
-		Status:   uint(params.Status),
-		Desc:     params.Desc,
+		TenantID:      params.TenantID,
+		Name:          params.Name,
+		Status:        uint(params.Status),
+		Desc:          params.Desc,
+		IsTenantAdmin: params.IsTenantAdmin,
 	})
 	if err != nil {
-		response.ReturnError(c, response.DATA_LOSS, "添加角色失败")
+		ReturnDomainError(c, err, "添加角色失败")
 		return
 	}
 	response.ReturnData(c, role)
@@ -70,21 +72,23 @@ func AddRole(c *gin.Context) {
 
 func UpdateRole(c *gin.Context) {
 	params := &struct {
-		ID       uint   `json:"id" form:"id" binding:"required"`
-		TenantID uint   `json:"tenant_id"`
-		Name     string `json:"name" form:"name" binding:"required"`
-		Status   int    `json:"status" form:"status" binding:"required"`
-		Desc     string `json:"desc" form:"desc"`
+		ID            uint   `json:"id" form:"id" binding:"required"`
+		TenantID      uint   `json:"tenant_id"`
+		Name          string `json:"name" form:"name" binding:"required"`
+		Status        int    `json:"status" form:"status" binding:"required"`
+		Desc          string `json:"desc" form:"desc"`
+		IsTenantAdmin *bool  `json:"is_tenant_admin" form:"is_tenant_admin"`
 	}{}
 	if !middleware.CheckParam(params, c) {
 		return
 	}
 	role, err := roledomain.UpdateRole(roledomain.UpdateInput{
-		ID:       params.ID,
-		TenantID: params.TenantID,
-		Name:     params.Name,
-		Status:   uint(params.Status),
-		Desc:     params.Desc,
+		ID:            params.ID,
+		TenantID:      params.TenantID,
+		Name:          params.Name,
+		Status:        uint(params.Status),
+		Desc:          params.Desc,
+		IsTenantAdmin: params.IsTenantAdmin,
 	})
 	if err != nil {
 		ReturnDomainError(c, err, "更新角色失败")

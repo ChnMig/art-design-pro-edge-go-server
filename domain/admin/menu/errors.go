@@ -18,10 +18,19 @@ var (
 	ErrMenuHasChildren = errors.New("menu has children")
 	// ErrDisableMenuWithEnabledChild 请先禁用子菜单
 	ErrDisableMenuWithEnabledChild = errors.New("disable menu with enabled child")
+	// ErrMenuCycle 菜单父子关系形成环
+	ErrMenuCycle = errors.New("menu hierarchy cycle")
+	// ErrMenuAuthNotFound 菜单按钮权限不存在
+	ErrMenuAuthNotFound = errors.New("menu auth not found")
+	// ErrMenuAuthMenuImmutable 按钮权限创建后不能迁移到其他菜单
+	ErrMenuAuthMenuImmutable = errors.New("menu auth menu is immutable")
+	// ErrInvalidMenuStatus 菜单状态只能为启用或禁用
+	ErrInvalidMenuStatus = errors.New("invalid menu status")
 
 	// ErrMenuOutOfScope 菜单超出可分配范围
 	ErrMenuOutOfScope = errors.New("menu out of scope")
 	// ErrAuthOutOfScope 按钮权限超出可分配范围
 	ErrAuthOutOfScope = errors.New("auth out of scope")
+	// ErrAuthWithoutMenu 按钮权限不能脱离所属菜单单独授权
+	ErrAuthWithoutMenu = errors.New("auth requires selected menu")
 )
-

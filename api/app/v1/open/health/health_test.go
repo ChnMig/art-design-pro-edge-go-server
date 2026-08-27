@@ -2,11 +2,15 @@ package health
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
+
+	domain "api-server/domain/health"
 )
 
 func setupTestRouter() *gin.Engine {
@@ -22,6 +26,11 @@ type statusResponse struct {
 }
 
 func TestStatus(t *testing.T) {
+	original := getStatus
+	getStatus = func() (domain.Status, error) {
+		return domain.Status{Status: "ok", Ready: true, Uptime: time.Second, Timestamp: time.Now().Unix()}, nil
+	}
+	t.Cleanup(func() { getStatus = original })
 	router := setupTestRouter()
 	router.GET("/health", Status)
 
@@ -57,5 +66,21 @@ func TestStatus(t *testing.T) {
 	}
 	if resp.Data.Timestamp == 0 {
 		t.Errorf("Status() missing timestamp field")
+	}
+}
+
+func TestStatusReturnsHTTP503WhenDependencyFails(t *testing.T) {
+	original := getStatus
+	getStatus = func() (domain.Status, error) {
+		return domain.Status{Status: "unavailable", Ready: false}, errors.New("依赖不可用")
+	}
+	t.Cleanup(func() { getStatus = original })
+
+	router := setupTestRouter()
+	router.GET("/health", Status)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/health", nil))
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("Status() status code = %d, want %d", w.Code, http.StatusServiceUnavailable)
 	}
 }
